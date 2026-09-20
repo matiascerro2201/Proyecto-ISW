@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Evaluar Planificación</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f7f6; }
+        .container { max-width: 650px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .alert { color: #155724; background-color: #d4edda; padding: 10px; border-radius: 4px; font-weight: bold; margin-bottom: 15px;}
+        .error { color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 4px; font-weight: bold; margin-bottom: 15px;}
+        textarea { width: 100%; height: 120px; margin-top: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; }
+        button { margin-top: 15px; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;}
+        .btn-aprobar { background-color: #28a745; color: white; margin-right: 10px; }
+        .btn-rechazar { background-color: #dc3545; color: white; }
+        .btn-aprobar:hover { background-color: #218838; }
+        .btn-rechazar:hover { background-color: #c82333; }
+        .info-box { background-color: #e9ecef; padding: 15px; border-left: 4px solid #007bff; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Evaluación de Planificación</h2>
+    <a th:href="@{/planificaciones/pendientes}" style="display:inline-block; margin-bottom:15px; color:#007bff; text-decoration:none;">← Volver a pendientes</a>
+
+    <div th:if="${param.exito}" class="alert">
+        ✅ Evaluación guardada exitosamente.
+    </div>
+    <div th:if="${error}" class="error" th:text="'❌ ' + ${error}"></div>
+
+    <p><strong>Estado actual:</strong> <span th:text="${planificacion.estado}"></span></p>
+    <p><strong>Fecha de envío original:</strong> <span th:text="${planificacion.fechaEnvio}"></span></p>
+    
+    <div class="info-box">
+        <h4>Contenido de la Planificación:</h4>
+        <p th:text="${planificacion.contenido}"></p>
+    </div>
+
+    <!-- El formulario solo aparece si el estado es ENVIADA -->
+    <form th:action="@{/planificaciones/{id}/evaluar(id=${planificacion.idPlanificacion})}" method="post" th:if="${planificacion.estado.name() == 'ENVIADA'}">
+        <label for="retroalimentacion"><strong>Escriba su retroalimentación (Obligatorio para rechazar):</strong></label>
+        <textarea id="retroalimentacion" name="retroalimentacion" placeholder="Detalle aquí las correcciones o comentarios..."></textarea>
+
+        <div>
+            <button type="submit" name="estado" value="APROBADA" class="btn-aprobar">Aprobar Planificación</button>
+            <button type="submit" name="estado" value="RECHAZADA" class="btn-rechazar">Rechazar Planificación</button>
+        </div>
+    </form>
+    
+    <div th:if="${planificacion.estado.name() != 'ENVIADA'}">
+        <hr>
+        <h3>Retroalimentación entregada:</h3>
+        <p th:text="${planificacion.retroalimentacion}"></p>
+        <p><small>Fecha de evaluación: <span th:text="${planificacion.fechaRetro}"></span></small></p>
+    </div>
+</div>
+
+</body>
+</html>
