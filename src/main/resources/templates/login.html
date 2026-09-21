@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iniciar sesión · Prácticas Pedagógicas</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 360px; margin: 4rem auto; padding: 0 1rem; }
+        label { display: block; margin-bottom: .75rem; }
+        input { display: block; width: 100%; padding: .5rem; margin-top: .25rem; box-sizing: border-box; }
+        button { padding: .5rem 1rem; }
+        .error { color: #b00020; }
+        .ok { color: #1b5e20; }
+    </style>
+</head>
+<body>
+    <h1>Prácticas Pedagógicas</h1>
+
+    <p class="error" th:if="${param.error}">Correo o contraseña incorrectos.</p>
+    <p class="ok" th:if="${param.logout}">Sesión cerrada correctamente.</p>
+
+    <!-- th:action agrega automáticamente el token CSRF -->
+    <form th:action="@{/login}" method="post">
+        <label>Correo
+            <input type="email" name="username" required autofocus>
+        </label>
+        <label>Contraseña
+            <input type="password" name="password" required>
+        </label>
+        <button type="submit">Ingresar</button>
+    </form>
+</body>
+</html>

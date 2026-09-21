@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inicio · Prácticas Pedagógicas</title>
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<main>
+    <h1>Prácticas Pedagógicas</h1>
+
+    <p>
+        Sesión iniciada como
+        <strong sec:authentication="principal.nombre">Nombre</strong>
+        (<span sec:authentication="principal.rol">ROL</span>)
+    </p>
+
+    <!-- Enlaces por rol. Cada integrante agrega los suyos con sec:authorize. -->
+    <ul>
+        <li sec:authorize="hasRole('ESTUDIANTE')">
+            <a th:href="@{/mis-pautas}">Pautas de evaluación</a>
+        </li>
+        <li sec:authorize="hasRole('ESTUDIANTE')">
+            <a th:href="@{/mis-informes}">Mis informes finales</a>
+        </li>
+    </ul>
+
+    <form th:action="@{/logout}" method="post">
+        <button type="submit">Cerrar sesión</button>
+    </form>
+</main>
+</body>
+</html>
