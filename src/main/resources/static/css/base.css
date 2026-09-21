@@ -1,0 +1,69 @@
+/* Estilos base compartidos. Intencionalmente mínimos: el equipo puede reemplazarlos
+   por su propia hoja o por Bootstrap sin tocar las plantillas. */
+
+:root {
+    --texto: #1f2933;
+    --fondo: #ffffff;
+    --borde: #d5dbe1;
+    --enlace: #1a4f8b;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--texto);
+    background: var(--fondo);
+    line-height: 1.55;
+}
+
+main {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 2rem 1rem 3rem;
+}
+
+h1 { font-size: 1.6rem; margin: 0 0 .25rem; line-height: 1.25; }
+h2 { font-size: 1.15rem; margin: 1.5rem 0 .25rem; }
+
+a { color: var(--enlace); }
+a:focus-visible, button:focus-visible {
+    outline: 3px solid var(--enlace);
+    outline-offset: 2px;
+}
+
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th, td { text-align: left; padding: .65rem .5rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
+.tabla-scroll { overflow-x: auto; }
+
+dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .5rem 1.5rem;
+    margin: 1.5rem 0;
+}
+dt { font-weight: 600; }
+dd { margin: 0; }
+.nota { font-size: 1.5rem; font-weight: 700; }
+
+/* Texto solo para lectores de pantalla */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 30rem) {
+    dl { grid-template-columns: 1fr; }
+    dd { margin-bottom: .5rem; }
+}
+
+h3 { font-size: 1rem; margin: 1.25rem 0 0; }
+.pauta { margin-top: 2rem; padding-top: .5rem; border-top: 1px solid var(--borde); }

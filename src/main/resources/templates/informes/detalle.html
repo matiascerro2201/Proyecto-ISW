@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mi informe final</title>
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<main>
+    <p><a th:href="@{/mis-informes}">Volver a mis informes finales</a></p>
+
+    <h1>Mi informe final</h1>
+    <p>
+        <strong th:text="${informe.nombreAsignatura}">Práctica Pedagógica</strong><br>
+        <span th:text="|Semestre ${informe.semestre} de ${informe.anio}|">Semestre 2 de 2026</span>
+    </p>
+
+    <dl>
+        <dt>Calificación final</dt>
+        <dd class="nota"
+            th:text="${informe.calificacionFinal != null
+                       ? #numbers.formatDecimal(informe.calificacionFinal, 1, 'POINT', 1, 'COMMA')
+                       : 'Sin nota'}">6,5</dd>
+
+        <dt>Informe generado</dt>
+        <dd th:text="${informe.fechaGeneracion != null
+                       ? #temporals.format(informe.fechaGeneracion, 'dd/MM/yyyy HH:mm')
+                       : 'Sin registro'}">01/09/2026 10:00</dd>
+
+        <dt>Validado por el profesor</dt>
+        <dd th:text="${informe.fechaValidacion != null
+                       ? #temporals.format(informe.fechaValidacion, 'dd/MM/yyyy HH:mm')
+                       : 'Sin registro'}">05/09/2026 15:30</dd>
+
+        <dt>Publicado</dt>
+        <dd th:text="${#temporals.format(informe.fechaPublicacion, 'dd/MM/yyyy HH:mm')}">08/09/2026 09:00</dd>
+    </dl>
+</main>
+</body>
+</html>
