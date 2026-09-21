@@ -26,6 +26,9 @@
         <li sec:authorize="hasRole('ESTUDIANTE')">
             <a th:href="@{/mis-informes}">Mis informes finales</a>
         </li>
+        <li sec:authorize="hasRole('COLABORADOR')">
+            <a th:href="@{/colaborador/lineas}">Mis estudiantes</a>
+        </li>
     </ul>
 
     <form th:action="@{/logout}" method="post">
