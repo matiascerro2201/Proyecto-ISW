@@ -1,7 +1,8 @@
 package com.grupo1.isw.practicas_pedagogicas.security;
 
 import com.grupo1.isw.practicas_pedagogicas.models.Usuario;
-import com.grupo1.isw.practicas_pedagogicas.repository.UsuarioRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.UsuarioRepository;
+
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

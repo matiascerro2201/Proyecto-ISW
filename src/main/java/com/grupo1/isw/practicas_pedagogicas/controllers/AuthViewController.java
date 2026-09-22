@@ -1,4 +1,4 @@
-package com.grupo1.isw.practicas_pedagogicas.controller;
+package com.grupo1.isw.practicas_pedagogicas.controllers;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,8 +1,9 @@
-package com.grupo1.isw.practicas_pedagogicas.controller;
+package com.grupo1.isw.practicas_pedagogicas.controllers;
 
 import com.grupo1.isw.practicas_pedagogicas.dto.PautasAsignaturaResponse;
 import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
-import com.grupo1.isw.practicas_pedagogicas.service.PautaConsultaService;
+import com.grupo1.isw.practicas_pedagogicas.services.PautaConsultaService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
