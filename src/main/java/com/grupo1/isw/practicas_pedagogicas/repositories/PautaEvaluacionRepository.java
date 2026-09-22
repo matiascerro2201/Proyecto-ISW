@@ -7,9 +7,6 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-/**
- * Si Josué (HU-02) ya creó este repositorio, agrega este método al suyo en vez de duplicarlo.
- */
 public interface PautaEvaluacionRepository extends JpaRepository<PautaEvaluacion, Long> {
 
     /** Todas las pautas (plantillas) de una asignatura. El esquema no tiene campo de vigencia. */

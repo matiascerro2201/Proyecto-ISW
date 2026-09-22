@@ -8,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
 
-
 public interface CriterioRepository extends JpaRepository<Criterio, Long> {
 
     /** Criterios de varias dimensiones en una sola consulta, ordenados por el campo orden. */

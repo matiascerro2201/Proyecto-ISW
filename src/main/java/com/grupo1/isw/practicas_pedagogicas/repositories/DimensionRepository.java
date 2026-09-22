@@ -8,7 +8,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
 
-
 public interface DimensionRepository extends JpaRepository<Dimension, Long> {
 
     /** Dimensiones de varias pautas en una sola consulta, ordenadas por el campo orden. */

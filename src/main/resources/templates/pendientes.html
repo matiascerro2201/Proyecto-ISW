@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Planificaciones pendientes</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f7f6; }
+        .container { max-width: 900px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .subtitulo { color: #555; margin-top: -8px; margin-bottom: 20px; }
+        .vacio { background-color: #e9ecef; padding: 15px; border-left: 4px solid #007bff; }
+        .tabla-scroll { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #dee2e6; vertical-align: top; }
+        th { background-color: #e9ecef; font-size: 14px; }
+        .btn-evaluar { display: inline-block; padding: 8px 16px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: bold; white-space: nowrap; }
+        .btn-evaluar:hover { background-color: #0069d9; }
+        .btn-evaluar:focus-visible { outline: 3px solid #80bdff; outline-offset: 2px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Planificaciones pendientes de evaluación</h2>
+    <p class="subtitulo">Ordenadas de la más antigua a la más reciente.</p>
+
+    <div th:if="${#lists.isEmpty(planificaciones)}" class="vacio">
+        No tienes planificaciones por evaluar. Cuando un estudiante envíe una, aparecerá aquí.
+    </div>
+
+    <div th:unless="${#lists.isEmpty(planificaciones)}" class="tabla-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">Estudiante</th>
+                    <th scope="col">Línea</th>
+                    <th scope="col">Enviada</th>
+                    <th scope="col">Contenido</th>
+                    <th scope="col"><span style="position:absolute; left:-9999px;">Acción</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="p : ${planificaciones}">
+                    <td th:text="${p.linea?.inscripcion?.estudiante?.nombre}">Nombre del estudiante</td>
+                    <td th:text="${p.linea?.tipo}">ESPECIALIDAD</td>
+                    <td th:text="${#temporals.format(p.fechaEnvio, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+                    <td th:text="${#strings.abbreviate(p.contenido, 90)}">Resumen del contenido</td>
+                    <td>
+                        <a class="btn-evaluar"
+                           th:href="@{/planificaciones/{id}/evaluar(id=${p.idPlanificacion})}">Evaluar</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>
