@@ -1,10 +1,9 @@
-package com.grupo1.isw.practicas_pedagogicas.repository;
+package com.grupo1.isw.practicas_pedagogicas.repositories;
 
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,7 +11,6 @@ import java.util.Optional;
 /**
  * Si un compañero ya creó este repositorio, no lo dupliques: agrega estos dos métodos al suyo.
  */
-@Repository
 public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Long> {
 
     /** Líneas de un colaborador, con estudiante y asignatura cargados, de la más reciente a la más antigua. */

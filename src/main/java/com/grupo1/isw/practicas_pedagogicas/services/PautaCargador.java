@@ -1,9 +1,10 @@
-package com.grupo1.isw.practicas_pedagogicas.service;
+package com.grupo1.isw.practicas_pedagogicas.services;
 
 import com.grupo1.isw.practicas_pedagogicas.models.Criterio;
 import com.grupo1.isw.practicas_pedagogicas.models.Dimension;
-import com.grupo1.isw.practicas_pedagogicas.repository.CriterioRepository;
-import com.grupo1.isw.practicas_pedagogicas.repository.DimensionRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.CriterioRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.DimensionRepository;
+
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;

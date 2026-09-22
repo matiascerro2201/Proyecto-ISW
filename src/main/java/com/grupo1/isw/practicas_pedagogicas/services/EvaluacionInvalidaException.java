@@ -1,4 +1,4 @@
-package com.grupo1.isw.practicas_pedagogicas.service;
+package com.grupo1.isw.practicas_pedagogicas.services;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;

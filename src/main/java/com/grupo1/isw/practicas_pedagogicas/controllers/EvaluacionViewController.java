@@ -1,10 +1,11 @@
-package com.grupo1.isw.practicas_pedagogicas.controller;
+package com.grupo1.isw.practicas_pedagogicas.controllers;
 
 import com.grupo1.isw.practicas_pedagogicas.dto.DetalleEvaluacionRequest;
 import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
-import com.grupo1.isw.practicas_pedagogicas.service.EvaluacionInvalidaException;
-import com.grupo1.isw.practicas_pedagogicas.service.EvaluacionService;
-import com.grupo1.isw.practicas_pedagogicas.service.LineaConsultaService;
+import com.grupo1.isw.practicas_pedagogicas.services.EvaluacionInvalidaException;
+import com.grupo1.isw.practicas_pedagogicas.services.EvaluacionService;
+import com.grupo1.isw.practicas_pedagogicas.services.LineaConsultaService;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;

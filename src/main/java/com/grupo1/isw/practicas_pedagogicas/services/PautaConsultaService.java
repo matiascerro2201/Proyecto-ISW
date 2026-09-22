@@ -1,4 +1,4 @@
-package com.grupo1.isw.practicas_pedagogicas.service;
+package com.grupo1.isw.practicas_pedagogicas.services;
 
 import com.grupo1.isw.practicas_pedagogicas.dto.AsignaturaInscritaResponse;
 import com.grupo1.isw.practicas_pedagogicas.dto.PautaEvaluacionResponse;
@@ -9,10 +9,11 @@ import com.grupo1.isw.practicas_pedagogicas.models.Asignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.Criterio;
 import com.grupo1.isw.practicas_pedagogicas.models.Dimension;
 import com.grupo1.isw.practicas_pedagogicas.models.PautaEvaluacion;
-import com.grupo1.isw.practicas_pedagogicas.repository.CriterioRepository;
-import com.grupo1.isw.practicas_pedagogicas.repository.DimensionRepository;
-import com.grupo1.isw.practicas_pedagogicas.repository.InscripcionAsignaturaRepository;
-import com.grupo1.isw.practicas_pedagogicas.repository.PautaEvaluacionRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.CriterioRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.DimensionRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.InscripcionAsignaturaRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.PautaEvaluacionRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

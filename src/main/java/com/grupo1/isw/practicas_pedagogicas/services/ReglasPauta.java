@@ -1,4 +1,4 @@
-package com.grupo1.isw.practicas_pedagogicas.service;
+package com.grupo1.isw.practicas_pedagogicas.services;
 
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.PautaEvaluacion;
