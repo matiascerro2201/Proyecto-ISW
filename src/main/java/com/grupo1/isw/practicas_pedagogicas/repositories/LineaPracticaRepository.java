@@ -1,3 +1,5 @@
+package com.grupo1.isw.practicas_pedagogicas.repositories;
+
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -8,8 +10,7 @@ import java.util.Optional;
 
 public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Long> {
 
-    // --- Métodos de Josué ---
-    /* Líneas de un colaborador, con estudiante y asignatura cargados, de la más reciente a la más antigua. /
+    /** Líneas de un colaborador, con estudiante y asignatura cargados, de la más reciente a la más antigua. */
     @Query("""
             SELECT l
             FROM LineaPractica l
@@ -22,7 +23,7 @@ public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Lo
             """)
     List<LineaPractica> findByColaborador(@Param("idColaborador") Long idColaborador);
 
-    / Una línea con todo lo necesario para validar propiedad y armar pantallas (sin consultas lazy). */
+    /** Una línea con todo lo necesario para validar propiedad y armar pantallas (sin consultas lazy). */
     @Query("""
             SELECT l
             FROM LineaPractica l
@@ -35,6 +36,6 @@ public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Lo
             """)
     Optional<LineaPractica> findByIdConContexto(@Param("idLinea") Long idLinea);
 
-    // --- Método de José / Matías ---
+    /** Líneas de práctica de un estudiante (todas las que tenga inscritas). */
     List<LineaPractica> findByInscripcion_Estudiante_IdUsuario(Long idEstudiante);
 }

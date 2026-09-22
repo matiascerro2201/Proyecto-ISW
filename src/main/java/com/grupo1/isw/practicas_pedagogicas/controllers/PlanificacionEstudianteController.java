@@ -18,7 +18,7 @@ public class PlanificacionEstudianteController {
     private static final String BASE = "/estudiante/planificaciones";
     private static final String VISTA_LISTA = "estudiante/planificaciones/lista";
     private static final String VISTA_FORMULARIO = "estudiante/planificaciones/formulario";
-    private static final Long ID_ESTUDIANTE_SIMULADO = 4L;
+    private static final Long ID_ESTUDIANTE_SIMULADO = 1L;
     private final PlanificacionService planificacionService;
 
     public PlanificacionEstudianteController(PlanificacionService planificacionService) {
