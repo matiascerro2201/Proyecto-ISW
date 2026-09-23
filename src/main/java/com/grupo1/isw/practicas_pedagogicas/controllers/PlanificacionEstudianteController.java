@@ -42,7 +42,8 @@ public class PlanificacionEstudianteController {
     }
 
     @PostMapping
-    public String crear(@RequestParam(required = false) Long idLinea,@RequestParam(defaultValue = "") String contenido,
+    public String crear(@RequestParam(required = false) Long idLinea,
+                        @RequestParam(defaultValue = "") String contenido,
                         @AuthenticationPrincipal UsuarioDetails usuario,
                         Model model,
                         RedirectAttributes redirectAttributes) {

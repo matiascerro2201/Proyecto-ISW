@@ -4,12 +4,12 @@ import com.grupo1.isw.practicas_pedagogicas.models.InformeFinal;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
+
 
 import java.util.List;
 import java.util.Optional;
 
-@Repository
+
 public interface InformeFinalRepository extends JpaRepository<InformeFinal, Long> {
     @Query("""
             SELECT i

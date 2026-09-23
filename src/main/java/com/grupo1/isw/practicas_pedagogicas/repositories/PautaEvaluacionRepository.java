@@ -4,11 +4,11 @@ import com.grupo1.isw.practicas_pedagogicas.models.PautaEvaluacion;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
+
 
 import java.util.List;
 
-@Repository
+
 public interface PautaEvaluacionRepository extends JpaRepository<PautaEvaluacion, Long> {
     @Query("""
             SELECT p
