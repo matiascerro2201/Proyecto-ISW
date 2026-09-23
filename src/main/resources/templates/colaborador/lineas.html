@@ -4,16 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mis estudiantes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/evaluacion.css}">
 </head>
 <body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
 <main>
-    <p><a th:href="@{/}">Volver al inicio</a></p>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
 
     <h1>Mis estudiantes</h1>
     <p>Elige un estudiante para ver sus pautas de evaluación y completarlas.</p>
 
+    <!-- Caso: el colaborador no tiene líneas asignadas -->
     <section th:if="${#lists.isEmpty(lineas)}">
         <p>Aún no tienes estudiantes asignados.</p>
         <p>Cuando se te asigne una línea de práctica, aparecerá en esta lista.</p>
@@ -42,7 +48,7 @@
                         <span th:case="'ORIENTACION'">Orientación</span>
                         <span th:case="*" th:text="${linea.tipoLinea}">Línea</span>
                     </td>
-                    <td><a th:href="@{/colaborador/lineas/{id}(id=${linea.idLinea})}">Ver pautas</a></td>
+                    <td><a class="btn btn-ghost" th:href="@{/colaborador/lineas/{id}(id=${linea.idLinea})}">Ver pautas</a></td>
                 </tr>
             </tbody>
         </table>

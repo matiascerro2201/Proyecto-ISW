@@ -6,38 +6,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Inicio · Prácticas Pedagógicas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
+    <style>
+        .nav-list { list-style: none; margin: var(--space-6) 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+        .nav-list a {
+            display: block; background: var(--surface-raised); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+            font-family: var(--font-body); font-weight: 600; color: var(--ink-900); text-decoration: none;
+            transition: border-color 150ms ease-out, box-shadow 150ms ease-out, transform 150ms ease-out;
+        }
+        .nav-list a:hover { border-color: var(--brand-500); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+    </style>
 </head>
 <body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
 <main>
     <h1>Prácticas Pedagógicas</h1>
 
-    <p>
+    <p style="color:var(--ink-500);">
         Sesión iniciada como
-        <strong sec:authentication="principal.nombre">Nombre</strong>
+        <strong style="color:var(--ink-900);" sec:authentication="principal.nombre">Nombre</strong>
         (<span sec:authentication="principal.rol">ROL</span>)
     </p>
 
-    <ul>
+    <!-- Enlaces por rol. Cada integrante agrega los suyos con sec:authorize. -->
+    <ul class="nav-list">
+        <!-- HU-07 (Benjamín) -->
         <li sec:authorize="hasRole('ESTUDIANTE')">
             <a th:href="@{/mis-pautas}">Pautas de evaluación</a>
         </li>
+        <!-- HU-15/16 (Benjamín) -->
         <li sec:authorize="hasRole('ESTUDIANTE')">
             <a th:href="@{/mis-informes}">Mis informes finales</a>
         </li>
+        <!-- HU-19 (Matías) -->
         <li sec:authorize="hasRole('ESTUDIANTE')">
             <a th:href="@{/estudiante/planificaciones}">Mis planificaciones de clase</a>
         </li>
+        <!-- HU-02 (Josué) -->
         <li sec:authorize="hasRole('COLABORADOR')">
             <a th:href="@{/colaborador/lineas}">Mis estudiantes</a>
         </li>
+        <!-- HU-20/21 (José) -->
         <li sec:authorize="hasRole('COLABORADOR')">
             <a th:href="@{/planificaciones/pendientes}">Planificaciones pendientes de evaluación</a>
         </li>
     </ul>
 
     <form th:action="@{/logout}" method="post">
-        <button type="submit">Cerrar sesión</button>
+        <button type="submit" class="btn btn-secondary">Cerrar sesión</button>
     </form>
 </main>
 </body>

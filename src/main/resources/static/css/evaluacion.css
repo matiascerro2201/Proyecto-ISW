@@ -1,28 +1,9 @@
-.alerta {
-    border: 1px solid #b00020;
-    background: #fdecea;
-    padding: .75rem 1rem;
-    border-radius: .25rem;
-    margin: 1rem 0;
-}
-.alerta ul { margin: .25rem 0 0; padding-left: 1.25rem; }
+/* Complemento de base.css: layout específico del formulario de evaluación (HU-02). */
 
-.exito {
-    border: 1px solid #1b5e20;
-    background: #e8f5e9;
-    padding: .75rem 1rem;
-    border-radius: .25rem;
-    margin: 1rem 0;
+.criterio {
+    border-top: 1px solid var(--border);
+    padding: var(--space-4) 0;
 }
-
-.criterio { border-top: 1px solid var(--borde); padding: 1rem 0; }
-.criterio p { margin: 0 0 .5rem; font-weight: 600; }
-.criterio label { display: block; margin-bottom: .75rem; }
-.criterio input[type=number] { display: block; width: 8rem; padding: .4rem; margin-top: .25rem; }
-.criterio textarea { display: block; width: 100%; padding: .4rem; margin-top: .25rem; font: inherit; }
-
-button.primario {
-    padding: .6rem 1.2rem;
-    font: inherit;
-    cursor: pointer;
-}
+.criterio p { margin: 0 0 var(--space-2); font-weight: 600; color: var(--ink-900); }
+.criterio .field { max-width: 22rem; }
+.criterio input[type=number] { width: 8rem; }

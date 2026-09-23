@@ -4,12 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Evaluación de la pauta</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/evaluacion.css}">
 </head>
 <body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
 <main>
-    <p><a th:href="@{/colaborador/lineas/{id}(id=${form.idLinea})}">Volver a las pautas del estudiante</a></p>
+    <a class="back-link" th:href="@{/colaborador/lineas/{id}(id=${form.idLinea})}">Volver a las pautas del estudiante</a>
 
     <h1 th:text="${form.edicion} ? 'Editar evaluación' : 'Evaluar con la pauta'">Evaluar con la pauta</h1>
     <p>
@@ -24,6 +29,7 @@
         <span th:text="|Aplicación ${form.numeroAplicacion}|">Aplicación 1</span>
     </p>
 
+    <!-- Errores de validación: todos juntos, para corregir de una vez -->
     <div class="alerta" role="alert" th:if="${errores != null and !#lists.isEmpty(errores)}">
         <strong>No se pudo guardar la evaluación:</strong>
         <ul>
@@ -31,6 +37,7 @@
         </ul>
     </div>
 
+    <!-- th:action agrega automáticamente el token CSRF -->
     <form th:action="@{/colaborador/lineas/{l}/pautas/{p}(l=${form.idLinea}, p=${form.idPautaEvaluacion})}" method="post">
 
         <section th:each="dimension : ${form.dimensiones}">
@@ -57,7 +64,7 @@
         </section>
 
         <p>
-            <button type="submit" class="primario"
+            <button type="submit" class="btn btn-primary"
                     th:text="${form.edicion} ? 'Guardar cambios' : 'Guardar evaluación'">Guardar evaluación</button>
         </p>
     </form>

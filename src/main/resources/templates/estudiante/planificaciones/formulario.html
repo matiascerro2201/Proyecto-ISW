@@ -4,32 +4,25 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <title th:text="${titulo}">Planificación</title>
-    <style>
-        body { font-family: system-ui, sans-serif; background: #f5f6f8; color: #1f2933; margin: 0; }
-        main { max-width: 820px; margin: 2rem auto; padding: 0 1rem; }
-        h1 { font-size: 1.5rem; }
-        form { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.25rem; }
-        label { display: block; font-weight: 600; margin: 1rem 0 .35rem; }
-        select, textarea { width: 100%; box-sizing: border-box; padding: .6rem; border: 1px solid #d1d5db;
-                           border-radius: 6px; font: inherit; }
-        button { margin-top: 1rem; padding: .6rem 1.2rem; background: #2563eb; color: #fff; border: 0;
-                 border-radius: 6px; font: inherit; cursor: pointer; }
-        .cancelar { margin-left: 1rem; color: #4b5563; }
-        .msg { padding: .75rem 1rem; border-radius: 6px; margin: 1rem 0; }
-        .msg.error { background: #fee2e2; color: #991b1b; }
-        .retro { border-left: 4px solid #f59e0b; background: #fffbeb; padding: .5rem .75rem; margin: 1rem 0; }
-        .retro p { margin: .25rem 0 0; white-space: pre-wrap; }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
 </head>
 <body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
 <main>
+    <a class="back-link" th:href="@{/estudiante/planificaciones}">Volver a mis planificaciones</a>
+
     <h1 th:text="${titulo}">Nueva planificación de clase</h1>
 
-    <div class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</div>
+    <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
 
-    <form method="post" th:action="@{${accion}}">
+    <form method="post" th:action="@{${accion}}" class="card">
 
-        <div th:if="${planificacion == null}">
+        <!-- Nueva planificación: el estudiante elige en qué línea de práctica planifica -->
+        <div class="field" th:if="${planificacion == null}">
             <label for="idLinea">Línea de práctica</label>
             <select id="idLinea" name="idLinea" required="required">
                 <option value="">Selecciona una línea...</option>
@@ -38,26 +31,31 @@
                         th:text="${l.etiqueta()}"
                         th:selected="${l.idLinea() == idLineaSeleccionada}">Asignatura (LÍNEA)</option>
             </select>
-            <div class="msg error" th:if="${#lists.isEmpty(lineas)}">
+            <p class="msg error" th:if="${#lists.isEmpty(lineas)}">
                 No tienes líneas de práctica asignadas, por lo que aún no puedes enviar planificaciones.
-            </div>
+            </p>
         </div>
 
+        <!-- Reenvío: la línea ya está definida y se muestra la retroalimentación que motivó el rechazo -->
         <div th:if="${planificacion != null}">
             <p><strong>Línea:</strong> <span th:text="${planificacion.etiquetaLinea()}">Asignatura (LÍNEA)</span></p>
-            <div class="retro" th:if="${planificacion.retroalimentacion() != null}">
+            <div class="card__retro" th:if="${planificacion.retroalimentacion() != null}">
                 <strong>Retroalimentación del colaborador</strong>
                 <p th:text="${planificacion.retroalimentacion()}">Texto de la retroalimentación</p>
             </div>
         </div>
 
-        <label for="contenido">Contenido de la planificación</label>
-        <textarea id="contenido" name="contenido" rows="16" required="required"
-                  th:text="${contenido}"></textarea>
+        <div class="field">
+            <label for="contenido">Contenido de la planificación</label>
+            <textarea id="contenido" name="contenido" rows="16" required="required"
+                      th:text="${contenido}"></textarea>
+        </div>
 
-        <button type="submit"
-                th:text="${planificacion == null} ? 'Enviar planificación' : 'Reenviar planificación'">Enviar</button>
-        <a class="cancelar" th:href="@{/estudiante/planificaciones}">Cancelar</a>
+        <div style="display:flex;align-items:center;gap:var(--space-4);">
+            <button type="submit" class="btn btn-accent"
+                    th:text="${planificacion == null} ? 'Enviar planificación' : 'Reenviar planificación'">Enviar</button>
+            <a class="btn btn-ghost" th:href="@{/estudiante/planificaciones}">Cancelar</a>
+        </div>
     </form>
 </main>
 </body>
