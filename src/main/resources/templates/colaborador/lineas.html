@@ -14,7 +14,6 @@
     <h1>Mis estudiantes</h1>
     <p>Elige un estudiante para ver sus pautas de evaluación y completarlas.</p>
 
-    <!-- Caso: el colaborador no tiene líneas asignadas -->
     <section th:if="${#lists.isEmpty(lineas)}">
         <p>Aún no tienes estudiantes asignados.</p>
         <p>Cuando se te asigne una línea de práctica, aparecerá en esta lista.</p>

@@ -1,21 +1,25 @@
 package com.grupo1.isw.practicas_pedagogicas.services;
 
-import com.grupo1.isw.practicas_pedagogicas.models.*;
-import com.grupo1.isw.practicas_pedagogicas.repositories.*;
+import com.grupo1.isw.practicas_pedagogicas.models.EstadoPlanificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
+import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.repositories.LineaPracticaRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.PlanificacionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class PlanificacionService {
-
     private final PlanificacionRepository planificacionRepository;
     private final LineaPracticaRepository lineaPracticaRepository;
 
-    public PlanificacionService(PlanificacionRepository planificacionRepository, LineaPracticaRepository lineaPracticaRepository) {
+    public PlanificacionService(PlanificacionRepository planificacionRepository,
+                                LineaPracticaRepository lineaPracticaRepository) {
         this.planificacionRepository = planificacionRepository;
         this.lineaPracticaRepository = lineaPracticaRepository;
     }
@@ -64,9 +68,13 @@ public class PlanificacionService {
     public record LineaOpcion(Long idLinea, String etiqueta) {
     }
 
-    public record PlanificacionVista(Long idPlanificacion, String etiquetaLinea, String contenido, EstadoPlanificacion estado, String retroalimentacion,
-                                     LocalDateTime fechaEnvio, LocalDateTime fechaRetro) {
-
+    public record PlanificacionVista(Long idPlanificacion,
+                                     String etiquetaLinea,
+                                     String contenido,
+                                     EstadoPlanificacion estado,
+                                     String retroalimentacion,
+                                     LocalDateTime fechaEnvio,
+                                     LocalDateTime fechaRetro) {
         public boolean puedeReenviar() {
             return estado == EstadoPlanificacion.RECHAZADA;
         }
@@ -74,7 +82,8 @@ public class PlanificacionService {
 
     @Transactional(readOnly = true)
     public List<LineaOpcion> obtenerLineasDelEstudiante(Long idEstudiante) {
-        return lineaPracticaRepository.findByInscripcion_Estudiante_IdUsuario(idEstudiante).stream().map(l -> new LineaOpcion(l.getIdLinea(), etiquetaDe(l)))
+        return lineaPracticaRepository.findByInscripcion_Estudiante_IdUsuario(idEstudiante).stream()
+                .map(l -> new LineaOpcion(l.getIdLinea(), etiquetaDe(l)))
                 .toList();
     }
 
@@ -91,7 +100,6 @@ public class PlanificacionService {
         return aVista(obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion));
     }
 
-    /** Crea una planificación nueva (estado inicial ENVIADA) en una línea que pertenece al estudiante. */
     @Transactional
     public void crearPlanificacion(Long idEstudiante, Long idLinea, String contenido) {
         if (idLinea == null) {
@@ -113,11 +121,6 @@ public class PlanificacionService {
         planificacionRepository.save(new Planificacion(linea, texto, LocalDateTime.now()));
     }
 
-    /**
-     * Reenvía una planificación RECHAZADA. Sobrescribe la misma fila (sin historial de versiones,
-     * decisión del MER): vuelve a ENVIADA y limpia la retroalimentación anterior, que es lo que
-     * asume evaluarPlanificacion() al revisar una planificación ENVIADA.
-     */
     @Transactional
     public void reenviarPlanificacion(Long idEstudiante, Long idPlanificacion, String contenido) {
         Planificacion planificacion = obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
@@ -140,9 +143,6 @@ public class PlanificacionService {
         planificacionRepository.save(planificacion);
     }
 
-    // ---- helpers privados (HU-19) ----
-
-    /** Devuelve la planificación solo si su línea pertenece al estudiante (404 si no existe, 403 si es ajena). */
     private Planificacion obtenerPlanificacionDelEstudiante(Long idEstudiante, Long idPlanificacion) {
         Planificacion planificacion = obtenerPlanificacion(idPlanificacion);
         if (!lineaPerteneceAlEstudiante(planificacion.getLinea(), idEstudiante)) {
@@ -171,7 +171,6 @@ public class PlanificacionService {
         return asignatura + " (" + linea.getTipo() + ")";
     }
 
-    /** Mismo criterio que en evaluarPlanificacion: null si está vacío o en blanco, si no el texto sin espacios sobrantes. */
     private String limpiar(String texto) {
         return (texto == null || texto.isBlank()) ? null : texto.trim();
     }

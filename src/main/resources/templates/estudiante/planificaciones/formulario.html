@@ -29,7 +29,6 @@
 
     <form method="post" th:action="@{${accion}}">
 
-        <!-- Nueva planificación: el estudiante elige en qué línea de práctica planifica -->
         <div th:if="${planificacion == null}">
             <label for="idLinea">Línea de práctica</label>
             <select id="idLinea" name="idLinea" required="required">
@@ -44,7 +43,6 @@
             </div>
         </div>
 
-        <!-- Reenvío: la línea ya está definida y se muestra la retroalimentación que motivó el rechazo -->
         <div th:if="${planificacion != null}">
             <p><strong>Línea:</strong> <span th:text="${planificacion.etiquetaLinea()}">Asignatura (LÍNEA)</span></p>
             <div class="retro" th:if="${planificacion.retroalimentacion() != null}">

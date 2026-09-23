@@ -5,7 +5,6 @@ import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
 import com.grupo1.isw.practicas_pedagogicas.services.EvaluacionInvalidaException;
 import com.grupo1.isw.practicas_pedagogicas.services.EvaluacionService;
 import com.grupo1.isw.practicas_pedagogicas.services.LineaConsultaService;
-
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -24,21 +23,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * HU-02 (solo Thymeleaf): las vistas llaman directo al service; no hay endpoints JSON.
- *
- *   /colaborador/lineas                            -> mis estudiantes (líneas)
- *   /colaborador/lineas/{idLinea}                  -> pautas de esa línea y su estado
- *   /colaborador/lineas/{idLinea}/pautas/{idPauta} -> formulario (GET) y guardado (POST)
- *
- * El formulario usa th:action, que agrega el token CSRF solo. Un mismo POST crea la evaluación
- * la primera vez y la actualiza las siguientes. Los errores 403/404 los renderiza templates/error/*.html.
- */
 @Controller
 @RequestMapping("/colaborador/lineas")
 @PreAuthorize("hasRole('COLABORADOR')")
 public class EvaluacionViewController {
-
     private static final Pattern CLAVE_PUNTAJE = Pattern.compile("^puntaje_(\\d{1,18})$");
     private static final Pattern CLAVE_COMENTARIO = Pattern.compile("^comentario_(\\d{1,18})$");
 
@@ -54,14 +42,14 @@ public class EvaluacionViewController {
     @GetMapping
     public String listar(@AuthenticationPrincipal UsuarioDetails usuario, Model model) {
         model.addAttribute("lineas", lineaConsultaService.listarLineasDelColaborador(usuario.getIdUsuario()));
-        return "colaborador/lineas";                 // templates/colaborador/lineas.html
+        return "colaborador/lineas";
     }
 
     @GetMapping("/{idLinea}")
     public String detalleLinea(@PathVariable Long idLinea,
                                @AuthenticationPrincipal UsuarioDetails usuario, Model model) {
         model.addAttribute("linea", lineaConsultaService.detalleLinea(usuario.getIdUsuario(), idLinea));
-        return "colaborador/linea";                  // templates/colaborador/linea.html
+        return "colaborador/linea";
     }
 
     @GetMapping("/{idLinea}/pautas/{idPauta}")
@@ -69,19 +57,14 @@ public class EvaluacionViewController {
                              @AuthenticationPrincipal UsuarioDetails usuario, Model model) {
         model.addAttribute("form",
                 evaluacionService.formulario(usuario.getIdUsuario(), idLinea, idPauta, null, null));
-        return "colaborador/evaluacion-form";        // templates/colaborador/evaluacion-form.html
+        return "colaborador/evaluacion-form";
     }
 
-    /**
-     * Guarda la evaluación. Los campos del formulario se llaman puntaje_{idCriterio} y comentario_{idCriterio}.
-     * Si hay errores de validación, vuelve al formulario con lo que el usuario escribió y la lista de errores.
-     */
     @PostMapping("/{idLinea}/pautas/{idPauta}")
     public String guardar(@PathVariable Long idLinea, @PathVariable Long idPauta,
                           @RequestParam Map<String, String> params,
                           @AuthenticationPrincipal UsuarioDetails usuario,
                           Model model, RedirectAttributes redirect) {
-
         Map<Long, String> puntajes = new LinkedHashMap<>();
         Map<Long, String> comentarios = new LinkedHashMap<>();
         for (Map.Entry<String, String> campo : params.entrySet()) {
@@ -115,7 +98,6 @@ public class EvaluacionViewController {
         return "redirect:/colaborador/lineas/" + idLinea;
     }
 
-    /** Acepta "4.5" y "4,5". Vacío o ilegible -> null (el servicio informa "falta el puntaje"). */
     private static BigDecimal parsearPuntaje(String texto) {
         if (texto == null || texto.isBlank()) {
             return null;

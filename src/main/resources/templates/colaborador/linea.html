@@ -23,12 +23,10 @@
         </span>
     </p>
 
-    <!-- Mensaje que deja el guardado (flash attribute) -->
     <p class="exito" role="status" th:if="${mensaje != null}" th:text="${mensaje}">La evaluación se guardó correctamente.</p>
 
     <h2>Pautas de evaluación</h2>
 
-    <!-- Caso: la asignatura aún no tiene pautas para este tipo de línea -->
     <section th:if="${#lists.isEmpty(linea.pautas)}">
         <p>Aún no hay pautas registradas para esta línea.</p>
     </section>

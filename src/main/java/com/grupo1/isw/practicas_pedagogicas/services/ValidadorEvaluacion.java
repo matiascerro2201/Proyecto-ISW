@@ -13,20 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Reglas de los puntajes de una evaluación. Junta TODOS los errores antes de lanzar,
- * para que el colaborador corrija todo de una vez.
- *
- * Reglas: solo criterios de la pauta, sin repetidos, todos presentes, puntaje entre 0 y
- * puntaje_max, con máximo 2 decimales (la columna es DECIMAL(5,2)).
- * Los puntajes se comparan con compareTo: para BigDecimal, 4.0 y 4.00 no son equals.
- */
 @Component
 public class ValidadorEvaluacion {
-
     private static final int DECIMALES_MAX = 2;
 
-    /** @return el puntaje total (suma de los puntajes, con 2 decimales) si todo es válido */
     public BigDecimal validar(List<Criterio> criteriosDeLaPauta, List<DetalleEvaluacionRequest> detalles) {
         if (criteriosDeLaPauta.isEmpty()) {
             throw new EvaluacionInvalidaException(List.of("La pauta no tiene criterios definidos"));

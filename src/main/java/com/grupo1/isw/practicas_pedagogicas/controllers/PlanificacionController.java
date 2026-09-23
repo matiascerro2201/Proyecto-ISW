@@ -2,73 +2,61 @@ package com.grupo1.isw.practicas_pedagogicas.controllers;
 
 import com.grupo1.isw.practicas_pedagogicas.models.EstadoPlanificacion;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
 import com.grupo1.isw.practicas_pedagogicas.services.PlanificacionService;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-// 1. Nuevos imports para la seguridad de Benjamín
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
-
 @Controller
 @RequestMapping("/planificaciones")
-@PreAuthorize("hasRole('COLABORADOR')") // 2. Protege todas las rutas de este controlador
+@PreAuthorize("hasRole('COLABORADOR')")
 public class PlanificacionController {
+    private static final String VISTA_PENDIENTES = "colaborador/pendientes";
+    private static final String VISTA_EVALUAR = "colaborador/evaluar_planificacion";
 
     private final PlanificacionService planificacionService;
-    // 3. Eliminamos el ID_COLABORADOR_SIMULADO
 
     public PlanificacionController(PlanificacionService planificacionService) {
         this.planificacionService = planificacionService;
     }
 
     @GetMapping("/pendientes")
-    public String listarPendientes(
-            @AuthenticationPrincipal UsuarioDetails usuarioLogueado, // 4. Captura al usuario real
-            Model model) {
+    public String listarPendientes(@AuthenticationPrincipal UsuarioDetails usuarioLogueado, Model model) {
         model.addAttribute("planificaciones",
-                planificacionService.obtenerPendientesDelColaborador(usuarioLogueado.getIdUsuario())); // 5. Usa el ID real
-        return "pendientes";
+                planificacionService.obtenerPendientesDelColaborador(usuarioLogueado.getIdUsuario()));
+        return VISTA_PENDIENTES;
     }
 
     @GetMapping("/{id}/evaluar")
-    public String mostrarFormularioEvaluacion(
-            @PathVariable Long id, 
-            @AuthenticationPrincipal UsuarioDetails usuarioLogueado, // Inyecta el usuario real
-            Model model) {
-        try {
-            Planificacion planificacion = planificacionService.obtenerPlanificacion(id);
-            
-            // Validación de propiedad con el ID del usuario autenticado
-            if (!planificacion.getLinea().getColaborador().getIdUsuario().equals(usuarioLogueado.getIdUsuario())) {
-                return "redirect:/planificaciones/pendientes"; 
-            }
-            
-            model.addAttribute("planificacion", planificacion);
-            return "evaluar_planificacion"; 
-        } catch (ResponseStatusException e) {
-            return "redirect:/planificaciones/pendientes";
+    public String mostrarFormularioEvaluacion(@PathVariable Long id,
+                                              @AuthenticationPrincipal UsuarioDetails usuarioLogueado,
+                                              Model model) {
+        Planificacion planificacion = planificacionService.obtenerPlanificacion(id);
+        if (!planificacion.getLinea().getColaborador().getIdUsuario().equals(usuarioLogueado.getIdUsuario())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para ver esta planificación");
         }
+        model.addAttribute("planificacion", planificacion);
+        return VISTA_EVALUAR;
     }
 
     @PostMapping("/{id}/evaluar")
-    public String procesarEvaluacion(
-            @PathVariable Long id,
-            @RequestParam String retroalimentacion,
-            @RequestParam EstadoPlanificacion estado,
-            @AuthenticationPrincipal UsuarioDetails usuarioLogueado, // Inyecta el usuario real
-            Model model) {
+    public String procesarEvaluacion(@PathVariable Long id,
+                                     @RequestParam(defaultValue = "") String retroalimentacion,
+                                     @RequestParam EstadoPlanificacion estado,
+                                     @AuthenticationPrincipal UsuarioDetails usuarioLogueado,
+                                     Model model) {
         try {
-            // Pasamos el ID real al servicio
             planificacionService.evaluarPlanificacion(id, usuarioLogueado.getIdUsuario(), retroalimentacion, estado);
             return "redirect:/planificaciones/" + id + "/evaluar?exito=true";
         } catch (IllegalArgumentException | IllegalStateException e) {
             model.addAttribute("error", e.getMessage());
             model.addAttribute("planificacion", planificacionService.obtenerPlanificacion(id));
-            return "evaluar_planificacion";
+            return VISTA_EVALUAR;
         }
     }
 }

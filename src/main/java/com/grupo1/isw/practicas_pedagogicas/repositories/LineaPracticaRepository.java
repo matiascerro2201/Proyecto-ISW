@@ -4,13 +4,13 @@ import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Long> {
-
-    /** Líneas de un colaborador, con estudiante y asignatura cargados, de la más reciente a la más antigua. */
     @Query("""
             SELECT l
             FROM LineaPractica l
@@ -23,7 +23,6 @@ public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Lo
             """)
     List<LineaPractica> findByColaborador(@Param("idColaborador") Long idColaborador);
 
-    /** Una línea con todo lo necesario para validar propiedad y armar pantallas (sin consultas lazy). */
     @Query("""
             SELECT l
             FROM LineaPractica l
@@ -36,6 +35,5 @@ public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Lo
             """)
     Optional<LineaPractica> findByIdConContexto(@Param("idLinea") Long idLinea);
 
-    /** Líneas de práctica de un estudiante (todas las que tenga inscritas). */
     List<LineaPractica> findByInscripcion_Estudiante_IdUsuario(Long idEstudiante);
 }

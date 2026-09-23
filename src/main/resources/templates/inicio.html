@@ -18,7 +18,6 @@
         (<span sec:authentication="principal.rol">ROL</span>)
     </p>
 
-    <!-- Enlaces por rol. Cada integrante agrega los suyos con sec:authorize. -->
     <ul>
         <li sec:authorize="hasRole('ESTUDIANTE')">
             <a th:href="@{/mis-pautas}">Pautas de evaluación</a>
@@ -26,8 +25,14 @@
         <li sec:authorize="hasRole('ESTUDIANTE')">
             <a th:href="@{/mis-informes}">Mis informes finales</a>
         </li>
+        <li sec:authorize="hasRole('ESTUDIANTE')">
+            <a th:href="@{/estudiante/planificaciones}">Mis planificaciones de clase</a>
+        </li>
         <li sec:authorize="hasRole('COLABORADOR')">
             <a th:href="@{/colaborador/lineas}">Mis estudiantes</a>
+        </li>
+        <li sec:authorize="hasRole('COLABORADOR')">
+            <a th:href="@{/planificaciones/pendientes}">Planificaciones pendientes de evaluación</a>
         </li>
     </ul>
 

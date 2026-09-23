@@ -1,6 +1,3 @@
-/* Estilos base compartidos. Intencionalmente mínimos: el equipo puede reemplazarlos
-   por su propia hoja o por Bootstrap sin tocar las plantillas. */
-
 :root {
     --texto: #1f2933;
     --fondo: #ffffff;
@@ -47,7 +44,6 @@ dt { font-weight: 600; }
 dd { margin: 0; }
 .nota { font-size: 1.5rem; font-weight: 700; }
 
-/* Texto solo para lectores de pantalla */
 .sr-only {
     position: absolute;
     width: 1px;

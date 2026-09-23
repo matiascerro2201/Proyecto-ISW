@@ -24,7 +24,6 @@
         <span th:text="|Aplicación ${form.numeroAplicacion}|">Aplicación 1</span>
     </p>
 
-    <!-- Errores de validación: todos juntos, para corregir de una vez -->
     <div class="alerta" role="alert" th:if="${errores != null and !#lists.isEmpty(errores)}">
         <strong>No se pudo guardar la evaluación:</strong>
         <ul>
@@ -32,7 +31,6 @@
         </ul>
     </div>
 
-    <!-- th:action agrega automáticamente el token CSRF -->
     <form th:action="@{/colaborador/lineas/{l}/pautas/{p}(l=${form.idLinea}, p=${form.idPautaEvaluacion})}" method="post">
 
         <section th:each="dimension : ${form.dimensiones}">

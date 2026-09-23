@@ -19,7 +19,6 @@
     <p class="error" th:if="${param.error}">Correo o contraseña incorrectos.</p>
     <p class="ok" th:if="${param.logout}">Sesión cerrada correctamente.</p>
 
-    <!-- th:action agrega automáticamente el token CSRF -->
     <form th:action="@{/login}" method="post">
         <label>Correo
             <input type="email" name="username" required autofocus>

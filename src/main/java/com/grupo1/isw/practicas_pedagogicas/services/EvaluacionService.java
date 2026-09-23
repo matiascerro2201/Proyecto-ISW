@@ -12,7 +12,6 @@ import com.grupo1.isw.practicas_pedagogicas.models.PautaEvaluacion;
 import com.grupo1.isw.practicas_pedagogicas.repositories.DetalleCriterioRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.EvaluacionAplicadaRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaEvaluacionRepository;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,23 +27,8 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * HU-02: el colaborador llena la pauta de evaluación (evaluacion_aplicada + detalle_criterio).
- *
- * Solo hay un formulario por (línea, pauta): guardar() crea la evaluación la primera vez y las
- * siguientes actualiza sus puntajes. Así el esquema nunca queda con dos evaluaciones del colaborador
- * para la misma pauta y línea (la base de datos no lo impide por sí sola).
- *
- * Todo se identifica por la URL (línea y pauta) y el colaborador sale de la sesión; nunca llega
- * un id de evaluación desde el navegador.
- *
- * Orden de las validaciones:
- *   existe la línea (404) -> es del colaborador (403) -> la pauta corresponde a la línea (404)
- *   -> los puntajes son válidos (400, con todos los errores juntos).
- */
 @Service
 public class EvaluacionService {
-
     private final LineaConsultaService lineaConsulta;
     private final PautaEvaluacionRepository pautaRepository;
     private final EvaluacionAplicadaRepository evaluacionRepository;
@@ -69,13 +53,6 @@ public class EvaluacionService {
         this.mapper = mapper;
     }
 
-    /**
-     * Guarda la evaluación del colaborador para esa línea y pauta.
-     * No escribe nada si algo falla: la validación ocurre antes de cualquier escritura.
-     *
-     * @throws EvaluacionInvalidaException 400 con la lista de errores de puntajes
-     * @throws ResponseStatusException     404 línea o pauta inexistente para esa URL; 403 línea de otro colaborador
-     */
     @Transactional
     public void guardar(Long idColaborador, Long idLinea, Long idPauta, List<DetalleEvaluacionRequest> detalles) {
         LineaPractica linea = lineaConsulta.obtenerLineaDelColaborador(idColaborador, idLinea);
@@ -107,10 +84,6 @@ public class EvaluacionService {
         detalleRepository.saveAll(nuevos);
     }
 
-    /**
-     * Actualiza los detalles EN EL LUGAR (por criterio). Borrar y volver a insertar chocaría con
-     * uq_detalle (id_evaluacion, id_criterio), porque Hibernate ejecuta los INSERT antes que los DELETE.
-     */
     private void actualizarExistente(EvaluacionAplicada evaluacion, Map<Long, Criterio> criterioPorId,
                                      List<DetalleEvaluacionRequest> detalles, BigDecimal total) {
         Map<Long, DetalleCriterio> actuales = detalleRepository.findByEvaluaciones(List.of(evaluacion.getIdEvaluacion())).stream()
@@ -131,12 +104,6 @@ public class EvaluacionService {
         evaluacionRepository.save(evaluacion);
     }
 
-    /**
-     * Arma el formulario. Si se pasan los textos enviados (tras un error de validación) se repintan tal cual;
-     * si no, se precarga con lo ya guardado (edición) o se deja en blanco (evaluación nueva).
-     *
-     * @throws ResponseStatusException 404 si la pauta no corresponde a esa línea; 403 si la línea no es tuya
-     */
     @Transactional(readOnly = true)
     public FormularioEvaluacion formulario(Long idColaborador, Long idLinea, Long idPauta,
                                            Map<Long, String> puntajesEnviados,
@@ -171,8 +138,6 @@ public class EvaluacionService {
                 dimensiones);
     }
 
-    // ---------------------------------------------------------------- internos
-
     private CriterioForm criterioForm(Criterio criterio, DetalleCriterio guardado,
                                       Map<Long, String> puntajesEnviados, Map<Long, String> comentariosEnviados) {
         Long id = criterio.getIdCriterio();
@@ -191,7 +156,6 @@ public class EvaluacionService {
         return new CriterioForm(id, criterio.getDescripcion(), criterio.getPuntajeMax(), puntaje, comentario);
     }
 
-    /** La pauta debe existir y corresponder a la asignatura y al tipo de la línea; si no, 404 (URL inválida). */
     private PautaEvaluacion pautaAplicable(LineaPractica linea, Long idPauta) {
         return pautaRepository.findById(idPauta)
                 .filter(p -> ReglasPauta.aplicaALinea(p, linea))
