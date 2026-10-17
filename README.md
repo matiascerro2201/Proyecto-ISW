@@ -26,3 +26,4 @@ Uso: abrir http://localhost:8080 en el navegador e iniciar sesión con los usuar
 
 ## Versiones entregadas
 v1.0.0: Incremento 1
+V1.1.0: Incremento 2
