@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pautas de evaluación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/mis-pautas}">Volver a mis asignaturas</a>
+
+    <h1>Pautas de evaluación</h1>
+    <p><strong th:text="${resultado.nombreAsignatura}">Práctica Pedagógica</strong></p>
+
+    <!-- Caso: la asignatura aún no tiene pautas registradas -->
+    <section th:if="${#lists.isEmpty(resultado.pautas)}">
+        <p>Aún no hay pautas registradas para esta asignatura.</p>
+        <p>Cuando estén disponibles, las verás aquí.</p>
+    </section>
+
+    <article class="pauta" th:each="pauta : ${resultado.pautas}">
+        <h2 th:switch="${pauta.tipoLinea}">
+            <span th:case="'UNICA'">Línea única</span>
+            <span th:case="'ESPECIALIDAD'">Especialidad</span>
+            <span th:case="'ORIENTACION'">Orientación</span>
+            <span th:case="*" th:text="${pauta.tipoLinea}">Línea</span>
+        </h2>
+        <p th:text="|Aplicación ${pauta.numeroAplicacion}. Ponderación: ${#numbers.formatDecimal(pauta.ponderacion, 1, 'POINT', 2, 'COMMA')} %|">
+            Aplicación 1. Ponderación: 50,00 %
+        </p>
+
+        <section th:each="dimension : ${pauta.dimensiones}">
+            <h3 th:text="${dimension.nombre}">Dimensión</h3>
+            <div class="tabla-scroll">
+                <table>
+                    <caption class="sr-only" th:text="|Criterios de ${dimension.nombre}|">Criterios</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Criterio</th>
+                            <th scope="col">Puntaje máximo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="criterio : ${dimension.criterios}">
+                            <td th:text="${criterio.descripcion}">Descripción del criterio</td>
+                            <td th:text="${#numbers.formatDecimal(criterio.puntajeMax, 1, 'POINT', 2, 'COMMA')}">4,00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </article>
+</main>
+</body>
+</html>

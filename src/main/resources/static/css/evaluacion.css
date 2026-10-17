@@ -1,0 +1,9 @@
+/* Complemento de base.css: layout específico del formulario de evaluación (HU-02). */
+
+.criterio {
+    border-top: 1px solid var(--border);
+    padding: var(--space-4) 0;
+}
+.criterio p { margin: 0 0 var(--space-2); font-weight: 600; color: var(--ink-900); }
+.criterio .field { max-width: 22rem; }
+.criterio input[type=number] { width: 8rem; }

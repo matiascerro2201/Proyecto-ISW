@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Planificaciones pendientes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Planificaciones pendientes de evaluación</h1>
+    <p style="color:var(--ink-500);margin-top:0;">Ordenadas de la más antigua a la más reciente.</p>
+
+    <section th:if="${#lists.isEmpty(planificaciones)}">
+        <p>No tienes planificaciones por evaluar. Cuando un estudiante envíe una, aparecerá aquí.</p>
+    </section>
+
+    <div class="tabla-scroll" th:unless="${#lists.isEmpty(planificaciones)}">
+        <table>
+            <caption class="sr-only">Planificaciones pendientes de evaluación</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Estudiante</th>
+                    <th scope="col">Línea</th>
+                    <th scope="col">Enviada</th>
+                    <th scope="col">Contenido</th>
+                    <th scope="col"><span class="sr-only">Acción</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="p : ${planificaciones}">
+                    <td style="font-weight:600;color:var(--ink-900);" th:text="${p.linea?.inscripcion?.estudiante?.nombre}">Nombre del estudiante</td>
+                    <td th:text="${p.linea?.tipo}">ESPECIALIDAD</td>
+                    <td th:text="${#temporals.format(p.fechaEnvio, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+                    <td th:text="${#strings.abbreviate(p.contenido, 90)}">Resumen del contenido</td>
+                    <td>
+                        <a class="btn btn-primary"
+                           th:href="@{/planificaciones/{id}/evaluar(id=${p.idPlanificacion})}">Evaluar</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

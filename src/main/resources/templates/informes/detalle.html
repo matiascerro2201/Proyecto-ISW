@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mi informe final</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/mis-informes}">Volver a mis informes finales</a>
+
+    <h1>Mi informe final</h1>
+    <p>
+        <strong th:text="${informe.nombreAsignatura}">Práctica Pedagógica</strong><br>
+        <span th:text="|Semestre ${informe.semestre} de ${informe.anio}|">Semestre 2 de 2026</span>
+    </p>
+
+    <dl>
+        <dt>Calificación final</dt>
+        <dd class="nota"
+            th:text="${informe.calificacionFinal != null
+                       ? #numbers.formatDecimal(informe.calificacionFinal, 1, 'POINT', 1, 'COMMA')
+                       : 'Sin nota'}">6,5</dd>
+
+        <dt>Informe generado</dt>
+        <dd th:text="${informe.fechaGeneracion != null
+                       ? #temporals.format(informe.fechaGeneracion, 'dd/MM/yyyy HH:mm')
+                       : 'Sin registro'}">01/09/2026 10:00</dd>
+
+        <dt>Validado por el profesor</dt>
+        <dd th:text="${informe.fechaValidacion != null
+                       ? #temporals.format(informe.fechaValidacion, 'dd/MM/yyyy HH:mm')
+                       : 'Sin registro'}">05/09/2026 15:30</dd>
+
+        <dt>Publicado</dt>
+        <dd th:text="${#temporals.format(informe.fechaPublicacion, 'dd/MM/yyyy HH:mm')}">08/09/2026 09:00</dd>
+    </dl>
+</main>
+</body>
+</html>

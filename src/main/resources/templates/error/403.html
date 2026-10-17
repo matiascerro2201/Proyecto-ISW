@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acceso no permitido</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <h1>No puedes ver esta página</h1>
+    <p>Este contenido no está disponible para tu cuenta. Solo puedes acceder a la información que te corresponde: tus propios informes, pautas y planificaciones, o las líneas de práctica que tienes asignadas.</p>
+    <p>Si buscabas algo tuyo, ábrelo desde los enlaces del inicio.</p>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+</main>
+</body>
+</html>

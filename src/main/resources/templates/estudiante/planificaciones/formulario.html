@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title th:text="${titulo}">Planificación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/estudiante/planificaciones}">Volver a mis planificaciones</a>
+
+    <h1 th:text="${titulo}">Nueva planificación de clase</h1>
+
+    <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
+
+    <form method="post" th:action="@{${accion}}" class="card">
+
+        <!-- Nueva planificación: el estudiante elige en qué línea de práctica planifica -->
+        <div class="field" th:if="${planificacion == null}">
+            <label for="idLinea">Línea de práctica</label>
+            <select id="idLinea" name="idLinea" required="required">
+                <option value="">Selecciona una línea...</option>
+                <option th:each="l : ${lineas}"
+                        th:value="${l.idLinea()}"
+                        th:text="${l.etiqueta()}"
+                        th:selected="${l.idLinea() == idLineaSeleccionada}">Asignatura (LÍNEA)</option>
+            </select>
+            <p class="msg error" th:if="${#lists.isEmpty(lineas)}">
+                No tienes líneas de práctica asignadas, por lo que aún no puedes enviar planificaciones.
+            </p>
+        </div>
+
+        <!-- Reenvío: la línea ya está definida y se muestra la retroalimentación que motivó el rechazo -->
+        <div th:if="${planificacion != null}">
+            <p><strong>Línea:</strong> <span th:text="${planificacion.etiquetaLinea()}">Asignatura (LÍNEA)</span></p>
+            <div class="card__retro" th:if="${planificacion.retroalimentacion() != null}">
+                <strong>Retroalimentación del colaborador</strong>
+                <p th:text="${planificacion.retroalimentacion()}">Texto de la retroalimentación</p>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="contenido">Contenido de la planificación</label>
+            <textarea id="contenido" name="contenido" rows="16" required="required"
+                      th:text="${contenido}"></textarea>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:var(--space-4);">
+            <button type="submit" class="btn btn-accent"
+                    th:text="${planificacion == null} ? 'Enviar planificación' : 'Reenviar planificación'">Enviar</button>
+            <a class="btn btn-ghost" th:href="@{/estudiante/planificaciones}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

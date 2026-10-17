@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iniciar sesión · Prácticas Pedagógicas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <style>
+        body { display: flex; align-items: center; min-height: 100vh; }
+        main { max-width: 22rem; width: 100%; margin: 0 auto; padding: var(--space-4); }
+        .login-card { padding: var(--space-8) var(--space-6); }
+        form button { width: 100%; margin-top: var(--space-2); }
+    </style>
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <div class="card login-card">
+        <h1 style="font-size:24px;line-height:32px;">Prácticas Pedagógicas</h1>
+        <p style="color:var(--ink-500);margin-top:0;">Inicia sesión con tu cuenta institucional.</p>
+
+        <p class="msg error" th:if="${param.error}">Correo o contraseña incorrectos.</p>
+        <p class="msg ok" th:if="${param.logout}">Sesión cerrada correctamente.</p>
+
+        <!-- th:action agrega automáticamente el token CSRF -->
+        <form th:action="@{/login}" method="post">
+            <div class="field">
+                <label for="username">Correo</label>
+                <input id="username" type="email" name="username" required autofocus>
+            </div>
+            <div class="field">
+                <label for="password">Contraseña</label>
+                <input id="password" type="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Ingresar</button>
+        </form>
+    </div>
+</main>
+</body>
+</html>

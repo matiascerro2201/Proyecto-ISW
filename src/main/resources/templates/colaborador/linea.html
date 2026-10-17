@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pautas del estudiante</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/evaluacion.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/colaborador/lineas}">Volver a mis estudiantes</a>
+
+    <h1 th:text="${linea.nombreEstudiante}">Estudiante Uno</h1>
+    <p>
+        <strong th:text="${linea.nombreAsignatura}">Práctica Pedagógica</strong><br>
+        <span th:text="|Semestre ${linea.semestre} de ${linea.anio}|">Semestre 2 de 2026</span> ·
+        <span th:switch="${linea.tipoLinea}">
+            <span th:case="'UNICA'">Línea única</span>
+            <span th:case="'ESPECIALIDAD'">Especialidad</span>
+            <span th:case="'ORIENTACION'">Orientación</span>
+            <span th:case="*" th:text="${linea.tipoLinea}">Línea</span>
+        </span>
+    </p>
+
+    <!-- Mensaje que deja el guardado (flash attribute) -->
+    <p class="exito" role="status" th:if="${mensaje != null}" th:text="${mensaje}">La evaluación se guardó correctamente.</p>
+
+    <h2>Pautas de evaluación</h2>
+
+    <!-- Caso: la asignatura aún no tiene pautas para este tipo de línea -->
+    <section th:if="${#lists.isEmpty(linea.pautas)}">
+        <p>Aún no hay pautas registradas para esta línea.</p>
+    </section>
+
+    <div class="tabla-scroll" th:unless="${#lists.isEmpty(linea.pautas)}">
+        <table>
+            <caption class="sr-only">Pautas de evaluación de la línea</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Aplicación</th>
+                    <th scope="col">Ponderación</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col"><span class="sr-only">Acción</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="pauta : ${linea.pautas}">
+                    <td th:text="${pauta.numeroAplicacion}">1</td>
+                    <td th:text="|${#numbers.formatDecimal(pauta.ponderacion, 1, 'POINT', 2, 'COMMA')} %|">50,00 %</td>
+                    <td>
+                        <span class="badge enviada" th:if="${pauta.idEvaluacion == null}">Sin evaluar</span>
+                        <span class="badge aprobada" th:if="${pauta.idEvaluacion != null}"
+                              th:text="|Evaluada: ${#numbers.formatDecimal(pauta.puntajeTotal, 1, 'POINT', 2, 'COMMA')} pts el ${#temporals.format(pauta.fecha, 'dd/MM/yyyy HH:mm')}|">Evaluada</span>
+                    </td>
+                    <td>
+                        <a class="btn btn-ghost" th:if="${pauta.idEvaluacion == null}"
+                           th:href="@{/colaborador/lineas/{l}/pautas/{p}(l=${linea.idLinea}, p=${pauta.idPautaEvaluacion})}">Evaluar</a>
+                        <a class="btn btn-ghost" th:if="${pauta.idEvaluacion != null}"
+                           th:href="@{/colaborador/lineas/{l}/pautas/{p}(l=${linea.idLinea}, p=${pauta.idPautaEvaluacion})}">Editar</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pautas de evaluación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Pautas de evaluación</h1>
+    <p>Aquí aparecen tus asignaturas que ya tienen pautas registradas. Elige una para ver con qué criterios serás evaluado.</p>
+
+    <!-- Caso: el estudiante no tiene asignaturas con pautas -->
+    <section th:if="${#lists.isEmpty(asignaturas)}">
+        <p>Aún no tienes pautas de evaluación disponibles.</p>
+        <p>Cuando tus asignaturas tengan pautas registradas, aparecerán en esta lista.</p>
+    </section>
+
+    <div class="tabla-scroll" th:unless="${#lists.isEmpty(asignaturas)}">
+        <table>
+            <caption class="sr-only">Asignaturas con pautas de evaluación</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Asignatura</th>
+                    <th scope="col">Período</th>
+                    <th scope="col"><span class="sr-only">Acción</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="asignatura : ${asignaturas}">
+                    <td th:text="${asignatura.nombre}">Práctica Pedagógica</td>
+                    <td th:text="|Semestre ${asignatura.semestre} de ${asignatura.anio}|">Semestre 2 de 2026</td>
+                    <td>
+                        <a class="btn btn-ghost" th:href="@{/mis-pautas/asignatura/{id}(id=${asignatura.idAsignatura})}">Ver pautas</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

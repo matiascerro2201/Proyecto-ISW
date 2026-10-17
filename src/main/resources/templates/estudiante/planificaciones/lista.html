@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Mis planificaciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Mis planificaciones de clase</h1>
+
+    <p class="msg ok" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
+    <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
+
+    <p><a class="btn btn-accent" th:href="@{/estudiante/planificaciones/nueva}">+ Nueva planificación</a></p>
+
+    <p th:if="${#lists.isEmpty(planificaciones)}">Aún no has enviado ninguna planificación.</p>
+
+    <article class="card" th:each="p : ${planificaciones}">
+        <div class="card__header">
+            <strong th:text="${p.etiquetaLinea()}">Asignatura (LÍNEA)</strong>
+            <span th:class="'badge ' + ${p.estado().name().toLowerCase()}" th:text="${p.estado()}">ENVIADA</span>
+        </div>
+        <span class="card__meta">
+            Enviada el
+            <span th:text="${#temporals.format(p.fechaEnvio(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
+        </span>
+
+        <p class="card__content" th:text="${p.contenido()}">Contenido de la planificación</p>
+
+        <div class="card__retro" th:if="${p.retroalimentacion() != null}">
+            <strong>Retroalimentación del colaborador</strong>
+            <span class="card__meta" th:if="${p.fechaRetro() != null}"
+                  th:text="${#temporals.format(p.fechaRetro(), 'dd/MM/yyyy HH:mm')}">01/01/2026 12:00</span>
+            <p th:text="${p.retroalimentacion()}">Texto de la retroalimentación</p>
+        </div>
+
+        <div class="card__footer" th:if="${p.puedeReenviar()}">
+            <a class="btn btn-secondary" th:href="@{/estudiante/planificaciones/{id}/editar(id=${p.idPlanificacion()})}">Editar y reenviar</a>
+        </div>
+    </article>
+</main>
+</body>
+</html>
