@@ -2,7 +2,7 @@ CREATE TABLE `asignatura` (
   `id_asignatura` bigint NOT NULL AUTO_INCREMENT,
   `nombre` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
   `ciclo` enum('INICIAL','INTERMEDIO','FINAL') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `numero_lineas` tinyint NOT NULL DEFAULT '1',
+  `numero_lineas` int NOT NULL DEFAULT 1,
   PRIMARY KEY (`id_asignatura`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -37,7 +37,7 @@ CREATE TABLE `pauta_documento` (
   `id_asignatura` bigint NOT NULL,
   `ponderacion` decimal(5,2) NOT NULL,
   `tipo` enum('INFORME','PRODUCTO','PROYECTO_INTERVENCION') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `numero` tinyint NOT NULL,
+  `numero` int NOT NULL,
   PRIMARY KEY (`id_pauta_documento`),
   UNIQUE KEY `uq_pauta_documento` (`id_asignatura`,`tipo`,`numero`),
   CONSTRAINT `fk_pauta_doc_asignatura` FOREIGN KEY (`id_asignatura`) REFERENCES `asignatura` (`id_asignatura`)
@@ -47,7 +47,7 @@ CREATE TABLE `pauta_evaluacion` (
   `id_pauta_evaluacion` bigint NOT NULL AUTO_INCREMENT,
   `id_asignatura` bigint NOT NULL,
   `tipo_linea` enum('UNICA','ESPECIALIDAD','ORIENTACION') COLLATE utf8mb4_unicode_ci NOT NULL,
-  `numero_aplicacion` tinyint NOT NULL DEFAULT '1',
+  `numero_aplicacion` int NOT NULL DEFAULT 1,
   `ponderacion` decimal(5,2) NOT NULL,
   PRIMARY KEY (`id_pauta_evaluacion`),
   KEY `fk_pauta_eval_asignatura` (`id_asignatura`),
@@ -79,7 +79,7 @@ CREATE TABLE `dimension` (
   `id_dimension` bigint NOT NULL AUTO_INCREMENT,
   `id_pauta_evaluacion` bigint NOT NULL,
   `nombre` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `orden` tinyint NOT NULL,
+  `orden` int NOT NULL,
   PRIMARY KEY (`id_dimension`),
   KEY `fk_dimension_pauta` (`id_pauta_evaluacion`),
   CONSTRAINT `fk_dimension_pauta` FOREIGN KEY (`id_pauta_evaluacion`) REFERENCES `pauta_evaluacion` (`id_pauta_evaluacion`) ON DELETE CASCADE
@@ -89,8 +89,8 @@ CREATE TABLE `seccion_asignatura` (
   `id_seccion` bigint NOT NULL AUTO_INCREMENT,
   `id_asignatura` bigint NOT NULL,
   `id_profesor` bigint NOT NULL,
-  `anio` smallint NOT NULL,
-  `semestre` tinyint NOT NULL,
+  `anio` int NOT NULL,
+  `semestre` int NOT NULL,
   PRIMARY KEY (`id_seccion`),
   UNIQUE KEY `uq_seccion` (`id_asignatura`,`anio`,`semestre`),
   KEY `fk_seccion_profesor` (`id_profesor`),
@@ -103,7 +103,7 @@ CREATE TABLE `criterio` (
   `id_dimension` bigint NOT NULL,
   `descripcion` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL,
   `puntaje_max` decimal(5,2) NOT NULL,
-  `orden` tinyint NOT NULL,
+  `orden` int NOT NULL,
   PRIMARY KEY (`id_criterio`),
   KEY `fk_criterio_dimension` (`id_dimension`),
   CONSTRAINT `fk_criterio_dimension` FOREIGN KEY (`id_dimension`) REFERENCES `dimension` (`id_dimension`) ON DELETE CASCADE

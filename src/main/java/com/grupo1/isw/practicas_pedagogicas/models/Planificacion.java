@@ -18,16 +18,14 @@ public class Planificacion {
     @JoinColumn(name = "id_linea", nullable = false)
     private LineaPractica linea;
 
-    @Lob
-    @Column(name = "contenido", nullable = false)
+    @Column(name = "contenido", nullable = false, columnDefinition = "TEXT")
     private String contenido;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false)
     private EstadoPlanificacion estado = EstadoPlanificacion.ENVIADA;
 
-    @Lob
-    @Column(name = "retroalimentacion")
+    @Column(name = "retroalimentacion", columnDefinition = "TEXT")
     private String retroalimentacion;
 
     @Column(name = "fecha_envio", nullable = false)
