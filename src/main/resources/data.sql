@@ -69,3 +69,36 @@ INSERT IGNORE INTO planificacion (id_planificacion, id_linea, contenido, estado,
 
     (6, 2, 'Clase 1: Orientación vocacional y proyecto de vida. Objetivo: que los estudiantes reflexionen sobre sus intereses. Dinámica grupal y cierre reflexivo.',
         'ENVIADA', NULL, '2026-09-12 14:00:00', NULL);
+
+
+-- ------------------------------------------------------------
+-- 7. HU-03: profesor supervisor (tutor) y una pauta para probarla
+--    Login de prueba:  marcela.vidal@uni.cl  /  tutor123   (solo desarrollo)
+--    Marcela supervisa las líneas 1 (Camila) y 3 (Diego), ambas ESPECIALIDAD.
+--    La línea 2 queda sin tutor para probar el control de acceso (403).
+-- ------------------------------------------------------------
+INSERT IGNORE INTO usuario (id_usuario, nombre, email, password_hash, rol) VALUES
+    (6, 'Marcela Vidal', 'marcela.vidal@uni.cl', '$2a$10$jmRiGo4/n0AM.hxk5868xOHzBAunuuw9rJXRANULX7LBXF7mMOaxq', 'TUTOR');
+
+-- Si el tutor ya existía con el hash pendiente, se le asigna la contraseña de prueba.
+UPDATE usuario SET password_hash = '$2a$10$jmRiGo4/n0AM.hxk5868xOHzBAunuuw9rJXRANULX7LBXF7mMOaxq'
+    WHERE id_usuario = 6 AND password_hash = 'HASH_PENDIENTE_LOGIN';
+
+INSERT IGNORE INTO profesor_tutor (id_usuario) VALUES
+    (6);
+
+UPDATE linea_practica SET id_tutor = 6 WHERE id_linea IN (1, 3) AND id_tutor IS NULL;
+
+-- Pauta mínima para líneas ESPECIALIDAD: 2 dimensiones, 3 criterios (máximo total 10,00).
+-- Ids altos (901+) para no chocar con pautas que otros integrantes hayan cargado.
+INSERT IGNORE INTO pauta_evaluacion (id_pauta_evaluacion, id_asignatura, tipo_linea, numero_aplicacion, ponderacion) VALUES
+    (901, 1, 'ESPECIALIDAD', 1, 50.00);
+
+INSERT IGNORE INTO dimension (id_dimension, id_pauta_evaluacion, nombre, orden) VALUES
+    (901, 901, 'Planificación y preparación', 1),
+    (902, 901, 'Gestión de aula', 2);
+
+INSERT IGNORE INTO criterio (id_criterio, id_dimension, descripcion, puntaje_max, orden) VALUES
+    (901, 901, 'Los objetivos de la clase están claramente definidos', 4.00, 1),
+    (902, 901, 'Selecciona recursos pertinentes para el aprendizaje', 3.00, 2),
+    (903, 902, 'Mantiene un clima de respeto y participación', 3.00, 1);

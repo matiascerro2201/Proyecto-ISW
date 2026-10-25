@@ -51,6 +51,10 @@
         <li sec:authorize="hasRole('COLABORADOR')">
             <a th:href="@{/colaborador/lineas}">Mis estudiantes</a>
         </li>
+        <!-- HU-03 -->
+        <li sec:authorize="hasRole('TUTOR')">
+            <a th:href="@{/tutor/lineas}">Estudiantes que superviso</a>
+        </li>
         <!-- HU-20/21 (José) -->
         <li sec:authorize="hasRole('COLABORADOR')">
             <a th:href="@{/planificaciones/pendientes}">Planificaciones pendientes de evaluación</a>
