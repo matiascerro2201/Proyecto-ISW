@@ -6,6 +6,7 @@ import com.grupo1.isw.practicas_pedagogicas.dto.LineaResumenResponse;
 import com.grupo1.isw.practicas_pedagogicas.models.EvaluacionAplicada;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.PautaEvaluacion;
+import com.grupo1.isw.practicas_pedagogicas.models.TipoEvaluador;
 import com.grupo1.isw.practicas_pedagogicas.repositories.EvaluacionAplicadaRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.LineaPracticaRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaEvaluacionRepository;
@@ -42,12 +43,32 @@ public class LineaConsultaService {
     }
 
     @Transactional(readOnly = true)
+    public List<LineaResumenResponse> listarLineasDelTutor(Long idTutor) {
+        return lineaRepository.findByTutor(idTutor).stream()
+                .map(this::aResumen)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public LineaPractica obtenerLineaDelColaborador(Long idColaborador, Long idLinea) {
         LineaPractica linea = lineaRepository.findByIdConContexto(idLinea)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "La línea de práctica no existe"));
 
         if (!Objects.equals(linea.getColaborador().getIdUsuario(), idColaborador)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "No tienes permiso sobre esta línea de práctica");
+        }
+        return linea;
+    }
+
+    @Transactional(readOnly = true)
+    public LineaPractica obtenerLineaDelTutor(Long idTutor, Long idLinea) {
+        LineaPractica linea = lineaRepository.findByIdConContexto(idLinea)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "La línea de práctica no existe"));
+
+        if (linea.getTutor() == null || !Objects.equals(linea.getTutor().getIdUsuario(), idTutor)) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN, "No tienes permiso sobre esta línea de práctica");
         }
@@ -65,8 +86,18 @@ public class LineaConsultaService {
     @Transactional(readOnly = true)
     public LineaEvaluacionesResponse detalleLinea(Long idColaborador, Long idLinea) {
         LineaPractica linea = obtenerLineaDelColaborador(idColaborador, idLinea);
+        return armarDetalle(linea, TipoEvaluador.COLABORADOR);
+    }
 
-        Map<Long, EvaluacionAplicada> hechas = evaluacionRepository.findDelColaboradorByLinea(idLinea).stream()
+    @Transactional(readOnly = true)
+    public LineaEvaluacionesResponse detalleLineaDelTutor(Long idTutor, Long idLinea) {
+        LineaPractica linea = obtenerLineaDelTutor(idTutor, idLinea);
+        return armarDetalle(linea, TipoEvaluador.TUTOR);
+    }
+
+    private LineaEvaluacionesResponse armarDetalle(LineaPractica linea, TipoEvaluador evaluador) {
+        Map<Long, EvaluacionAplicada> hechas = evaluacionRepository
+                .findByLineaYEvaluador(linea.getIdLinea(), evaluador).stream()
                 .collect(Collectors.toMap(
                         e -> e.getPautaEvaluacion().getIdPautaEvaluacion(),
                         e -> e,
