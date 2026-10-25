@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Archivo demasiado grande</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <h1>El archivo es demasiado grande</h1>
+    <p>El tamaño máximo por archivo es de 20 MB. No se guardó nada: si ya tenías una entrega subida, sigue como estaba.</p>
+    <p>Reduce el tamaño del PDF (por ejemplo, exportándolo con menor calidad de imágenes) e inténtalo de nuevo.</p>
+    <a class="back-link" th:href="@{/estudiante/documentos}">Volver a mis entregas</a>
+</main>
+</body>
+</html>

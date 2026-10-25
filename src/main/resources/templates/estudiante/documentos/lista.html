@@ -58,10 +58,8 @@
                 <p th:if="${e.comentarios() != null}" th:text="${e.comentarios()}">Comentarios del evaluador</p>
             </div>
 
-            <!-- El token CSRF también va en la URL: si el archivo es demasiado grande, el campo oculto del
-                 formulario puede perderse y el estudiante vería un 403 en vez de nuestro mensaje. -->
             <form class="card__footer" th:if="${e.puedeSubir()}" method="post" enctype="multipart/form-data"
-                  th:action="@{/estudiante/documentos(_csrf=${_csrf.token})}">
+                  th:action="@{/estudiante/documentos}">
                 <input type="hidden" name="idInscripcion" th:value="${a.idInscripcion()}">
                 <input type="hidden" name="idPautaDocumento" th:value="${e.idPautaDocumento()}">
                 <div class="field">
