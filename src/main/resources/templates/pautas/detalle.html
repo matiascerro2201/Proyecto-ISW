@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Pautas de evaluación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
 </head>
 <body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
 <main>
-    <p><a th:href="@{/mis-pautas}">Volver a mis asignaturas</a></p>
+    <a class="back-link" th:href="@{/mis-pautas}">Volver a mis asignaturas</a>
 
     <h1>Pautas de evaluación</h1>
     <p><strong th:text="${resultado.nombreAsignatura}">Práctica Pedagógica</strong></p>

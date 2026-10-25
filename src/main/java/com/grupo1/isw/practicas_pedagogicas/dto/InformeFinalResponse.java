@@ -5,14 +5,6 @@ import com.grupo1.isw.practicas_pedagogicas.models.InformeFinal;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Vista del informe final que se expone al estudiante.
- * Intencionalmente NO incluye calificacion_sugerida (interna hasta que el profesor
- * de asignatura valida) ni ninguna referencia a Usuario/Estudiante (evita filtrar password_hash).
- *
- * anio y semestre son int primitivo a propósito: aceptan Short, Integer o Byte de la entidad
- * sin tener que ajustar el tipo aquí (ambos son NOT NULL en el esquema).
- */
 public record InformeFinalResponse(
         Long idInforme,
         Long idInscripcion,
@@ -24,7 +16,6 @@ public record InformeFinalResponse(
         LocalDateTime fechaValidacion,
         LocalDateTime fechaPublicacion
 ) {
-
     public static InformeFinalResponse desde(InformeFinal informe) {
         var inscripcion = informe.getInscripcion();
         var seccion = inscripcion.getSeccion();

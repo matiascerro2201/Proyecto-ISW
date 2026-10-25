@@ -5,11 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+
 import java.util.List;
 
-public interface PautaEvaluacionRepository extends JpaRepository<PautaEvaluacion, Long> {
 
-    /** Todas las pautas (plantillas) de una asignatura. El esquema no tiene campo de vigencia. */
+public interface PautaEvaluacionRepository extends JpaRepository<PautaEvaluacion, Long> {
     @Query("""
             SELECT p
             FROM PautaEvaluacion p

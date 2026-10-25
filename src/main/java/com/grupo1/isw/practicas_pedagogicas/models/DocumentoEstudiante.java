@@ -30,8 +30,7 @@ public class DocumentoEstudiante {
     @Column(name = "puntaje_obtenido", precision = 6, scale = 2)
     private BigDecimal puntajeObtenido;
 
-    @Lob
-    @Column(name = "comentarios_evaluador")
+    @Column(name = "comentarios_evaluador", columnDefinition = "TEXT")
     private String comentariosEvaluador;
 
     public DocumentoEstudiante() {

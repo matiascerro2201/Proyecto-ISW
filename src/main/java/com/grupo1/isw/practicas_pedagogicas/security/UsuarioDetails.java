@@ -8,15 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * Representa al usuario autenticado dentro de Spring Security.
- * Se guarda en la sesión, por eso copia solo datos simples (no la entidad JPA,
- * que arrastraría relaciones lazy y no debe vivir en la sesión).
- *
- * Desde cualquier controlador se obtiene con @AuthenticationPrincipal UsuarioDetails.
- */
 public class UsuarioDetails implements UserDetails {
-
     private final Long idUsuario;
     private final String nombre;
     private final String email;
@@ -28,7 +20,7 @@ public class UsuarioDetails implements UserDetails {
         this.nombre = usuario.getNombre();
         this.email = usuario.getEmail();
         this.passwordHash = usuario.getPasswordHash();
-        this.rol = usuario.getRol().name();   // si tu campo rol es String, quita .name()
+        this.rol = usuario.getRol().name();
     }
 
     public Long getIdUsuario() {
@@ -45,7 +37,6 @@ public class UsuarioDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Spring exige el prefijo ROLE_ para usar hasRole('ESTUDIANTE')
         return List.of(new SimpleGrantedAuthority("ROLE_" + rol));
     }
 
@@ -56,7 +47,7 @@ public class UsuarioDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        return email;   // el "username" del login es el email
+        return email;
     }
 
     @Override

@@ -24,8 +24,7 @@ public class DetalleCriterio {
     @Column(name = "puntaje_obtenido", nullable = false, precision = 5, scale = 2)
     private BigDecimal puntajeObtenido;
 
-    @Lob
-    @Column(name = "transcripcion_comentario")
+    @Column(name = "transcripcion_comentario", columnDefinition = "TEXT")
     private String transcripcionComentario;
 
     public DetalleCriterio() {

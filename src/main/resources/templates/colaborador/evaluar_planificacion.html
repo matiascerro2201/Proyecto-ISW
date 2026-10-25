@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Evaluar planificación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main style="max-width:38rem;">
+    <a class="back-link" th:href="@{/planificaciones/pendientes}">Volver a pendientes</a>
+
+    <h1>Evaluación de planificación</h1>
+
+    <p class="msg ok" th:if="${param.exito}">Evaluación guardada exitosamente.</p>
+    <p class="msg error" th:if="${error}" th:text="${error}"></p>
+
+    <p>
+        <strong>Estado actual:</strong>
+        <span class="badge" th:classappend="${planificacion.estado.name().toLowerCase()}" th:text="${planificacion.estado}"></span>
+    </p>
+    <p><strong>Fecha de envío original:</strong> <span th:text="${planificacion.fechaEnvio != null ? #temporals.format(planificacion.fechaEnvio, 'dd/MM/yyyy HH:mm') : ''}"></span></p>
+
+    <h2 style="font-size:16px;">Contenido de la planificación</h2>
+    <p class="card__content" th:text="${planificacion.contenido}"></p>
+
+    <!-- El formulario solo aparece si el estado es ENVIADA -->
+    <form th:action="@{/planificaciones/{id}/evaluar(id=${planificacion.idPlanificacion})}" method="post" th:if="${planificacion.estado.name() == 'ENVIADA'}">
+        <div class="field">
+            <label for="retroalimentacion">Retroalimentación (obligatoria para rechazar)</label>
+            <textarea id="retroalimentacion" name="retroalimentacion" rows="5" placeholder="Detalle aquí las correcciones o comentarios..."></textarea>
+        </div>
+
+        <div style="display:flex;gap:var(--space-2);">
+            <button type="submit" name="estado" value="APROBADA" class="btn btn-primary">Aprobar planificación</button>
+            <button type="submit" name="estado" value="RECHAZADA" class="btn btn-danger">Rechazar planificación</button>
+        </div>
+    </form>
+
+    <div th:if="${planificacion.estado.name() != 'ENVIADA'}">
+        <h2 style="font-size:16px;">Retroalimentación entregada</h2>
+        <p th:text="${planificacion.retroalimentacion}"></p>
+        <p><small style="color:var(--ink-500);">Fecha de evaluación: <span th:text="${planificacion.fechaRetro != null ? #temporals.format(planificacion.fechaRetro, 'dd/MM/yyyy HH:mm') : 'Sin registro'}"></span></small></p>
+    </div>
+</main>
+</body>
+</html>

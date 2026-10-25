@@ -1,21 +1,19 @@
 package com.grupo1.isw.practicas_pedagogicas.controllers;
 
+import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
 import com.grupo1.isw.practicas_pedagogicas.services.PlanificacionService;
 import com.grupo1.isw.practicas_pedagogicas.services.PlanificacionService.PlanificacionVista;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
-
 @Controller
 @RequestMapping("/estudiante/planificaciones")
-@PreAuthorize("hasRole('ESTUDIANTE')") // 2. Protege todas las rutas para que solo entren estudiantes
+@PreAuthorize("hasRole('ESTUDIANTE')")
 public class PlanificacionEstudianteController {
-
     private static final String BASE = "/estudiante/planificaciones";
     private static final String VISTA_LISTA = "estudiante/planificaciones/lista";
     private static final String VISTA_FORMULARIO = "estudiante/planificaciones/formulario";
@@ -27,28 +25,29 @@ public class PlanificacionEstudianteController {
     }
 
     @GetMapping
-    public String listar(@AuthenticationPrincipal UsuarioDetails usuarioLogueado, Model model) { // 3. Captura al usuario
+    public String listar(@AuthenticationPrincipal UsuarioDetails usuario, Model model) {
         model.addAttribute("planificaciones",
-                planificacionService.listarPlanificacionesDelEstudiante(usuarioLogueado.getIdUsuario())); // 4. Usa su ID
+                planificacionService.listarPlanificacionesDelEstudiante(usuario.getIdUsuario()));
         return VISTA_LISTA;
     }
 
     @GetMapping("/nueva")
-    public String nueva(@AuthenticationPrincipal UsuarioDetails usuarioLogueado, Model model) {
-        cargarFormularioNueva(model, usuarioLogueado.getIdUsuario(), null, "", null);
+    public String nueva(@AuthenticationPrincipal UsuarioDetails usuario, Model model) {
+        cargarFormularioNueva(model, usuario.getIdUsuario(), null, "", null);
         return VISTA_FORMULARIO;
     }
 
     @PostMapping
     public String crear(@RequestParam(required = false) Long idLinea,
                         @RequestParam(defaultValue = "") String contenido,
-                        @AuthenticationPrincipal UsuarioDetails usuarioLogueado,
+                        @AuthenticationPrincipal UsuarioDetails usuario,
                         Model model,
                         RedirectAttributes redirectAttributes) {
+        Long idEstudiante = usuario.getIdUsuario();
         try {
-            planificacionService.crearPlanificacion(usuarioLogueado.getIdUsuario(), idLinea, contenido);
+            planificacionService.crearPlanificacion(idEstudiante, idLinea, contenido);
         } catch (IllegalArgumentException e) {
-            cargarFormularioNueva(model, usuarioLogueado.getIdUsuario(), idLinea, contenido, e.getMessage());
+            cargarFormularioNueva(model, idEstudiante, idLinea, contenido, e.getMessage());
             return VISTA_FORMULARIO;
         }
         redirectAttributes.addFlashAttribute("mensaje", "Planificación enviada correctamente.");
@@ -56,11 +55,12 @@ public class PlanificacionEstudianteController {
     }
 
     @GetMapping("/{id}/editar")
-    public String editar(@PathVariable Long id, 
-                         @AuthenticationPrincipal UsuarioDetails usuarioLogueado,
-                         Model model, RedirectAttributes redirectAttributes) {
+    public String editar(@PathVariable Long id,
+                         @AuthenticationPrincipal UsuarioDetails usuario,
+                         Model model,
+                         RedirectAttributes redirectAttributes) {
         PlanificacionVista planificacion =
-                planificacionService.obtenerVistaDelEstudiante(usuarioLogueado.getIdUsuario(), id);
+                planificacionService.obtenerVistaDelEstudiante(usuario.getIdUsuario(), id);
 
         if (!planificacion.puedeReenviar()) {
             redirectAttributes.addFlashAttribute("error",
@@ -75,14 +75,14 @@ public class PlanificacionEstudianteController {
     @PostMapping("/{id}/reenviar")
     public String reenviar(@PathVariable Long id,
                            @RequestParam(defaultValue = "") String contenido,
-                           @AuthenticationPrincipal UsuarioDetails usuarioLogueado,
+                           @AuthenticationPrincipal UsuarioDetails usuario,
                            Model model,
                            RedirectAttributes redirectAttributes) {
+        Long idEstudiante = usuario.getIdUsuario();
         try {
-            planificacionService.reenviarPlanificacion(usuarioLogueado.getIdUsuario(), id, contenido);
+            planificacionService.reenviarPlanificacion(idEstudiante, id, contenido);
         } catch (IllegalArgumentException e) {
-            PlanificacionVista planificacion =
-                    planificacionService.obtenerVistaDelEstudiante(usuarioLogueado.getIdUsuario(), id);
+            PlanificacionVista planificacion = planificacionService.obtenerVistaDelEstudiante(idEstudiante, id);
             cargarFormularioReenvio(model, planificacion, contenido, e.getMessage());
             return VISTA_FORMULARIO;
         } catch (IllegalStateException e) {
@@ -93,7 +93,8 @@ public class PlanificacionEstudianteController {
         return "redirect:" + BASE;
     }
 
-    private void cargarFormularioNueva(Model model, Long idEstudiante, Long idLineaSeleccionada, String contenido, String error) {
+    private void cargarFormularioNueva(Model model, Long idEstudiante, Long idLineaSeleccionada,
+                                       String contenido, String error) {
         model.addAttribute("titulo", "Nueva planificación de clase");
         model.addAttribute("accion", BASE);
         model.addAttribute("lineas", planificacionService.obtenerLineasDelEstudiante(idEstudiante));
