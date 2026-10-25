@@ -1,6 +1,7 @@
 package com.grupo1.isw.practicas_pedagogicas.repositories;
 
 import com.grupo1.isw.practicas_pedagogicas.models.EvaluacionAplicada;
+import com.grupo1.isw.practicas_pedagogicas.models.TipoEvaluador;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,9 +20,17 @@ public interface EvaluacionAplicadaRepository extends JpaRepository<EvaluacionAp
             """)
     List<EvaluacionAplicada> findByLinea(@Param("idLinea") Long idLinea);
 
-    default List<EvaluacionAplicada> findDelColaboradorByLinea(Long idLinea) {
+    default List<EvaluacionAplicada> findByLineaYEvaluador(Long idLinea, TipoEvaluador tipoEvaluador) {
         return findByLinea(idLinea).stream()
-                .filter(e -> "COLABORADOR".equals(String.valueOf(e.getTipoEvaluador())))
+                .filter(e -> tipoEvaluador == e.getTipoEvaluador())
                 .toList();
+    }
+
+    default List<EvaluacionAplicada> findDelColaboradorByLinea(Long idLinea) {
+        return findByLineaYEvaluador(idLinea, TipoEvaluador.COLABORADOR);
+    }
+
+    default List<EvaluacionAplicada> findDelTutorByLinea(Long idLinea) {
+        return findByLineaYEvaluador(idLinea, TipoEvaluador.TUTOR);
     }
 }

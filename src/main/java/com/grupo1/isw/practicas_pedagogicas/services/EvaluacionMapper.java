@@ -20,10 +20,16 @@ public class EvaluacionMapper {
 
     public EvaluacionAplicada nuevaEvaluacion(LineaPractica linea, PautaEvaluacion pauta,
                                               BigDecimal puntajeTotal, LocalDateTime fecha) {
+        return nuevaEvaluacion(linea, pauta, TipoEvaluador.COLABORADOR, puntajeTotal, fecha);
+    }
+
+    public EvaluacionAplicada nuevaEvaluacion(LineaPractica linea, PautaEvaluacion pauta,
+                                              TipoEvaluador tipoEvaluador,
+                                              BigDecimal puntajeTotal, LocalDateTime fecha) {
         EvaluacionAplicada evaluacion = new EvaluacionAplicada();
         evaluacion.setLinea(linea);
         evaluacion.setPautaEvaluacion(pauta);
-        evaluacion.setTipoEvaluador(TipoEvaluador.COLABORADOR);
+        evaluacion.setTipoEvaluador(tipoEvaluador);
         evaluacion.setFecha(fecha);
         evaluacion.setPuntajeTotal(puntajeTotal);
         return evaluacion;
