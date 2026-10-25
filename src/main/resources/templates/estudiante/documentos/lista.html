@@ -19,8 +19,6 @@
 
     <p class="msg ok" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
     <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
-    <!-- Lo envía ManejadorErroresSubida cuando el archivo supera el límite de Spring -->
-    <p class="msg error" th:if="${param.containsKey('archivoMuyGrande')}">El archivo supera el tamaño máximo de 20 MB.</p>
 
     <p class="hint">Solo se aceptan archivos PDF de hasta 20 MB. Puedes reemplazar una entrega mientras no haya sido evaluada.</p>
 
@@ -49,6 +47,11 @@
                 <span th:text="${#temporals.format(e.fechaSubida(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
             </p>
             <p class="card__meta" th:unless="${e.entregado()}">Aún no has subido este documento.</p>
+
+            <div class="card__footer" th:if="${e.entregado()}">
+                <a class="btn btn-secondary"
+                   th:href="@{/estudiante/documentos/{id}/descargar(id=${e.idDocumento()})}">Descargar PDF</a>
+            </div>
 
             <div class="card__retro" th:if="${e.evaluado()}">
                 <strong>Puntaje obtenido: <span th:text="${e.puntaje()}">85.00</span></strong>
