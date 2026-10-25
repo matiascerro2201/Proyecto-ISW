@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Informes finales por revisar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Informes finales por revisar</h1>
+    <p style="color:var(--ink-500);margin-top:0;">
+        Primero los que aún no has publicado. Revisa la calificación sugerida, ajústala si corresponde y publícala.
+    </p>
+
+    <p class="msg ok" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="msg error" th:if="${error}" th:text="${error}"></p>
+
+    <section th:if="${#lists.isEmpty(informes)}">
+        <p>Todavía no hay informes finales de tus estudiantes.</p>
+        <p>Cuando el sistema genere uno, aparecerá en esta lista para tu revisión.</p>
+    </section>
+
+    <div class="tabla-scroll" th:unless="${#lists.isEmpty(informes)}">
+        <table>
+            <caption class="sr-only">Informes finales de los estudiantes</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Estudiante</th>
+                    <th scope="col">Asignatura</th>
+                    <th scope="col">Nota sugerida</th>
+                    <th scope="col">Nota final</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col"><span class="sr-only">Acción</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="informe : ${informes}">
+                    <td style="font-weight:600;color:var(--ink-900);" th:text="${informe.nombreEstudiante()}">Camila Soto</td>
+                    <td th:text="|${informe.nombreAsignatura()} · ${informe.semestre()}/${informe.anio()}|">Práctica Pedagógica · 2/2026</td>
+                    <td th:text="${informe.calificacionSugerida() != null
+                                   ? #numbers.formatDecimal(informe.calificacionSugerida(), 1, 'POINT', 1, 'COMMA')
+                                   : '—'}">6,2</td>
+                    <td style="font-weight:600;color:var(--ink-900);"
+                        th:text="${informe.calificacionFinal() != null
+                                   ? #numbers.formatDecimal(informe.calificacionFinal(), 1, 'POINT', 1, 'COMMA')
+                                   : '—'}">6,5</td>
+                    <td>
+                        <span class="badge" th:classappend="${informe.estado().name().toLowerCase()}"
+                              th:text="${informe.estado()}">PENDIENTE</span>
+                    </td>
+                    <td>
+                        <a th:class="${informe.publicado() ? 'btn btn-ghost' : 'btn btn-primary'}"
+                           th:href="@{/profesor/informes/{id}(id=${informe.idInforme()})}"
+                           th:text="${informe.publicado() ? 'Ver' : 'Revisar'}">Revisar</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
