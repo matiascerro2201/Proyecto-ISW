@@ -36,4 +36,15 @@ public interface InscripcionAsignaturaRepository extends JpaRepository<Inscripci
             """)
     Optional<Asignatura> findAsignaturaInscrita(@Param("idEstudiante") Long idEstudiante,
                                                 @Param("idAsignatura") Long idAsignatura);
+
+    @Query("""
+            SELECT ins
+            FROM InscripcionAsignatura ins
+            JOIN FETCH ins.seccion sec
+            JOIN FETCH sec.asignatura
+            WHERE ins.estudiante.idUsuario = :idEstudiante
+            ORDER BY sec.anio DESC, sec.semestre DESC
+            """)
+    List<InscripcionAsignatura> findByEstudianteConAsignatura(@Param("idEstudiante") Long idEstudiante);
+    
 }
