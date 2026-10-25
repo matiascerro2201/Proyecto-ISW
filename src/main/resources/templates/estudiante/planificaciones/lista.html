@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Mis planificaciones</title>
+    <title>Mis entregas</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
@@ -15,38 +15,87 @@
 <main>
     <a class="back-link" th:href="@{/}">Volver al inicio</a>
 
-    <h1>Mis planificaciones de clase</h1>
+    <h1>Mis entregas</h1>
 
     <p class="msg ok" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
     <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
+    <!-- Lo envía ManejadorErroresSubida cuando el archivo supera el límite de Spring -->
+    <p class="msg error" th:if="${param.containsKey('archivoMuyGrande')}">El archivo supera el tamaño máximo de 20 MB.</p>
 
-    <p><a class="btn btn-accent" th:href="@{/estudiante/planificaciones/nueva}">+ Nueva planificación</a></p>
+    <p class="hint">Solo se aceptan archivos PDF de hasta 20 MB. Puedes reemplazar una entrega mientras no haya sido evaluada.</p>
 
-    <p th:if="${#lists.isEmpty(planificaciones)}">Aún no has enviado ninguna planificación.</p>
+    <p th:if="${#lists.isEmpty(asignaturas)}">No tienes asignaturas inscritas.</p>
 
-    <article class="card" th:each="p : ${planificaciones}">
-        <div class="card__header">
-            <strong th:text="${p.etiquetaLinea()}">Asignatura (LÍNEA)</strong>
-            <span th:class="'badge ' + ${p.estado().name().toLowerCase()}" th:text="${p.estado()}">ENVIADA</span>
-        </div>
-        <span class="card__meta">
-            Enviada el
-            <span th:text="${#temporals.format(p.fechaEnvio(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
-        </span>
+    <section th:each="a : ${asignaturas}">
+        <h2>
+            <span th:text="${a.asignatura()}">Asignatura</span>
+            <span class="card__meta" th:text="'(' + ${a.periodo()} + ')'">(2026-2)</span>
+        </h2>
 
-        <p class="card__content" th:text="${p.contenido()}">Contenido de la planificación</p>
+        <p class="hint" th:unless="${a.admiteEntregas()}">Esta asignatura ya no admite entregas.</p>
+        <p th:if="${#lists.isEmpty(a.entregas())}">Esta asignatura no tiene entregas definidas.</p>
 
-        <div class="card__retro" th:if="${p.retroalimentacion() != null}">
-            <strong>Retroalimentación del colaborador</strong>
-            <span class="card__meta" th:if="${p.fechaRetro() != null}"
-                  th:text="${#temporals.format(p.fechaRetro(), 'dd/MM/yyyy HH:mm')}">01/01/2026 12:00</span>
-            <p th:text="${p.retroalimentacion()}">Texto de la retroalimentación</p>
-        </div>
+        <article class="card" th:each="e : ${a.entregas()}">
+            <div class="card__header">
+                <strong th:text="${e.etiqueta()}">Informe 1</strong>
+                <span th:class="'badge ' + (${e.entregado()} ? 'aprobado' : 'pendiente')"
+                      th:text="${e.evaluado()} ? 'Evaluado' : (${e.entregado()} ? 'Entregado' : 'Pendiente')">Pendiente</span>
+            </div>
+            <span class="card__meta"
+                  th:text="'Ponderación: ' + ${e.ponderacion().stripTrailingZeros().toPlainString()} + '%'">Ponderación: 30%</span>
 
-        <div class="card__footer" th:if="${p.puedeReenviar()}">
-            <a class="btn btn-secondary" th:href="@{/estudiante/planificaciones/{id}/editar(id=${p.idPlanificacion()})}">Editar y reenviar</a>
-        </div>
-    </article>
+            <p class="card__meta" th:if="${e.entregado()}">
+                Subido el
+                <span th:text="${#temporals.format(e.fechaSubida(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
+            </p>
+            <p class="card__meta" th:unless="${e.entregado()}">Aún no has subido este documento.</p>
+
+            <div class="card__footer" th:if="${e.entregado()}">
+                <a class="btn btn-secondary"
+                   th:href="@{/estudiante/documentos/{id}/descargar(id=${e.idDocumento()})}">Descargar PDF</a>
+            </div>
+
+            <div class="card__retro" th:if="${e.evaluado()}">
+                <strong>Puntaje obtenido: <span th:text="${e.puntaje()}">85.00</span></strong>
+                <p th:if="${e.comentarios() != null}" th:text="${e.comentarios()}">Comentarios del evaluador</p>
+            </div>
+
+            <!-- El token CSRF también va en la URL: si el archivo es demasiado grande, el campo oculto del
+                 formulario puede perderse y el estudiante vería un 403 en vez de nuestro mensaje. -->
+            <form class="card__footer" th:if="${e.puedeSubir()}" method="post" enctype="multipart/form-data"
+                  th:action="@{/estudiante/documentos(_csrf=${_csrf.token})}">
+                <input type="hidden" name="idInscripcion" th:value="${a.idInscripcion()}">
+                <input type="hidden" name="idPautaDocumento" th:value="${e.idPautaDocumento()}">
+                <div class="field">
+                    <label th:for="${'archivo-' + a.idInscripcion() + '-' + e.idPautaDocumento()}">Archivo PDF (máx. 20 MB)</label>
+                    <input type="file" name="archivo" accept="application/pdf,.pdf" required="required"
+                           th:id="${'archivo-' + a.idInscripcion() + '-' + e.idPautaDocumento()}">
+                </div>
+                <button type="submit" class="btn btn-accent"
+                        th:text="${e.entregado()} ? 'Reemplazar documento' : 'Subir documento'">Subir documento</button>
+            </form>
+
+            <p class="hint" th:if="${e.evaluado()}">Este documento ya fue evaluado y no puede reemplazarse.</p>
+        </article>
+    </section>
 </main>
+
+<!-- Aviso inmediato en el navegador. La validación que cuenta es la del servidor (DocumentoService). -->
+<script>
+    var MAX_BYTES = 20 * 1024 * 1024;
+    document.querySelectorAll('input[type=file][name=archivo]').forEach(function (input) {
+        input.addEventListener('change', function () {
+            var archivo = input.files.length > 0 ? input.files.item(0) : null;
+            var problema = '';
+            if (archivo !== null && !archivo.name.toLowerCase().endsWith('.pdf')) {
+                problema = 'Solo se permiten archivos PDF.';
+            } else if (archivo !== null && archivo.size > MAX_BYTES) {
+                problema = 'El archivo supera el tamaño máximo de 20 MB.';
+            }
+            input.setCustomValidity(problema);
+            input.reportValidity();
+        });
+    });
+</script>
 </body>
 </html>

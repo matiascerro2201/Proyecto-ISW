@@ -2,11 +2,19 @@ package com.grupo1.isw.practicas_pedagogicas.controllers;
 
 import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
 import com.grupo1.isw.practicas_pedagogicas.services.DocumentoService;
+import com.grupo1.isw.practicas_pedagogicas.services.DocumentoService.DescargaDocumento;
+import org.springframework.core.io.PathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -31,6 +39,18 @@ public class DocumentoEstudianteController {
         model.addAttribute("asignaturas",
                 documentoService.listarEntregasDelEstudiante(usuario.getIdUsuario()));
         return VISTA_LISTA;
+    }
+
+    /** Único camino al archivo: la carpeta de subidas no se publica como recurso estático. */
+    @GetMapping("/{id}/descargar")
+    public ResponseEntity<Resource> descargar(@PathVariable Long id,
+                                              @AuthenticationPrincipal UsuarioDetails usuario) {
+        DescargaDocumento descarga = documentoService.obtenerParaDescarga(usuario.getIdUsuario(), id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(descarga.nombreSugerido()).build().toString())
+                .body(new PathResource(descarga.ruta()));
     }
 
     @PostMapping

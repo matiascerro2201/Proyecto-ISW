@@ -20,6 +20,8 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -78,6 +80,10 @@ public class DocumentoService {
                                      String periodo,
                                      boolean admiteEntregas,
                                      List<EntregaVista> entregas) {
+    }
+
+    /** Archivo que se entrega al usuario y el nombre con que se le ofrece para guardar. */
+    public record DescargaDocumento(Path ruta, String nombreSugerido) {
     }
 
     @Transactional(readOnly = true)
@@ -151,6 +157,45 @@ public class DocumentoService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Localiza el archivo de un documento para descargarlo, solo si es del estudiante.
+     *
+     * @throws ResponseStatusException 404 si el documento o su archivo no existen, 403 si es de otro estudiante
+     */
+    @Transactional(readOnly = true)
+    public DescargaDocumento obtenerParaDescarga(Long idEstudiante, Long idDocumento) {
+        DocumentoEstudiante documento = documentoRepository.findById(idDocumento)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Documento no encontrado"));
+
+        if (!documento.getInscripcion().getEstudiante().getIdUsuario().equals(idEstudiante)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para acceder a este documento");
+        }
+
+        Path ruta = rutaDelArchivo(documento.getContenidoUrl());
+        return new DescargaDocumento(ruta, nombreDeDescarga(documento.getPautaDocumento()));
+    }
+
+    private Path rutaDelArchivo(String nombreGuardado) {
+        try {
+            Path ruta = almacenArchivos.resolver(nombreGuardado);
+            if (Files.isRegularFile(ruta)) {
+                return ruta;
+            }
+        } catch (IllegalArgumentException e) {
+            // Un nombre guardado inválido se trata igual que un archivo que no existe.
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El archivo ya no está disponible");
+    }
+
+    /** En disco el archivo es un UUID; al usuario se le ofrece un nombre legible según la entrega. */
+    private String nombreDeDescarga(PautaDocumento pauta) {
+        return switch (pauta.getTipo()) {
+            case INFORME -> "Informe-" + pauta.getNumero() + ".pdf";
+            case PRODUCTO -> "Producto-" + pauta.getNumero() + ".pdf";
+            case PROYECTO_INTERVENCION -> "Proyecto-de-intervencion.pdf";
+        };
     }
 
     private void validarArchivo(MultipartFile archivo) {
