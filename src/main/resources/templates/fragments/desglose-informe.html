@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- HU-10: desglose de la calificación, usado por la vista del profesor y la del estudiante.
+     Parámetros: d (DesgloseInforme) y esProfesor (true muestra avisos de configuración). -->
+<section class="desglose" th:fragment="desglose(d, esProfesor)">
+    <h2>Cómo se calculó la calificación</h2>
+    <p>
+        Cada evaluación y cada entrega recibe una nota de 1,0 a 7,0; la nota 4,0 corresponde a un
+        <span th:text="${#numbers.formatDecimal(d.exigencia, 1, 'POINT', 0, 'COMMA')}">60</span> % de logro.
+        La calificación final es el promedio de esas notas según la ponderación de cada una.
+    </p>
+    <p class="hint" th:if="${esProfesor and not d.ponderacionesSuman100()}"
+       th:text="|Las ponderaciones de esta asignatura suman ${#numbers.formatDecimal(d.sumaPonderaciones, 1, 'POINT', 2, 'COMMA')} % y no 100 %: la calificación se calculó dividiendo por esa suma.|">
+        Las ponderaciones suman 200 %.
+    </p>
+
+    <h3>Evaluaciones de desempeño</h3>
+    <p th:if="${#lists.isEmpty(d.evaluaciones)}">La asignatura no tiene pautas de evaluación registradas.</p>
+
+    <article class="card" th:each="p : ${d.evaluaciones}">
+        <div class="card__header">
+            <h4 th:text="${p.titulo}">Especialidad · aplicación 1</h4>
+            <span class="badge aprobada" th:if="${p.evaluada}"
+                  th:text="|Nota ${#numbers.formatDecimal(p.nota, 1, 'POINT', 1, 'COMMA')}|">Nota 6,0</span>
+            <span class="badge pendiente" th:unless="${p.evaluada}">Sin evaluar</span>
+        </div>
+        <p class="card__meta">
+            <span th:text="|Ponderación ${#numbers.formatDecimal(p.ponderacion, 1, 'POINT', 2, 'COMMA')} %|">Ponderación 50,00 %</span>
+            <span th:if="${p.evaluada}"
+                  th:text="|· ${#numbers.formatDecimal(p.puntajeObtenido, 1, 'POINT', 2, 'COMMA')} de ${#numbers.formatDecimal(p.puntajeMaximo, 1, 'POINT', 2, 'COMMA')} puntos (${#numbers.formatDecimal(p.porcentaje, 1, 'POINT', 1, 'COMMA')} % de logro)|">· 18,00 de 20,00 puntos</span>
+            <span th:if="${p.evaluada and p.fecha != null}"
+                  th:text="|· evaluada el ${#temporals.format(p.fecha, 'dd/MM/yyyy')}|">· evaluada el 01/10/2026</span>
+        </p>
+
+        <div class="desglose__dimension" th:each="dim : ${p.dimensiones}">
+            <h5 th:text="|${dim.nombre} (${#numbers.formatDecimal(dim.puntajeObtenido, 1, 'POINT', 2, 'COMMA')} de ${#numbers.formatDecimal(dim.puntajeMaximo, 1, 'POINT', 2, 'COMMA')})|">Dimensión</h5>
+            <div class="tabla-scroll">
+                <table>
+                    <caption class="sr-only" th:text="|Criterios de ${dim.nombre}|">Criterios</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Criterio</th>
+                            <th scope="col">Puntaje</th>
+                            <th scope="col">Comentario del evaluador</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="c : ${dim.criterios}">
+                            <td th:text="${c.descripcion}">Criterio</td>
+                            <td class="desglose__num"
+                                th:text="${c.puntajeObtenido != null
+                                           ? #numbers.formatDecimal(c.puntajeObtenido, 1, 'POINT', 2, 'COMMA') + ' / ' + #numbers.formatDecimal(c.puntajeMaximo, 1, 'POINT', 2, 'COMMA')
+                                           : 'Sin puntaje'}">3,00 / 4,00</td>
+                            <td th:text="${c.comentario != null ? c.comentario : '—'}">Comentario</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </article>
+
+    <h3>Entregas</h3>
+    <p th:if="${#lists.isEmpty(d.documentos)}">La asignatura no exige entregas.</p>
+
+    <div class="tabla-scroll" th:unless="${#lists.isEmpty(d.documentos)}">
+        <table>
+            <caption class="sr-only">Entregas y su evaluación</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Entrega</th>
+                    <th scope="col">Ponderación</th>
+                    <th scope="col">Puntaje</th>
+                    <th scope="col">Nota</th>
+                    <th scope="col">Comentarios del evaluador</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="doc : ${d.documentos}">
+                    <td th:text="${doc.etiqueta}">Informe 1</td>
+                    <td class="desglose__num" th:text="|${#numbers.formatDecimal(doc.ponderacion, 1, 'POINT', 2, 'COMMA')} %|">30,00 %</td>
+                    <td class="desglose__num"
+                        th:text="${doc.evaluado
+                                   ? #numbers.formatDecimal(doc.puntaje, 1, 'POINT', 2, 'COMMA') + ' / ' + #numbers.formatDecimal(doc.puntajeMaximo, 1, 'POINT', 2, 'COMMA')
+                                   : (doc.entregado ? 'Sin evaluar' : 'No entregado')}">85,00 / 100,00</td>
+                    <td class="desglose__num"
+                        th:text="${doc.evaluado ? #numbers.formatDecimal(doc.nota, 1, 'POINT', 1, 'COMMA') : '—'}">6,3</td>
+                    <td th:text="${doc.comentarios != null ? doc.comentarios : '—'}">Comentario</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+</body>
+</html>

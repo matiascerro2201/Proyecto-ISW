@@ -33,4 +33,17 @@ public interface InformeFinalRepository extends JpaRepository<InformeFinal, Long
             ORDER BY i.fechaPublicacion DESC
             """)
     List<InformeFinal> findPublicadosByEstudiante(@Param("idEstudiante") Long idEstudiante);
+
+    /** HU-10: un informe con el profesor de su sección, para que solo ese profesor pueda verlo. */
+    @Query("""
+            SELECT i
+            FROM InformeFinal i
+            JOIN FETCH i.inscripcion ins
+            JOIN FETCH ins.estudiante
+            JOIN FETCH ins.seccion sec
+            JOIN FETCH sec.asignatura
+            JOIN FETCH sec.profesor
+            WHERE i.idInforme = :idInforme
+            """)
+    Optional<InformeFinal> findByIdParaProfesor(@Param("idInforme") Long idInforme);
 }

@@ -62,6 +62,10 @@
          <li sec:authorize="hasRole('ESTUDIANTE')">
             <a th:href="@{/estudiante/documentos}">Mis entregas</a>
         </li>
+        <!-- HU-10 -->
+        <li sec:authorize="hasRole('PROFESOR_ASIGNATURA')">
+            <a th:href="@{/profesor/informes}">Informes finales de desempeño</a>
+        </li>
     </ul>
 
     <form th:action="@{/logout}" method="post">

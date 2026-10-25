@@ -33,6 +33,9 @@ public class InformeFinalViewController {
                           Model model) {
         model.addAttribute("informe",
                 informeFinalService.obtenerInformeParaEstudiante(idInforme, usuarioLogueado.getIdUsuario()));
+        // HU-10: cómo fue evaluado y por qué
+        model.addAttribute("desglose",
+                informeFinalService.obtenerDesgloseParaEstudiante(idInforme, usuarioLogueado.getIdUsuario()));
         return "informes/detalle";
     }
 }
