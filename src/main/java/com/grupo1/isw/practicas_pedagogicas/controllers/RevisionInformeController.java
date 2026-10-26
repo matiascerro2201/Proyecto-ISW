@@ -13,13 +13,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/** HU-11: el profesor de la asignatura ajusta la calificación sugerida y publica el informe final. */
+/**
+ * HU-11: el profesor de la asignatura ajusta la calificación sugerida y publica el informe final.
+ *
+ * La lista de informes (GET /profesor/informes) y el detalle con el desglose (GET /profesor/informes/{id})
+ * son de HU-10 (GeneracionInformeViewController). Esta clase atiende solo la revisión:
+ *   GET  /profesor/informes/{id}/revision
+ *   POST /profesor/informes/{id}/calificacion
+ *   POST /profesor/informes/{id}/publicar
+ * Si repitiera esas dos rutas, Spring no arrancaría ("Ambiguous mapping").
+ */
 @Controller
 @RequestMapping("/profesor/informes")
 @PreAuthorize("hasRole('PROFESOR_ASIGNATURA')")
 public class RevisionInformeController {
     private static final String BASE = "/profesor/informes";
-    private static final String VISTA_LISTA = "profesor/informes/lista";
     private static final String VISTA_REVISION = "profesor/informes/revision";
 
     private final RevisionInformeService revisionInformeService;
@@ -28,13 +36,7 @@ public class RevisionInformeController {
         this.revisionInformeService = revisionInformeService;
     }
 
-    @GetMapping
-    public String listar(@AuthenticationPrincipal UsuarioDetails usuario, Model model) {
-        model.addAttribute("informes", revisionInformeService.listarInformes(usuario.getIdUsuario()));
-        return VISTA_LISTA;
-    }
-
-    @GetMapping("/{idInforme}")
+    @GetMapping("/{idInforme}/revision")
     public String revisar(@PathVariable Long idInforme,
                           @AuthenticationPrincipal UsuarioDetails usuario,
                           Model model) {
@@ -59,11 +61,11 @@ public class RevisionInformeController {
             return VISTA_REVISION;
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:" + BASE + "/" + idInforme;
+            return "redirect:" + rutaRevision(idInforme);
         }
         redirectAttributes.addFlashAttribute("mensaje",
                 "Calificación final guardada. Ya puedes publicar el informe.");
-        return "redirect:" + BASE + "/" + idInforme;
+        return "redirect:" + rutaRevision(idInforme);
     }
 
     @PostMapping("/{idInforme}/publicar")
@@ -74,9 +76,13 @@ public class RevisionInformeController {
             revisionInformeService.publicar(usuario.getIdUsuario(), idInforme);
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:" + BASE + "/" + idInforme;
+            return "redirect:" + rutaRevision(idInforme);
         }
         redirectAttributes.addFlashAttribute("mensaje", "Informe publicado: el estudiante ya puede verlo.");
         return "redirect:" + BASE;
+    }
+
+    private static String rutaRevision(Long idInforme) {
+        return BASE + "/" + idInforme + "/revision";
     }
 }

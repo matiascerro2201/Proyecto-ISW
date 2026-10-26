@@ -60,6 +60,12 @@
         <button type="submit" class="btn btn-secondary">Volver a generar el informe</button>
     </form>
 
+    <!-- HU-11: ajustar la calificación y publicar -->
+    <p>
+        <a class="btn btn-primary" th:href="@{/profesor/informes/{id}/revision(id=${informe.idInforme})}"
+           th:text="${informe.fechaPublicacion != null ? 'Ver la revisión del informe' : 'Revisar y publicar'}">Revisar y publicar</a>
+    </p>
+
     <div th:replace="~{fragments/desglose-informe :: desglose(${informe.desglose}, true)}"></div>
 </main>
 </body>

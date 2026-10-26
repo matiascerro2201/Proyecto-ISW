@@ -25,6 +25,9 @@
         <span th:text="|${informe.nombreAsignatura()} · Semestre ${informe.semestre()} de ${informe.anio()}|">Práctica Pedagógica · Semestre 2 de 2026</span>
     </p>
     <p>
+        <a class="btn btn-ghost" th:href="@{/profesor/informes/{id}(id=${informe.idInforme()})}">Ver cómo se calculó la nota sugerida</a>
+    </p>
+    <p>
         <strong>Estado:</strong>
         <span class="badge" th:classappend="${informe.estado().name().toLowerCase()}"
               th:text="${informe.estado()}">PENDIENTE</span>
