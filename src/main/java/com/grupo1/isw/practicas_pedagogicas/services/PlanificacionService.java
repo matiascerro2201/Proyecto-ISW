@@ -54,6 +54,7 @@ public class PlanificacionService {
         planificacion.setFechaRetro(LocalDateTime.now());
 
         planificacionRepository.save(planificacion);
+        notificarAlEstudiante(planificacion, nuevoEstado);
     }
 
     public Planificacion obtenerPlanificacion(Long id) {
@@ -146,6 +147,18 @@ public class PlanificacionService {
 
         planificacionRepository.save(planificacion);
         notificarAlColaborador(planificacion, "reenvió");
+    }
+
+    /** HU-23: avisa al estudiante de la decisión sin copiar la retroalimentación; corre tras guardar. */
+    private void notificarAlEstudiante(Planificacion planificacion, EstadoPlanificacion decision) {
+        LineaPractica linea = planificacion.getLinea();
+        String resultado = decision == EstadoPlanificacion.APROBADA
+                ? "fue aprobada por tu profesor colaborador."
+                : "fue rechazada por tu profesor colaborador; revisa la retroalimentación y reenvíala.";
+        notificacionService.crear(linea.getInscripcion().getEstudiante().getIdUsuario(),
+                NotificacionService.TIPO_PLANIFICACION,
+                "Tu planificación de clase (" + etiquetaDe(linea) + ") " + resultado,
+                "/estudiante/planificaciones");
     }
 
     /** HU-22: avisa al colaborador de la línea; corre en la transacción del guardado. */

@@ -30,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +85,7 @@ class PlanificacionServiceTest {
         verify(planificacionRepository, never()).save(planificacion);
         verify(planificacion, never()).setEstado(any());
         verify(planificacion, never()).setFechaRetro(any());
+        verificarQueNoSeNotifico();
     }
 
     @Test
@@ -96,6 +99,7 @@ class PlanificacionServiceTest {
 
         assertEquals(404, ex.getStatusCode().value());
         verify(planificacionRepository, never()).save(any());
+        verificarQueNoSeNotifico();
     }
 
     @Test
@@ -314,5 +318,97 @@ class PlanificacionServiceTest {
 
         verify(planificacionRepository, never()).save(any());
         verificarQueNoSeNotifico();
+    }
+
+    private Planificacion enviadaDe(Long idEstudiante, Long idColaborador) {
+        Planificacion enviada = new Planificacion(lineaDe(idEstudiante, idColaborador), "Plan de clase",
+                LocalDateTime.now().minusDays(1));
+        enviada.setIdPlanificacion(ID_PLANIFICACION);
+        return enviada;
+    }
+
+    @Test
+    @DisplayName("HU-23. Al aprobar se notifica al estudiante sin copiar la retroalimentación")
+    void aprobar_notificaAlEstudiante() {
+        when(planificacionRepository.findById(ID_PLANIFICACION))
+                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
+
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Muy buen trabajo", EstadoPlanificacion.APROBADA);
+
+        ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
+        verify(notificacionService).crear(eq(ID_ESTUDIANTE), eq(NotificacionService.TIPO_PLANIFICACION),
+                mensaje.capture(), eq("/estudiante/planificaciones"));
+        assertTrue(mensaje.getValue().contains("aprobada"), mensaje.getValue());
+        assertFalse(mensaje.getValue().contains("Muy buen trabajo"), "no debe copiar la retroalimentación");
+    }
+
+    @Test
+    @DisplayName("HU-23. Al rechazar se notifica al estudiante sin copiar la retroalimentación")
+    void rechazar_notificaAlEstudiante() {
+        when(planificacionRepository.findById(ID_PLANIFICACION))
+                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
+
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Faltan los objetivos", EstadoPlanificacion.RECHAZADA);
+
+        ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
+        verify(notificacionService).crear(eq(ID_ESTUDIANTE), eq(NotificacionService.TIPO_PLANIFICACION),
+                mensaje.capture(), eq("/estudiante/planificaciones"));
+        assertTrue(mensaje.getValue().contains("rechazada"), mensaje.getValue());
+        assertFalse(mensaje.getValue().contains("Faltan los objetivos"), "no debe copiar la retroalimentación");
+    }
+
+    @Test
+    @DisplayName("HU-23. Si falla el guardado de la evaluación no se notifica al estudiante")
+    void evaluar_falloAlGuardar_noNotifica() {
+        when(planificacionRepository.findById(ID_PLANIFICACION))
+                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
+        when(planificacionRepository.save(any(Planificacion.class)))
+                .thenThrow(new IllegalStateException("Falla de base de datos"));
+
+        assertThrows(IllegalStateException.class, () -> service.evaluarPlanificacion(
+                ID_PLANIFICACION, ID_COLABORADOR, "Comentario", EstadoPlanificacion.APROBADA));
+
+        verificarQueNoSeNotifico();
+    }
+
+    @Test
+    @DisplayName("HU-23. Evaluar dos veces (dos pestañas) deja una sola notificación")
+    void evaluarDosVeces_notificaUnaSolaVez() {
+        when(planificacionRepository.findById(ID_PLANIFICACION))
+                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
+
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Bien", EstadoPlanificacion.APROBADA);
+        assertThrows(IllegalStateException.class, () -> service.evaluarPlanificacion(
+                ID_PLANIFICACION, ID_COLABORADOR, "Bien", EstadoPlanificacion.APROBADA));
+
+        verify(notificacionService).crear(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("HU-22/23. Flujo completo: enviar, rechazar y reenviar notifican al destinatario correcto")
+    void flujoCompleto_notificaEnCadaPaso() {
+        when(lineaPracticaRepository.findById(ID_LINEA))
+                .thenReturn(Optional.of(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
+        Planificacion[] enBase = new Planificacion[1];
+        when(planificacionRepository.save(any(Planificacion.class))).thenAnswer(invocacion -> {
+            Planificacion guardada = invocacion.getArgument(0);
+            guardada.setIdPlanificacion(ID_PLANIFICACION_NUEVA);
+            enBase[0] = guardada;
+            return guardada;
+        });
+        when(planificacionRepository.findById(ID_PLANIFICACION_NUEVA))
+                .thenAnswer(invocacion -> Optional.of(enBase[0]));
+
+        service.crearPlanificacion(ID_ESTUDIANTE, ID_LINEA, "Plan de clase");
+        service.evaluarPlanificacion(ID_PLANIFICACION_NUEVA, ID_COLABORADOR, "Faltan objetivos",
+                EstadoPlanificacion.RECHAZADA);
+        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION_NUEVA, "Plan con objetivos");
+
+        ArgumentCaptor<Long> destinatarios = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<String> enlaces = ArgumentCaptor.forClass(String.class);
+        verify(notificacionService, times(3)).crear(destinatarios.capture(), any(), any(), enlaces.capture());
+        assertEquals(List.of(ID_COLABORADOR, ID_ESTUDIANTE, ID_COLABORADOR), destinatarios.getAllValues());
+        assertEquals(List.of("/planificaciones/77/evaluar", "/estudiante/planificaciones",
+                "/planificaciones/77/evaluar"), enlaces.getAllValues());
     }
 }
