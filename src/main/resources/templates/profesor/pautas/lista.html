@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pautas de evaluación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Pautas de evaluación</h1>
+    <p style="color:var(--ink-500);margin-top:0;">
+        Define las pautas de tus asignaturas. Colaboradores y tutores las completan desde el sistema.
+    </p>
+
+    <p class="msg ok" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="msg error" th:if="${error}" th:text="${error}"></p>
+
+    <section th:if="${#lists.isEmpty(asignaturas)}">
+        <p>No tienes asignaturas asignadas, por lo que aún no puedes definir pautas.</p>
+    </section>
+
+    <section class="pauta" th:each="asignatura : ${asignaturas}">
+        <h2 th:text="${asignatura.nombre()}">Práctica Pedagógica</h2>
+
+        <p th:if="${#lists.isEmpty(asignatura.pautas())}">Esta asignatura aún no tiene pautas.</p>
+
+        <div class="tabla-scroll" th:unless="${#lists.isEmpty(asignatura.pautas())}">
+            <table>
+                <caption class="sr-only">Pautas de la asignatura</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Tipo de línea</th>
+                        <th scope="col">Aplicación</th>
+                        <th scope="col">Ponderación</th>
+                        <th scope="col">Criterios</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col"><span class="sr-only">Acción</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="pauta : ${asignatura.pautas()}">
+                        <td th:text="${pauta.tipoLinea()}">UNICA</td>
+                        <td th:text="${pauta.numeroAplicacion()}">1</td>
+                        <td th:text="|${#numbers.formatDecimal(pauta.ponderacion(), 1, 'POINT', 2, 'COMMA')} %|">30,00 %</td>
+                        <td th:text="${pauta.cantidadCriterios()}">8</td>
+                        <td th:text="${pauta.enUso() ? 'En uso (solo lectura)' : 'Editable'}">Editable</td>
+                        <td>
+                            <a class="btn btn-ghost"
+                               th:href="@{/profesor/pautas/{id}(id=${pauta.idPauta()})}"
+                               th:text="${pauta.enUso() ? 'Ver' : 'Editar'}">Editar</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>
+            <a class="btn btn-primary"
+               th:href="@{/profesor/pautas/nueva(asignatura=${asignatura.idAsignatura()})}">Nueva pauta</a>
+        </p>
+    </section>
+</main>
+</body>
+</html>

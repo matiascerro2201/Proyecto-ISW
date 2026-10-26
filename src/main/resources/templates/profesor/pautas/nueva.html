@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nueva pauta de evaluación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main style="max-width:34rem;">
+    <a class="back-link" th:href="@{/profesor/pautas}">Volver a pautas</a>
+
+    <h1>Nueva pauta de evaluación</h1>
+    <p>Asignatura: <strong th:text="${asignatura.nombre()}">Práctica Pedagógica</strong></p>
+
+    <p class="msg error" th:if="${error}" th:text="${error}"></p>
+
+    <form th:action="@{/profesor/pautas}" method="post">
+        <input type="hidden" name="asignatura" th:value="${asignatura.idAsignatura()}">
+
+        <div class="field">
+            <label for="tipoLinea">Tipo de línea</label>
+            <select id="tipoLinea" name="tipoLinea" required>
+                <option th:each="tipo : ${tiposLinea}" th:value="${tipo}" th:text="${tipo}"
+                        th:selected="${tipo.name() == tipoIngresado}">UNICA</option>
+            </select>
+        </div>
+
+        <div class="field" style="max-width:12rem;">
+            <label for="numeroAplicacion">Número de aplicación</label>
+            <input type="number" id="numeroAplicacion" name="numeroAplicacion" min="1" max="10" required
+                   th:value="${numeroIngresado != null ? numeroIngresado : 1}">
+            <span class="hint">Si se evalúa varias veces, 1 es la primera aplicación.</span>
+        </div>
+
+        <div class="field" style="max-width:12rem;">
+            <label for="ponderacion">Ponderación (%)</label>
+            <input type="text" id="ponderacion" name="ponderacion" inputmode="decimal" autocomplete="off" required
+                   th:value="${ponderacionIngresada}">
+            <span class="hint">Mayor que 0 y hasta 100. Puedes usar coma o punto.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Crear pauta</button>
+    </form>
+</main>
+</body>
+</html>

@@ -66,6 +66,10 @@
         <li sec:authorize="hasRole('PROFESOR_ASIGNATURA')">
             <a th:href="@{/profesor/informes}">Informes finales de desempeño</a>
         </li>
+        <!-- HU-01 (Josué) -->
+        <li sec:authorize="hasRole('PROFESOR_ASIGNATURA')">
+            <a th:href="@{/profesor/pautas}">Pautas de evaluación (definir)</a>
+        </li>
     </ul>
 
     <form th:action="@{/logout}" method="post">
