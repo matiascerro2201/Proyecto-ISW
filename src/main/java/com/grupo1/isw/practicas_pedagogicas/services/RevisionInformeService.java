@@ -96,7 +96,7 @@ public class RevisionInformeService {
     }
 
     private InformeFinal obtenerInformeDelProfesor(Long idProfesor, Long idInforme) {
-        InformeFinal informe = informeFinalRepository.findByIdParaRevision(idInforme)
+        InformeFinal informe = informeFinalRepository.findByIdParaProfesor(idInforme)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "El informe final no existe"));
 

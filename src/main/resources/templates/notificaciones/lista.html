@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Notificaciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Notificaciones</h1>
+    <p style="color:var(--ink-500);margin-top:0;">De la más reciente a la más antigua.</p>
+
+    <p th:if="${#lists.isEmpty(notificaciones)}">No tienes notificaciones.</p>
+
+    <article class="card" th:each="n : ${notificaciones}">
+        <div class="card__header">
+            <strong th:text="${n.mensaje()}">Mensaje de la notificación</strong>
+            <span class="badge enviada" th:unless="${n.leida()}">Nueva</span>
+        </div>
+        <span class="card__meta" th:text="${#temporals.format(n.fecha(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
+
+        <div class="card__footer">
+            <a class="btn btn-primary" th:if="${n.enlace() != null}" th:href="@{${n.enlace()}}">Ver</a>
+            <form method="post" style="display:inline;" th:unless="${n.leida()}"
+                  th:action="@{/notificaciones/{id}/leida(id=${n.idNotificacion()})}">
+                <button type="submit" class="btn btn-secondary">Marcar como leída</button>
+            </form>
+        </div>
+    </article>
+</main>
+</body>
+</html>
