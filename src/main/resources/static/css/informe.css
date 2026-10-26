@@ -1,0 +1,16 @@
+/* HU-10: informe final de desempeño (vista del profesor y del estudiante).
+   Reutiliza los tokens de base.css; solo agrega lo que base.css no cubre. */
+
+.badge.listo { background: var(--brand-100); color: var(--brand-700); }
+
+.pendientes {
+    margin: 0 0 var(--space-2);
+    padding-left: 1.1rem;
+    color: var(--ink-700);
+    font-size: 13px;
+}
+
+.desglose h4 { font-family: var(--font-display); font-size: 16px; margin: 0; }
+.desglose h5 { font-family: var(--font-body); font-size: 14px; margin: var(--space-4) 0 var(--space-2); color: var(--ink-700); }
+.desglose__dimension + .desglose__dimension { margin-top: var(--space-2); }
+.desglose__num { white-space: nowrap; font-variant-numeric: tabular-nums; }
