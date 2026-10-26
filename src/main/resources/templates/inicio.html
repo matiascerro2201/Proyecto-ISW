@@ -59,7 +59,7 @@
         <li sec:authorize="hasRole('COLABORADOR')">
             <a th:href="@{/planificaciones/pendientes}">Planificaciones pendientes de evaluación</a>
         </li>
-         <li sec:authorize="hasRole('ESTUDIANTE')">
+        <li sec:authorize="hasRole('ESTUDIANTE')">
             <a th:href="@{/estudiante/documentos}">Mis entregas</a>
         </li>
         <!-- HU-10 -->
