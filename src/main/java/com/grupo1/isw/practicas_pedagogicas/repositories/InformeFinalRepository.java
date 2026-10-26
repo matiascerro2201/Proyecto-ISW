@@ -46,4 +46,32 @@ public interface InformeFinalRepository extends JpaRepository<InformeFinal, Long
             WHERE i.idInforme = :idInforme
             """)
     Optional<InformeFinal> findByIdParaProfesor(@Param("idInforme") Long idInforme);
+
+    /** HU-11: informe con todo lo necesario para decidir si el profesor puede revisarlo. */
+    @Query("""
+            SELECT i
+            FROM InformeFinal i
+            JOIN FETCH i.inscripcion ins
+            JOIN FETCH ins.estudiante
+            JOIN FETCH ins.seccion sec
+            JOIN FETCH sec.asignatura
+            JOIN FETCH sec.profesor
+            JOIN FETCH i.corrector
+            WHERE i.idInforme = :idInforme
+            """)
+    Optional<InformeFinal> findByIdParaRevision(@Param("idInforme") Long idInforme);
+
+    /** HU-11: informes de las secciones del profesor (o que tiene asignados como corrector). */
+    @Query("""
+            SELECT i
+            FROM InformeFinal i
+            JOIN FETCH i.inscripcion ins
+            JOIN FETCH ins.estudiante
+            JOIN FETCH ins.seccion sec
+            JOIN FETCH sec.asignatura
+            WHERE sec.profesor.idUsuario = :idProfesor
+               OR i.corrector.idUsuario = :idProfesor
+            ORDER BY i.fechaGeneracion DESC, i.idInforme DESC
+            """)
+    List<InformeFinal> findParaRevisionDelProfesor(@Param("idProfesor") Long idProfesor);
 }
