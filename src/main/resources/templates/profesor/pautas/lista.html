@@ -54,7 +54,7 @@
                         <td th:text="${pauta.enUso() ? 'En uso (solo lectura)' : 'Editable'}">Editable</td>
                         <td>
                             <a class="btn btn-ghost"
-                               th:href="@{/profesor/pautas/{id}(id=${pauta.idPauta()})}"
+                               th:href="@{/profesor/pautas/{id}/editar(id=${pauta.idPauta()})}"
                                th:text="${pauta.enUso() ? 'Ver' : 'Editar'}">Editar</a>
                         </td>
                     </tr>
