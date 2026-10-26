@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Estudiantes que superviso</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/evaluacion.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Estudiantes que superviso</h1>
+    <p>Elige un estudiante para ver sus pautas de evaluación y completarlas en el sistema.</p>
+
+    <!-- Caso: el supervisor no tiene líneas asignadas -->
+    <section th:if="${#lists.isEmpty(lineas)}">
+        <p>Aún no tienes estudiantes asignados para supervisar.</p>
+        <p>Cuando se te asigne una línea de práctica, aparecerá en esta lista.</p>
+    </section>
+
+    <div class="tabla-scroll" th:unless="${#lists.isEmpty(lineas)}">
+        <table>
+            <caption class="sr-only">Líneas de práctica asignadas</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Estudiante</th>
+                    <th scope="col">Asignatura</th>
+                    <th scope="col">Período</th>
+                    <th scope="col">Línea</th>
+                    <th scope="col"><span class="sr-only">Acción</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="linea : ${lineas}">
+                    <td th:text="${linea.nombreEstudiante}">Estudiante Uno</td>
+                    <td th:text="${linea.nombreAsignatura}">Práctica Pedagógica</td>
+                    <td th:text="|Semestre ${linea.semestre} de ${linea.anio}|">Semestre 2 de 2026</td>
+                    <td th:switch="${linea.tipoLinea}">
+                        <span th:case="'UNICA'">Línea única</span>
+                        <span th:case="'ESPECIALIDAD'">Especialidad</span>
+                        <span th:case="'ORIENTACION'">Orientación</span>
+                        <span th:case="*" th:text="${linea.tipoLinea}">Línea</span>
+                    </td>
+                    <td><a class="btn btn-ghost" th:href="@{/tutor/lineas/{id}(id=${linea.idLinea})}">Ver pautas</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

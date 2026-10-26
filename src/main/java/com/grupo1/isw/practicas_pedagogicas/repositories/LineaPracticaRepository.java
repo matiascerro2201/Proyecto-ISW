@@ -26,7 +26,20 @@ public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Lo
     @Query("""
             SELECT l
             FROM LineaPractica l
+            JOIN FETCH l.inscripcion ins
+            JOIN FETCH ins.estudiante est
+            JOIN FETCH ins.seccion sec
+            JOIN FETCH sec.asignatura asig
+            WHERE l.tutor.idUsuario = :idTutor
+            ORDER BY sec.anio DESC, sec.semestre DESC, est.nombre
+            """)
+    List<LineaPractica> findByTutor(@Param("idTutor") Long idTutor);
+
+    @Query("""
+            SELECT l
+            FROM LineaPractica l
             JOIN FETCH l.colaborador col
+            LEFT JOIN FETCH l.tutor tut
             JOIN FETCH l.inscripcion ins
             JOIN FETCH ins.estudiante est
             JOIN FETCH ins.seccion sec

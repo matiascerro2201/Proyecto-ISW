@@ -36,4 +36,41 @@ public interface InscripcionAsignaturaRepository extends JpaRepository<Inscripci
             """)
     Optional<Asignatura> findAsignaturaInscrita(@Param("idEstudiante") Long idEstudiante,
                                                 @Param("idAsignatura") Long idAsignatura);
+
+    @Query("""
+            SELECT ins
+            FROM InscripcionAsignatura ins
+            JOIN FETCH ins.seccion sec
+            JOIN FETCH sec.asignatura
+            WHERE ins.estudiante.idUsuario = :idEstudiante
+            ORDER BY sec.anio DESC, sec.semestre DESC
+            """)
+    List<InscripcionAsignatura> findByEstudianteConAsignatura(@Param("idEstudiante") Long idEstudiante);
+    
+
+    /** HU-10: inscripciones de las secciones que dicta un profesor, con su informe si ya existe. */
+    @Query("""
+            SELECT ins
+            FROM InscripcionAsignatura ins
+            JOIN FETCH ins.estudiante est
+            JOIN FETCH ins.seccion sec
+            JOIN FETCH sec.asignatura
+            LEFT JOIN FETCH ins.informeFinal
+            WHERE sec.profesor.idUsuario = :idProfesor
+            ORDER BY sec.anio DESC, sec.semestre DESC, est.nombre
+            """)
+    List<InscripcionAsignatura> findByProfesor(@Param("idProfesor") Long idProfesor);
+
+    /** HU-10: una inscripción con lo necesario para verificar que pertenece al profesor y generar su informe. */
+    @Query("""
+            SELECT ins
+            FROM InscripcionAsignatura ins
+            JOIN FETCH ins.estudiante
+            JOIN FETCH ins.seccion sec
+            JOIN FETCH sec.asignatura
+            JOIN FETCH sec.profesor
+            LEFT JOIN FETCH ins.informeFinal
+            WHERE ins.idInscripcion = :idInscripcion
+            """)
+    Optional<InscripcionAsignatura> findByIdParaInforme(@Param("idInscripcion") Long idInscripcion);
 }

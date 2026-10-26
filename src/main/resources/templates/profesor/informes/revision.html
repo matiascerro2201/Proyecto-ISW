@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Revisar informe final</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main style="max-width:38rem;">
+    <a class="back-link" th:href="@{/profesor/informes}">Volver a informes finales</a>
+
+    <h1>Revisar informe final</h1>
+
+    <p class="msg ok" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="msg error" th:if="${error}" th:text="${error}"></p>
+
+    <p>
+        <strong th:text="${informe.nombreEstudiante()}">Camila Soto</strong><br>
+        <span th:text="|${informe.nombreAsignatura()} · Semestre ${informe.semestre()} de ${informe.anio()}|">Práctica Pedagógica · Semestre 2 de 2026</span>
+    </p>
+    <p>
+        <strong>Estado:</strong>
+        <span class="badge" th:classappend="${informe.estado().name().toLowerCase()}"
+              th:text="${informe.estado()}">PENDIENTE</span>
+    </p>
+
+    <dl>
+        <dt>Calificación sugerida</dt>
+        <dd th:text="${informe.calificacionSugerida() != null
+                       ? #numbers.formatDecimal(informe.calificacionSugerida(), 1, 'POINT', 1, 'COMMA')
+                       : 'El sistema no generó una sugerencia'}">6,2</dd>
+
+        <dt>Informe generado</dt>
+        <dd th:text="${informe.fechaGeneracion() != null
+                       ? #temporals.format(informe.fechaGeneracion(), 'dd/MM/yyyy HH:mm')
+                       : 'Sin registro'}">20/10/2026 09:00</dd>
+
+        <dt th:if="${informe.calificacionFinal() != null}">Calificación final</dt>
+        <dd class="nota" th:if="${informe.calificacionFinal() != null}"
+            th:text="${#numbers.formatDecimal(informe.calificacionFinal(), 1, 'POINT', 1, 'COMMA')}">6,5</dd>
+
+        <dt th:if="${informe.fechaValidacion() != null}">Validado por ti</dt>
+        <dd th:if="${informe.fechaValidacion() != null}"
+            th:text="${#temporals.format(informe.fechaValidacion(), 'dd/MM/yyyy HH:mm')}">21/10/2026 15:30</dd>
+
+        <dt th:if="${informe.fechaPublicacion() != null}">Publicado</dt>
+        <dd th:if="${informe.fechaPublicacion() != null}"
+            th:text="${#temporals.format(informe.fechaPublicacion(), 'dd/MM/yyyy HH:mm')}">22/10/2026 09:00</dd>
+    </dl>
+
+    <p th:if="${informe.ajustada()}" style="color:var(--ink-500);">
+        Ajustaste la nota respecto de la sugerida por el sistema.
+    </p>
+
+    <!-- Ya publicado: solo lectura -->
+    <p class="msg ok" th:if="${informe.publicado()}">
+        Este informe ya fue publicado. El estudiante puede verlo y su calificación no se puede modificar.
+    </p>
+
+    <!-- Paso 1: fijar la calificación final (por defecto, la sugerida) -->
+    <form th:if="${informe.puedeAjustar()}"
+          th:action="@{/profesor/informes/{id}/calificacion(id=${informe.idInforme()})}" method="post">
+        <div class="field" style="max-width:14rem;">
+            <label for="calificacionFinal">Calificación final</label>
+            <input type="text" id="calificacionFinal" name="calificacionFinal"
+                   inputmode="decimal" autocomplete="off" required
+                   th:value="${calificacionIngresada != null
+                               ? calificacionIngresada
+                               : (informe.calificacionFinal() != null
+                                   ? #numbers.formatDecimal(informe.calificacionFinal(), 1, 'POINT', 1, 'COMMA')
+                                   : (informe.calificacionSugerida() != null
+                                       ? #numbers.formatDecimal(informe.calificacionSugerida(), 1, 'POINT', 1, 'COMMA')
+                                       : ''))}">
+            <span class="hint">Escala de 1,0 a 7,0 con un decimal. Puedes usar coma o punto.</span>
+        </div>
+        <button type="submit" class="btn btn-secondary">Guardar calificación</button>
+    </form>
+
+    <!-- Paso 2: publicar, solo cuando la nota ya fue guardada -->
+    <form th:if="${informe.puedePublicar()}" style="margin-top:var(--space-6);"
+          th:action="@{/profesor/informes/{id}/publicar(id=${informe.idInforme()})}" method="post">
+        <button type="submit" class="btn btn-primary"
+                onclick="return confirm('¿Publicar el informe? El estudiante podrá verlo y ya no podrás modificar la calificación.');">
+            Publicar informe
+        </button>
+    </form>
+    <p class="hint" th:if="${informe.puedeAjustar() and !informe.puedePublicar()}" style="margin-top:var(--space-4);">
+        Guarda la calificación final para poder publicar el informe.
+    </p>
+</main>
+</body>
+</html>
