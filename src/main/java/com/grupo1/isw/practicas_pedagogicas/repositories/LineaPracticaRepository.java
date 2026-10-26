@@ -5,12 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+
 import java.util.List;
 import java.util.Optional;
 
-public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Long> {
 
-    /** Líneas de un colaborador, con estudiante y asignatura cargados, de la más reciente a la más antigua. */
+public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Long> {
     @Query("""
             SELECT l
             FROM LineaPractica l
@@ -23,11 +23,23 @@ public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Lo
             """)
     List<LineaPractica> findByColaborador(@Param("idColaborador") Long idColaborador);
 
-    /** Una línea con todo lo necesario para validar propiedad y armar pantallas (sin consultas lazy). */
+    @Query("""
+            SELECT l
+            FROM LineaPractica l
+            JOIN FETCH l.inscripcion ins
+            JOIN FETCH ins.estudiante est
+            JOIN FETCH ins.seccion sec
+            JOIN FETCH sec.asignatura asig
+            WHERE l.tutor.idUsuario = :idTutor
+            ORDER BY sec.anio DESC, sec.semestre DESC, est.nombre
+            """)
+    List<LineaPractica> findByTutor(@Param("idTutor") Long idTutor);
+
     @Query("""
             SELECT l
             FROM LineaPractica l
             JOIN FETCH l.colaborador col
+            LEFT JOIN FETCH l.tutor tut
             JOIN FETCH l.inscripcion ins
             JOIN FETCH ins.estudiante est
             JOIN FETCH ins.seccion sec
@@ -36,6 +48,5 @@ public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Lo
             """)
     Optional<LineaPractica> findByIdConContexto(@Param("idLinea") Long idLinea);
 
-    /** Líneas de práctica de un estudiante (todas las que tenga inscritas). */
     List<LineaPractica> findByInscripcion_Estudiante_IdUsuario(Long idEstudiante);
 }

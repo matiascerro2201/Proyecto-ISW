@@ -5,13 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+
 import java.util.Collection;
 import java.util.List;
 
 
 public interface DetalleCriterioRepository extends JpaRepository<DetalleCriterio, Long> {
-
-    /** Detalles de varias evaluaciones en una consulta, en el orden de la pauta (dimensión y luego criterio). */
     @Query("""
             SELECT d
             FROM DetalleCriterio d

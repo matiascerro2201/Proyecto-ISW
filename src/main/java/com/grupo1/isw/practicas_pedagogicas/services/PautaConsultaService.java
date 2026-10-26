@@ -13,7 +13,6 @@ import com.grupo1.isw.practicas_pedagogicas.repositories.CriterioRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.DimensionRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.InscripcionAsignaturaRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaEvaluacionRepository;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * HU-07: el estudiante consulta las pautas de evaluación de SUS asignaturas.
- * Servicio de solo lectura: ningún método escribe en la base de datos.
- */
 @Service
 public class PautaConsultaService {
-
     private final InscripcionAsignaturaRepository inscripcionRepository;
     private final PautaEvaluacionRepository pautaRepository;
     private final DimensionRepository dimensionRepository;
@@ -46,7 +40,6 @@ public class PautaConsultaService {
         this.criterioRepository = criterioRepository;
     }
 
-    /** Asignaturas del estudiante que ya tienen al menos una pauta registrada (punto de partida de la vista). */
     @Transactional(readOnly = true)
     public List<AsignaturaInscritaResponse> listarAsignaturasConPautas(Long idEstudiante) {
         return inscripcionRepository.findByEstudianteConPautas(idEstudiante)
@@ -55,15 +48,8 @@ public class PautaConsultaService {
                 .toList();
     }
 
-    /**
-     * Devuelve las pautas de una asignatura solo si el estudiante está inscrito en ella.
-     *
-     * @throws ResponseStatusException 403 si no está inscrito (o la asignatura no existe: no se distingue,
-     *                                 para no revelar qué asignaturas existen fuera de las suyas)
-     */
     @Transactional(readOnly = true)
     public PautasAsignaturaResponse consultarPautasDeAsignatura(Long idAsignatura, Long idEstudiante) {
-
         Asignatura asignatura = inscripcionRepository.findAsignaturaInscrita(idEstudiante, idAsignatura)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.FORBIDDEN, "No estás inscrito en esta asignatura"));
@@ -74,7 +60,6 @@ public class PautaConsultaService {
                     asignatura.getIdAsignatura(), asignatura.getNombre(), List.of());
         }
 
-        // 3 consultas en total (pautas, dimensiones, criterios); el árbol se arma en memoria
         List<Long> idsPauta = pautas.stream().map(PautaEvaluacion::getIdPautaEvaluacion).toList();
         List<Dimension> dimensiones = dimensionRepository.findByPautas(idsPauta);
 
@@ -100,7 +85,6 @@ public class PautaConsultaService {
     private PautaEvaluacionResponse armarPauta(PautaEvaluacion pauta,
                                                Map<Long, List<Dimension>> dimensionesPorPauta,
                                                Map<Long, List<Criterio>> criteriosPorDimension) {
-
         List<DimensionResponse> dimensiones = dimensionesPorPauta
                 .getOrDefault(pauta.getIdPautaEvaluacion(), List.of())
                 .stream()
@@ -120,7 +104,7 @@ public class PautaConsultaService {
 
         return new PautaEvaluacionResponse(
                 pauta.getIdPautaEvaluacion(),
-                String.valueOf(pauta.getTipoLinea()),   // sirve si tipoLinea es enum o String
+                String.valueOf(pauta.getTipoLinea()),
                 pauta.getNumeroAplicacion(),
                 pauta.getPonderacion(),
                 dimensiones);

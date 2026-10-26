@@ -4,12 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Evaluación de la pauta</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/evaluacion.css}">
 </head>
 <body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
 <main>
-    <p><a th:href="@{/colaborador/lineas/{id}(id=${form.idLinea})}">Volver a las pautas del estudiante</a></p>
+    <a class="back-link" th:href="@{/colaborador/lineas/{id}(id=${form.idLinea})}">Volver a las pautas del estudiante</a>
 
     <h1 th:text="${form.edicion} ? 'Editar evaluación' : 'Evaluar con la pauta'">Evaluar con la pauta</h1>
     <p>
@@ -59,7 +64,7 @@
         </section>
 
         <p>
-            <button type="submit" class="primario"
+            <button type="submit" class="btn btn-primary"
                     th:text="${form.edicion} ? 'Guardar cambios' : 'Guardar evaluación'">Guardar evaluación</button>
         </p>
     </form>

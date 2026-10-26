@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** Una línea con sus pautas aplicables y, para cada una, si el colaborador ya la evaluó. */
 public record LineaEvaluacionesResponse(
         Long idLinea,
         String nombreEstudiante,
@@ -14,8 +13,6 @@ public record LineaEvaluacionesResponse(
         String tipoLinea,
         List<PautaEstado> pautas
 ) {
-
-    /** idEvaluacion, puntajeTotal y fecha son nulos si la pauta aún no fue evaluada. */
     public record PautaEstado(
             Long idPautaEvaluacion,
             int numeroAplicacion,

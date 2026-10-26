@@ -1,15 +1,16 @@
 package com.grupo1.isw.practicas_pedagogicas.repositories;
 
 import com.grupo1.isw.practicas_pedagogicas.models.EvaluacionAplicada;
+import com.grupo1.isw.practicas_pedagogicas.models.TipoEvaluador;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+
 import java.util.List;
 
-public interface EvaluacionAplicadaRepository extends JpaRepository<EvaluacionAplicada, Long> {
 
-    /** Todas las evaluaciones de una línea (de cualquier evaluador), con su pauta cargada. */
+public interface EvaluacionAplicadaRepository extends JpaRepository<EvaluacionAplicada, Long> {
     @Query("""
             SELECT e
             FROM EvaluacionAplicada e
@@ -19,13 +20,17 @@ public interface EvaluacionAplicadaRepository extends JpaRepository<EvaluacionAp
             """)
     List<EvaluacionAplicada> findByLinea(@Param("idLinea") Long idLinea);
 
-    /**
-     * Solo las evaluaciones hechas por el COLABORADOR (no las del tutor). El filtro se hace en
-     * memoria comparando el texto del enum: así no dependemos de dónde esté declarado ese enum.
-     */
-    default List<EvaluacionAplicada> findDelColaboradorByLinea(Long idLinea) {
+    default List<EvaluacionAplicada> findByLineaYEvaluador(Long idLinea, TipoEvaluador tipoEvaluador) {
         return findByLinea(idLinea).stream()
-                .filter(e -> "COLABORADOR".equals(String.valueOf(e.getTipoEvaluador())))
+                .filter(e -> tipoEvaluador == e.getTipoEvaluador())
                 .toList();
+    }
+
+    default List<EvaluacionAplicada> findDelColaboradorByLinea(Long idLinea) {
+        return findByLineaYEvaluador(idLinea, TipoEvaluador.COLABORADOR);
+    }
+
+    default List<EvaluacionAplicada> findDelTutorByLinea(Long idLinea) {
+        return findByLineaYEvaluador(idLinea, TipoEvaluador.TUTOR);
     }
 }

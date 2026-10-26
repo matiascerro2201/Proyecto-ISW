@@ -6,10 +6,10 @@ import com.grupo1.isw.practicas_pedagogicas.dto.LineaResumenResponse;
 import com.grupo1.isw.practicas_pedagogicas.models.EvaluacionAplicada;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.PautaEvaluacion;
+import com.grupo1.isw.practicas_pedagogicas.models.TipoEvaluador;
 import com.grupo1.isw.practicas_pedagogicas.repositories.EvaluacionAplicadaRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.LineaPracticaRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaEvaluacionRepository;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,13 +21,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * HU-02, lectura: las líneas de práctica del colaborador y el estado de las pautas de cada una.
- * Toda consulta pasa por obtenerLineaDelColaborador: el colaborador SIEMPRE sale de la sesión.
- */
 @Service
 public class LineaConsultaService {
-
     private final LineaPracticaRepository lineaRepository;
     private final EvaluacionAplicadaRepository evaluacionRepository;
     private final PautaEvaluacionRepository pautaRepository;
@@ -47,11 +42,13 @@ public class LineaConsultaService {
                 .toList();
     }
 
-    /**
-     * Devuelve la línea solo si pertenece al colaborador.
-     *
-     * @throws ResponseStatusException 404 si no existe; 403 si es de otro colaborador
-     */
+    @Transactional(readOnly = true)
+    public List<LineaResumenResponse> listarLineasDelTutor(Long idTutor) {
+        return lineaRepository.findByTutor(idTutor).stream()
+                .map(this::aResumen)
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public LineaPractica obtenerLineaDelColaborador(Long idColaborador, Long idLinea) {
         LineaPractica linea = lineaRepository.findByIdConContexto(idLinea)
@@ -65,7 +62,19 @@ public class LineaConsultaService {
         return linea;
     }
 
-    /** Pautas de la asignatura de la línea que además son del tipo de la línea (UNICA, ESPECIALIDAD...). */
+    @Transactional(readOnly = true)
+    public LineaPractica obtenerLineaDelTutor(Long idTutor, Long idLinea) {
+        LineaPractica linea = lineaRepository.findByIdConContexto(idLinea)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "La línea de práctica no existe"));
+
+        if (linea.getTutor() == null || !Objects.equals(linea.getTutor().getIdUsuario(), idTutor)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "No tienes permiso sobre esta línea de práctica");
+        }
+        return linea;
+    }
+
     @Transactional(readOnly = true)
     public List<PautaEvaluacion> pautasAplicables(LineaPractica linea) {
         Long idAsignatura = linea.getInscripcion().getSeccion().getAsignatura().getIdAsignatura();
@@ -74,12 +83,21 @@ public class LineaConsultaService {
                 .toList();
     }
 
-    /** Vista "pautas de una línea": cada pauta aplicable y si el colaborador ya la evaluó. */
     @Transactional(readOnly = true)
     public LineaEvaluacionesResponse detalleLinea(Long idColaborador, Long idLinea) {
         LineaPractica linea = obtenerLineaDelColaborador(idColaborador, idLinea);
+        return armarDetalle(linea, TipoEvaluador.COLABORADOR);
+    }
 
-        Map<Long, EvaluacionAplicada> hechas = evaluacionRepository.findDelColaboradorByLinea(idLinea).stream()
+    @Transactional(readOnly = true)
+    public LineaEvaluacionesResponse detalleLineaDelTutor(Long idTutor, Long idLinea) {
+        LineaPractica linea = obtenerLineaDelTutor(idTutor, idLinea);
+        return armarDetalle(linea, TipoEvaluador.TUTOR);
+    }
+
+    private LineaEvaluacionesResponse armarDetalle(LineaPractica linea, TipoEvaluador evaluador) {
+        Map<Long, EvaluacionAplicada> hechas = evaluacionRepository
+                .findByLineaYEvaluador(linea.getIdLinea(), evaluador).stream()
                 .collect(Collectors.toMap(
                         e -> e.getPautaEvaluacion().getIdPautaEvaluacion(),
                         e -> e,

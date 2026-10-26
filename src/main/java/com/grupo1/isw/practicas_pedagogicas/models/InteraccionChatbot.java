@@ -16,12 +16,10 @@ public class InteraccionChatbot {
     @JoinColumn(name = "id_planificacion", nullable = false)
     private Planificacion planificacion;
 
-    @Lob
-    @Column(name = "mensaje_estudiante", nullable = false)
+    @Column(name = "mensaje_estudiante", nullable = false, columnDefinition = "TEXT")
     private String mensajeEstudiante;
 
-    @Lob
-    @Column(name = "respuesta_bot", nullable = false)
+    @Column(name = "respuesta_bot", nullable = false, columnDefinition = "TEXT")
     private String respuestaBot;
 
     @Column(name = "fecha", nullable = false)

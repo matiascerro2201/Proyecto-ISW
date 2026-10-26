@@ -1,69 +1,306 @@
-/* Estilos base compartidos. Intencionalmente mínimos: el equipo puede reemplazarlos
-   por su propia hoja o por Bootstrap sin tocar las plantillas. */
+/* =====================================================================
+   Prácticas Pedagógicas — hoja base
+   Implementa el sistema de diseño acordado con el equipo: paleta, tipografía
+   (Manrope + Inter, cargadas por <link> en cada plantilla), radios, sombras,
+   espaciados, botones, insignias de estado, tarjetas, tablas y formularios.
+   Selectores genéricos (body, h1, table, dl...) para que una plantilla que
+   solo enlaza este archivo se vea correcta sin agregar clases nuevas.
+   ===================================================================== */
 
 :root {
-    --texto: #1f2933;
-    --fondo: #ffffff;
-    --borde: #d5dbe1;
-    --enlace: #1a4f8b;
+    /* Color — primario institucional, secundario de soporte, acento energético */
+    --brand-700: #1E3A5F;
+    --brand-500: #3B6EA5;
+    --brand-100: #E4EDF7;
+    --support-600: #257A6E;
+    --support-100: #E1F2EE;
+    --accent-600: #C83C0A;
+    --accent-100: #FBE7DE;
+
+    /* Escala de grises */
+    --ink-900: #14181F;
+    --ink-700: #333B47;
+    --ink-500: #667085;
+    --ink-300: #A6AEBB;
+    --border: #E2E5EA;
+    --border-strong: #CBD2DC;
+    --surface: #F5F7FA;
+    --surface-raised: #FFFFFF;
+    --focus-ring: var(--brand-500);
+
+    /* Estado semántico: Pendiente / Aprobado / Rechazado */
+    --status-pending-bg: #FEF3E2;   --status-pending-fg: #97650C;
+    --status-approved-bg: #E6F6ED;  --status-approved-fg: #146C43;
+    --status-rejected-bg: #FDECEA;  --status-rejected-fg: #B42318;
+
+    /* Tipografía */
+    --font-display: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+    /* Espaciado (base 4px) */
+    --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+    --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+
+    /* Radios */
+    --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px; --radius-full: 9999px;
+
+    /* Sombras: shadow-xs en reposo de controles; shadow-sm solo al pasar el cursor;
+       shadow-md solo para lo que flota (nunca en tarjetas/filas en reposo) */
+    --shadow-xs: 0 1px 2px rgba(20,24,31,.06);
+    --shadow-sm: 0 4px 10px rgba(20,24,31,.10);
+    --shadow-md: 0 12px 28px rgba(20,24,31,.16);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
     margin: 0;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    color: var(--texto);
-    background: var(--fondo);
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--ink-900);
+    background: var(--surface);
     line-height: 1.55;
 }
 
 main {
-    max-width: 44rem;
+    max-width: 52rem;
     margin: 0 auto;
-    padding: 2rem 1rem 3rem;
+    padding: var(--space-10) var(--space-4) var(--space-12);
 }
 
-h1 { font-size: 1.6rem; margin: 0 0 .25rem; line-height: 1.25; }
-h2 { font-size: 1.15rem; margin: 1.5rem 0 .25rem; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--ink-900); font-weight: 700; }
+h1 { font-size: 32px; line-height: 40px; margin: 0 0 var(--space-2); }
+h2 { font-size: 24px; line-height: 32px; margin: var(--space-8) 0 var(--space-2); }
+h3 { font-size: 16px; line-height: 24px; font-weight: 600; margin: var(--space-6) 0 0; }
 
-a { color: var(--enlace); }
-a:focus-visible, button:focus-visible {
-    outline: 3px solid var(--enlace);
-    outline-offset: 2px;
+p { line-height: 26px; }
+
+a { color: var(--brand-500); }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 35%, transparent);
+    border-radius: var(--radius-sm);
 }
 
-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-th, td { text-align: left; padding: .65rem .5rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
-.tabla-scroll { overflow-x: auto; }
-
-dl {
-    display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: .5rem 1.5rem;
-    margin: 1.5rem 0;
+/* Enlace "Volver a ..." al inicio de cada página */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-500);
+    text-decoration: none;
+    margin-bottom: var(--space-6);
 }
-dt { font-weight: 600; }
+.back-link:hover { color: var(--brand-500); }
+.back-link::before { content: "←"; }
+
+/* ---------- Botones ---------- */
+
+.btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 10px var(--space-5);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+    transition: background-color 120ms ease-out, border-color 120ms ease-out,
+                box-shadow 120ms ease-out, transform 120ms ease-out;
+}
+
+.btn-primary { background: var(--brand-700); color: #fff; }
+.btn-primary:hover { background: #17304e; box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.btn-primary:active { background: #122542; box-shadow: none; transform: translateY(0); }
+
+.btn-accent { background: var(--accent-600); color: #fff; }
+.btn-accent:hover { background: #a83409; box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+.btn-accent:active { background: #8f2c07; box-shadow: none; transform: translateY(0); }
+
+.btn-secondary { background: #fff; color: var(--brand-700); border-color: var(--border-strong); }
+.btn-secondary:hover { background: var(--brand-100); border-color: var(--brand-500); }
+.btn-secondary:active { background: #d7e4f2; }
+
+.btn-danger { background: #fff; color: var(--status-rejected-fg); border-color: #f3c6c1; }
+.btn-danger:hover { background: var(--status-rejected-bg); border-color: var(--status-rejected-fg); }
+
+.btn-ghost { background: transparent; color: var(--brand-500); box-shadow: none; padding-left: var(--space-2); padding-right: var(--space-2); }
+.btn-ghost:hover { background: var(--brand-100); }
+
+.btn[disabled] { background: var(--surface); color: var(--ink-300); border-color: var(--border); box-shadow: none; cursor: not-allowed; }
+
+/* ---------- Formularios ---------- */
+
+.field { display: flex; flex-direction: column; gap: 6px; margin: 0 0 var(--space-4); }
+.field > label { font-family: var(--font-body); font-size: 13px; font-weight: 600; color: var(--ink-700); }
+
+input[type=text], input[type=email], input[type=password], input[type=number],
+textarea, select {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--ink-900);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    width: 100%;
+    transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
+}
+textarea { resize: vertical; font-family: inherit; }
+input:hover, textarea:hover, select:hover { border-color: var(--ink-300); }
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--brand-500);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 18%, transparent);
+}
+
+.hint { display: block; font-size: 12.5px; color: var(--ink-500); margin-top: 4px; }
+
+/* Mensajes de estado del formulario/página */
+.alerta, .exito, .msg {
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    margin: var(--space-4) 0;
+    font-size: 14px;
+}
+.alerta, .msg.error { background: var(--status-rejected-bg); color: var(--status-rejected-fg); border: 1px solid #f3c6c1; }
+.exito, .msg.ok, .msg.exito { background: var(--status-approved-bg); color: var(--status-approved-fg); border: 1px solid #bfe6cd; }
+.alerta ul { margin: var(--space-2) 0 0; padding-left: 1.25rem; }
+
+/* ---------- Insignias de estado ----------
+   Un color por estado real de la plataforma; las tres primeras clases (enviada,
+   aprobada, rechazada) reproducen el nombre exacto que entrega EstadoPlanificacion. */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 8px;
+    border-radius: var(--radius-full);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 18px;
+    white-space: nowrap;
+}
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: currentColor; flex: none; }
+
+.badge.enviada, .badge.pendiente  { background: var(--status-pending-bg);  color: var(--status-pending-fg); }
+.badge.aprobada, .badge.aprobado  { background: var(--status-approved-bg); color: var(--status-approved-fg); }
+.badge.rechazada, .badge.rechazado{ background: var(--status-rejected-bg); color: var(--status-rejected-fg); }
+
+/* ---------- Tarjetas ---------- */
+
+.card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    margin: var(--space-4) 0;
+}
+.card__header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1); }
+.card__meta { color: var(--ink-500); font-size: 12.5px; }
+.card__content {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 26px;
+    color: var(--ink-700);
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin: var(--space-3) 0;
+}
+.card__retro {
+    border-left: 3px solid var(--status-pending-fg);
+    background: var(--status-pending-bg);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    padding: var(--space-3) var(--space-4);
+    margin: var(--space-3) 0;
+}
+.card__retro p { margin: var(--space-1) 0 0; white-space: pre-wrap; color: var(--ink-700); }
+.card__footer { margin-top: var(--space-3); }
+
+/* ---------- Tablas ---------- */
+
+.tabla-scroll {
+    overflow-x: auto;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-top: var(--space-4);
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+th, td { text-align: left; padding: 12px var(--space-4); vertical-align: top; }
+
+thead th {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-700);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-strong);
+}
+
+tbody td { border-bottom: 1px solid var(--border); color: var(--ink-700); }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { transition: background-color 100ms ease-out; }
+tbody tr:hover { background: var(--brand-100); }
+
+/* ---------- Definiciones (informe final) ---------- */
+
+dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-2) var(--space-6); margin: var(--space-6) 0; }
+dt { font-weight: 600; color: var(--ink-700); }
 dd { margin: 0; }
-.nota { font-size: 1.5rem; font-weight: 700; }
+.nota { font-family: var(--font-display); font-size: 32px; font-weight: 700; color: var(--brand-700); }
+
+/* ---------- Pautas de evaluación ---------- */
+
+.pauta { margin-top: var(--space-8); padding-top: var(--space-2); border-top: 1px solid var(--border-strong); }
 
 /* Texto solo para lectores de pantalla */
 .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
 
 @media (max-width: 30rem) {
     dl { grid-template-columns: 1fr; }
-    dd { margin-bottom: .5rem; }
+    dd { margin-bottom: var(--space-2); }
 }
 
-h3 { font-size: 1rem; margin: 1.25rem 0 0; }
-.pauta { margin-top: 2rem; padding-top: .5rem; border-top: 1px solid var(--borde); }
+@media (prefers-reduced-motion: reduce) {
+    .btn, tbody tr { transition-duration: 1ms !important; }
+}
+
+/* ---------- Marca institucional ----------
+   Fija en la esquina, fuera del flujo de cada página: no ocupa espacio del
+   contenido ni de <main>, así que una futura pantalla puede crecer sin chocar
+   con ella. No es un enlace ni lleva interacción, es solo la marca. */
+
+.brand-logo {
+    position: fixed;
+    top: var(--space-4);
+    right: var(--space-4);
+    height: 88px;
+    width: auto;
+    z-index: 10;
+    pointer-events: none;
+}
+
+@media (max-width: 30rem) {
+    .brand-logo { height: 64px; top: var(--space-2); right: var(--space-2); }
+}
