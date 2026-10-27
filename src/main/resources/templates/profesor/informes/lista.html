@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Informes finales de desempeño</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/informe.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Informes finales de desempeño</h1>
+    <p>
+        Genera el informe final de cada estudiante cuando todas sus evaluaciones y entregas estén listas.
+        El informe explica cómo se obtuvo la calificación sugerida.
+    </p>
+
+    <!-- Mensaje y errores que deja la generación (flash attributes) -->
+    <p class="exito" role="status" th:if="${mensaje != null}" th:text="${mensaje}">El informe final se generó correctamente.</p>
+    <div class="alerta" role="alert" th:if="${errores != null}">
+        <strong>No se pudo generar el informe:</strong>
+        <ul>
+            <li th:each="motivo : ${errores}" th:text="${motivo}">Falta la evaluación de desempeño</li>
+        </ul>
+    </div>
+
+    <!-- Caso: el profesor aún no tiene estudiantes inscritos en sus secciones -->
+    <section th:if="${#lists.isEmpty(estudiantes)}">
+        <p>Aún no hay estudiantes inscritos en tus asignaturas.</p>
+    </section>
+
+    <div class="tabla-scroll" th:unless="${#lists.isEmpty(estudiantes)}">
+        <table>
+            <caption class="sr-only">Estudiantes y estado de su informe final</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Estudiante</th>
+                    <th scope="col">Asignatura</th>
+                    <th scope="col">Período</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Calificación sugerida</th>
+                    <th scope="col"><span class="sr-only">Acción</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="e : ${estudiantes}">
+                    <td th:text="${e.nombreEstudiante}">Camila Soto</td>
+                    <td th:text="${e.nombreAsignatura}">Práctica Pedagógica</td>
+                    <td th:text="|Semestre ${e.semestre} de ${e.anio}|">Semestre 2 de 2026</td>
+                    <td th:switch="${e.estado.name()}">
+                        <span class="badge pendiente" th:case="'PENDIENTE'">Faltan datos</span>
+                        <span class="badge listo" th:case="'LISTO'">Listo para generar</span>
+                        <span class="badge aprobada" th:case="'GENERADO'">Generado</span>
+                        <span class="badge aprobada" th:case="'VALIDADO'">Validado</span>
+                        <span class="badge aprobada" th:case="'PUBLICADO'">Publicado</span>
+                    </td>
+                    <td class="desglose__num"
+                        th:text="${e.calificacionSugerida != null
+                                   ? #numbers.formatDecimal(e.calificacionSugerida, 1, 'POINT', 1, 'COMMA')
+                                   : '—'}">6,3</td>
+                    <td>
+                        <!-- Faltan evaluaciones o entregas: se dice qué, no solo que no se puede -->
+                        <ul class="pendientes" th:if="${e.estado.name() == 'PENDIENTE'}">
+                            <li th:each="motivo : ${e.pendientes}" th:text="${motivo}">Falta la evaluación de desempeño</li>
+                        </ul>
+
+                        <form th:if="${e.puedeGenerar()}" method="post"
+                              th:action="@{/profesor/informes/inscripciones/{id}/generar(id=${e.idInscripcion})}">
+                            <button type="submit" class="btn btn-primary">Generar informe</button>
+                        </form>
+
+                        <a class="btn btn-ghost" th:if="${e.tieneInforme()}"
+                           th:href="@{/profesor/informes/{id}(id=${e.idInforme})}">Ver informe</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

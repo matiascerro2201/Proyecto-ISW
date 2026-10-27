@@ -59,6 +59,21 @@
         <li sec:authorize="hasRole('COLABORADOR')">
             <a th:href="@{/planificaciones/pendientes}">Planificaciones pendientes de evaluación</a>
         </li>
+        <li sec:authorize="hasRole('ESTUDIANTE')">
+            <a th:href="@{/estudiante/documentos}">Mis entregas</a>
+        </li>
+        <!-- HU-10 -->
+        <li sec:authorize="hasRole('PROFESOR_ASIGNATURA')">
+            <a th:href="@{/profesor/informes}">Informes finales de desempeño</a>
+        </li>
+        <!-- HU-01 (Josué) -->
+        <li sec:authorize="hasRole('PROFESOR_ASIGNATURA')">
+            <a th:href="@{/profesor/pautas}">Pautas de mi asignatura</a>
+        </li>
+        <!-- HU-22 -->
+        <li>
+            <a th:href="@{/notificaciones}" th:text="|Notificaciones (${notificacionesNoLeidas})|">Notificaciones (0)</a>
+        </li>
     </ul>
 
     <form th:action="@{/logout}" method="post">

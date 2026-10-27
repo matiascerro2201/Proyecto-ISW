@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Informe final de desempeño</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/informe.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/profesor/informes}">Volver a los informes finales</a>
+
+    <h1 th:text="${informe.nombreEstudiante}">Camila Soto</h1>
+    <p>
+        <strong th:text="${informe.nombreAsignatura}">Práctica Pedagógica</strong><br>
+        <span th:text="|Semestre ${informe.semestre} de ${informe.anio}|">Semestre 2 de 2026</span>
+    </p>
+
+    <p class="exito" role="status" th:if="${mensaje != null}" th:text="${mensaje}">El informe final se generó correctamente.</p>
+
+    <!-- Las evaluaciones o entregas cambiaron después de generar el informe -->
+    <div class="alerta" role="alert" th:if="${informe.desactualizado}">
+        <strong>Este informe está desactualizado.</strong>
+        Las evaluaciones o entregas cambiaron después de generarlo, por lo que la calificación sugerida
+        guardada puede no corresponder a los datos actuales.
+        <span th:if="${informe.puedeRegenerar()}">Vuelve a generarlo para actualizarlo.</span>
+    </div>
+
+    <dl>
+        <dt>Calificación sugerida</dt>
+        <dd class="nota"
+            th:text="${informe.calificacionSugerida != null
+                       ? #numbers.formatDecimal(informe.calificacionSugerida, 1, 'POINT', 1, 'COMMA')
+                       : 'Sin nota'}">6,3</dd>
+
+        <dt>Informe generado</dt>
+        <dd th:text="${informe.fechaGeneracion != null
+                       ? #temporals.format(informe.fechaGeneracion, 'dd/MM/yyyy HH:mm')
+                       : 'Sin registro'}">01/09/2026 10:00</dd>
+
+        <dt>Validado por el profesor</dt>
+        <dd th:text="${informe.fechaValidacion != null
+                       ? #temporals.format(informe.fechaValidacion, 'dd/MM/yyyy HH:mm')
+                       : 'Pendiente'}">Pendiente</dd>
+
+        <dt>Publicado al estudiante</dt>
+        <dd th:text="${informe.fechaPublicacion != null
+                       ? #temporals.format(informe.fechaPublicacion, 'dd/MM/yyyy HH:mm')
+                       : 'No publicado'}">No publicado</dd>
+    </dl>
+
+    <form method="post" th:if="${informe.puedeRegenerar()}"
+          th:action="@{/profesor/informes/inscripciones/{id}/generar(id=${informe.idInscripcion})}">
+        <button type="submit" class="btn btn-secondary">Volver a generar el informe</button>
+    </form>
+
+    <!-- HU-11: ajustar la calificación y publicar -->
+    <p>
+        <a class="btn btn-primary" th:href="@{/profesor/informes/{id}/revision(id=${informe.idInforme})}"
+           th:text="${informe.fechaPublicacion != null ? 'Ver la revisión del informe' : 'Revisar y publicar'}">Revisar y publicar</a>
+    </p>
+
+    <div th:replace="~{fragments/desglose-informe :: desglose(${informe.desglose}, true)}"></div>
+</main>
+</body>
+</html>
