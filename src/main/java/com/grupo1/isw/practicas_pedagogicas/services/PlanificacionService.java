@@ -11,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 public class PlanificacionService {
@@ -30,6 +32,7 @@ public class PlanificacionService {
     @Transactional
     public void evaluarPlanificacion(Long idPlanificacion, Long idColaborador, String retroalimentacion, EstadoPlanificacion nuevoEstado) {
         Planificacion planificacion = obtenerPlanificacion(idPlanificacion);
+        ocultarSiEsBorrador(planificacion);
 
         if (!planificacion.getLinea().getColaborador().getIdUsuario().equals(idColaborador)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para evaluar esta planificación");
@@ -62,6 +65,32 @@ public class PlanificacionService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Planificación no encontrada"));
     }
 
+    /**
+     * Planificación vista por el colaborador de la línea. Un BORRADOR es trabajo privado del estudiante:
+     * para el colaborador no existe (404, no 403, para no revelar que hay un borrador).
+     */
+    @Transactional(readOnly = true)
+    public Planificacion obtenerPlanificacionParaColaborador(Long idPlanificacion, Long idColaborador) {
+        Planificacion planificacion = obtenerPlanificacion(idPlanificacion);
+        ocultarSiEsBorrador(planificacion);
+
+        if (!planificacion.getLinea().getColaborador().getIdUsuario().equals(idColaborador)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para ver esta planificación");
+        }
+        return planificacion;
+    }
+
+    private void ocultarSiEsBorrador(Planificacion planificacion) {
+        if (planificacion.getEstado() == EstadoPlanificacion.BORRADOR) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Planificación no encontrada");
+        }
+    }
+
+    /** Se puede editar (y conversar con el asistente) mientras es BORRADOR o RECHAZADA. */
+    public static boolean esEditable(EstadoPlanificacion estado) {
+        return estado == EstadoPlanificacion.BORRADOR || estado == EstadoPlanificacion.RECHAZADA;
+    }
+
     @Transactional(readOnly = true)
     public List<Planificacion> obtenerPendientesDelColaborador(Long idColaborador) {
         return planificacionRepository
@@ -82,6 +111,14 @@ public class PlanificacionService {
         public boolean puedeReenviar() {
             return estado == EstadoPlanificacion.RECHAZADA;
         }
+
+        public boolean esBorrador() {
+            return estado == EstadoPlanificacion.BORRADOR;
+        }
+
+        public boolean puedeEditar() {
+            return esEditable(estado);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -91,12 +128,19 @@ public class PlanificacionService {
                 .toList();
     }
 
+    /** Primero los borradores (el más reciente arriba) y después las enviadas, por fecha de envío. */
     @Transactional(readOnly = true)
     public List<PlanificacionVista> listarPlanificacionesDelEstudiante(Long idEstudiante) {
-        return planificacionRepository
-                .findByLinea_Inscripcion_Estudiante_IdUsuarioOrderByFechaEnvioDesc(idEstudiante).stream()
-                .map(this::aVista)
-                .toList();
+        List<Planificacion> todas = planificacionRepository
+                .findByLinea_Inscripcion_Estudiante_IdUsuarioOrderByFechaEnvioDesc(idEstudiante);
+
+        Stream<Planificacion> borradores = todas.stream()
+                .filter(p -> p.getEstado() == EstadoPlanificacion.BORRADOR)
+                .sorted(Comparator.comparing(Planificacion::getIdPlanificacion, Comparator.reverseOrder()));
+        Stream<Planificacion> enviadas = todas.stream()
+                .filter(p -> p.getEstado() != EstadoPlanificacion.BORRADOR);
+
+        return Stream.concat(borradores, enviadas).map(this::aVista).toList();
     }
 
     @Transactional(readOnly = true)
@@ -104,26 +148,56 @@ public class PlanificacionService {
         return aVista(obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion));
     }
 
+    /** Crea la planificación y la envía de una vez al colaborador. */
     @Transactional
     public void crearPlanificacion(Long idEstudiante, Long idLinea, String contenido) {
-        if (idLinea == null) {
-            throw new IllegalArgumentException("Debe seleccionar una línea de práctica");
-        }
-
-        LineaPractica linea = lineaPracticaRepository.findById(idLinea)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Línea de práctica no encontrada"));
-
-        if (!lineaPerteneceAlEstudiante(linea, idEstudiante)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para planificar en esta línea");
-        }
-
-        String texto = limpiar(contenido);
-        if (texto == null) {
-            throw new IllegalArgumentException("El contenido de la planificación no puede estar vacío");
-        }
+        LineaPractica linea = lineaDelEstudiante(idEstudiante, idLinea);
+        String texto = contenidoObligatorio(contenido);
 
         Planificacion guardada = planificacionRepository.save(new Planificacion(linea, texto, LocalDateTime.now()));
         notificarAlColaborador(guardada, "envió");
+    }
+
+    /** Guarda un borrador: no se envía ni se avisa a nadie. Devuelve su id para seguir trabajándolo. */
+    @Transactional
+    public Long crearBorrador(Long idEstudiante, Long idLinea, String contenido) {
+        LineaPractica linea = lineaDelEstudiante(idEstudiante, idLinea);
+        String texto = contenidoObligatorio(contenido);
+
+        return planificacionRepository.save(Planificacion.borrador(linea, texto)).getIdPlanificacion();
+    }
+
+    /** Guarda el texto de una planificación editable (BORRADOR o RECHAZADA) sin cambiarle el estado. */
+    @Transactional
+    public void guardarCambios(Long idEstudiante, Long idPlanificacion, String contenido) {
+        Planificacion planificacion = obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
+
+        if (!esEditable(planificacion.getEstado())) {
+            throw new IllegalStateException("Solo se puede editar una planificación en borrador o rechazada");
+        }
+
+        planificacion.setContenido(contenidoObligatorio(contenido));
+        planificacionRepository.save(planificacion);
+    }
+
+    /**
+     * Envía un borrador al colaborador (BORRADOR -> ENVIADA). Guarda también el texto recibido, para no
+     * perder lo que el estudiante escribió desde el último guardado. No depende del asistente.
+     */
+    @Transactional
+    public void enviarBorrador(Long idEstudiante, Long idPlanificacion, String contenido) {
+        Planificacion planificacion = obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
+
+        if (planificacion.getEstado() != EstadoPlanificacion.BORRADOR) {
+            throw new IllegalStateException("Solo se puede enviar una planificación en borrador");
+        }
+
+        planificacion.setContenido(contenidoObligatorio(contenido));
+        planificacion.setEstado(EstadoPlanificacion.ENVIADA);
+        planificacion.setFechaEnvio(LocalDateTime.now());
+
+        planificacionRepository.save(planificacion);
+        notificarAlColaborador(planificacion, "envió");
     }
 
     @Transactional
@@ -168,6 +242,28 @@ public class PlanificacionService {
                 + " una planificación de clase (" + etiquetaDe(linea) + ") para tu revisión.";
         notificacionService.crear(linea.getColaborador().getIdUsuario(), NotificacionService.TIPO_PLANIFICACION,
                 mensaje, "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar");
+    }
+
+    private LineaPractica lineaDelEstudiante(Long idEstudiante, Long idLinea) {
+        if (idLinea == null) {
+            throw new IllegalArgumentException("Debe seleccionar una línea de práctica");
+        }
+
+        LineaPractica linea = lineaPracticaRepository.findById(idLinea)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Línea de práctica no encontrada"));
+
+        if (!lineaPerteneceAlEstudiante(linea, idEstudiante)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para planificar en esta línea");
+        }
+        return linea;
+    }
+
+    private String contenidoObligatorio(String contenido) {
+        String texto = limpiar(contenido);
+        if (texto == null) {
+            throw new IllegalArgumentException("El contenido de la planificación no puede estar vacío");
+        }
+        return texto;
     }
 
     private Planificacion obtenerPlanificacionDelEstudiante(Long idEstudiante, Long idPlanificacion) {

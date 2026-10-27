@@ -17,9 +17,11 @@
 
     <h1 th:text="${titulo}">Nueva planificación de clase</h1>
 
+    <p class="msg ok" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
+
     <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
 
-    <form method="post" th:action="@{${accion}}" class="card">
+    <form method="post" th:action="@{${accionGuardar}}" class="card">
 
         <!-- Nueva planificación: el estudiante elige en qué línea de práctica planifica -->
         <div class="field" th:if="${planificacion == null}">
@@ -36,7 +38,8 @@
             </p>
         </div>
 
-        <!-- Reenvío: la línea ya está definida y se muestra la retroalimentación que motivó el rechazo -->
+        <!-- Planificación ya guardada (borrador o rechazada): la línea está definida y, si fue rechazada,
+             se muestra la retroalimentación que motivó el rechazo -->
         <div th:if="${planificacion != null}">
             <p><strong>Línea:</strong> <span th:text="${planificacion.etiquetaLinea()}">Asignatura (LÍNEA)</span></p>
             <div class="card__retro" th:if="${planificacion.retroalimentacion() != null}">
@@ -52,10 +55,15 @@
         </div>
 
         <div style="display:flex;align-items:center;gap:var(--space-4);">
-            <button type="submit" class="btn btn-accent"
-                    th:text="${planificacion == null} ? 'Enviar planificación' : 'Reenviar planificación'">Enviar</button>
+            <button type="submit" class="btn btn-secondary" th:formaction="@{${accionGuardar}}"
+                    th:text="${etiquetaGuardar}">Guardar borrador</button>
+            <button type="submit" class="btn btn-accent" th:formaction="@{${accionEnviar}}"
+                    th:text="${etiquetaEnviar}">Enviar al profesor</button>
             <a class="btn btn-ghost" th:href="@{/estudiante/planificaciones}">Cancelar</a>
         </div>
+        <p class="hint" th:if="${planificacion == null or planificacion.esBorrador()}">
+            Un borrador solo lo ves tú: el colaborador no lo recibe hasta que lo envíes.
+        </p>
     </form>
 </main>
 </body>

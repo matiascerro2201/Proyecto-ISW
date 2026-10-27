@@ -21,6 +21,8 @@ public class Planificacion {
     @Column(name = "contenido", nullable = false, columnDefinition = "TEXT")
     private String contenido;
 
+    // ENVIADA por defecto (igual que en la base de datos): el constructor con fecha de envío crea una
+    // planificación ya enviada. Los borradores se crean con Planificacion.borrador(...).
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false)
     private EstadoPlanificacion estado = EstadoPlanificacion.ENVIADA;
@@ -28,7 +30,8 @@ public class Planificacion {
     @Column(name = "retroalimentacion", columnDefinition = "TEXT")
     private String retroalimentacion;
 
-    @Column(name = "fecha_envio", nullable = false)
+    // null mientras la planificación es un BORRADOR; la base de datos exige fecha en cualquier otro estado.
+    @Column(name = "fecha_envio")
     private LocalDateTime fechaEnvio;
 
     @Column(name = "fecha_retro")
@@ -44,6 +47,15 @@ public class Planificacion {
         this.linea = linea;
         this.contenido = contenido;
         this.fechaEnvio = fechaEnvio;
+    }
+
+    /** Crea un borrador: todavía no se envía al profesor, así que no tiene fecha de envío. */
+    public static Planificacion borrador(LineaPractica linea, String contenido) {
+        Planificacion borrador = new Planificacion();
+        borrador.linea = linea;
+        borrador.contenido = contenido;
+        borrador.estado = EstadoPlanificacion.BORRADOR;
+        return borrador;
     }
 
     public Long getIdPlanificacion() {
