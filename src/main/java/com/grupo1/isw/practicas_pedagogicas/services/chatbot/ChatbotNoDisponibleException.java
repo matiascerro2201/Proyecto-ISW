@@ -6,7 +6,8 @@ public class ChatbotNoDisponibleException extends RuntimeException {
     public enum Causa {
         /** El proveedor rechazó la solicitud por exceso de uso (por ejemplo, el límite gratuito). */
         LIMITE_DEL_PROVEEDOR("El asistente está recibiendo muchas consultas en este momento. "
-                + "Espera unos minutos e inténtalo de nuevo. Tu mensaje no se perdió."),
+                + "Espera unos minutos e inténtalo de nuevo; si sigue sin responder, es posible que se haya "
+                + "agotado su cupo del día. Tu mensaje no se perdió."),
         /** El proveedor no respondió dentro del tiempo permitido. */
         TIEMPO_AGOTADO("El asistente tardó demasiado en responder. "
                 + "Inténtalo de nuevo en un momento. Tu mensaje no se perdió."),

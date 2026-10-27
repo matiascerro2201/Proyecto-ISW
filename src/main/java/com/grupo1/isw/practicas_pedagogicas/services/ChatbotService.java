@@ -64,7 +64,9 @@ public class ChatbotService {
                           CategoriaPlanificacionRepository categoriaRepository,
                           InstruccionesChatbot instrucciones,
                           ChatbotClient chatbotClient,
-                          @Value("${chatbot.max-mensajes-por-dia:20}") int maxMensajesPorDia,
+                          // 10 por día: con el tope gratuito de 500 consultas diarias de la cuenta, alcanza para hasta
+                          // 50 estudiantes aunque todos lleguen al máximo. Se puede subir si el curso es más chico.
+                          @Value("${chatbot.max-mensajes-por-dia:10}") int maxMensajesPorDia,
                           @Value("${chatbot.max-caracteres-mensaje:1500}") int maxCaracteresMensaje,
                           @Value("${chatbot.max-intercambios-historial:6}") int maxIntercambiosHistorial) {
         this.planificacionService = planificacionService;
@@ -75,6 +77,9 @@ public class ChatbotService {
         this.maxMensajesPorDia = maxMensajesPorDia;
         this.maxCaracteresMensaje = maxCaracteresMensaje;
         this.maxIntercambiosHistorial = maxIntercambiosHistorial;
+
+        // Deja a la vista, al arrancar, cuál es el asistente activo (el de prueba o uno real).
+        log.info("Asistente activo: {}", chatbotClient.getClass().getSimpleName());
     }
 
     /** Un intercambio de la conversación: lo que escribió el estudiante y lo que respondió el asistente. */
