@@ -74,4 +74,23 @@ public interface InformeFinalRepository extends JpaRepository<InformeFinal, Long
             ORDER BY i.fechaGeneracion DESC, i.idInforme DESC
             """)
     List<InformeFinal> findParaRevisionDelProfesor(@Param("idProfesor") Long idProfesor);
+
+    /**
+     * HU-14: informes publicados de los estudiantes que supervisa un tutor, es decir, de las inscripciones
+     * donde él figura como tutor en alguna línea. DISTINCT: una inscripción con dos líneas del mismo tutor
+     * (especialidad y orientación) no debe repetir su informe.
+     */
+    @Query("""
+            SELECT DISTINCT i
+            FROM InformeFinal i
+            JOIN FETCH i.inscripcion ins
+            JOIN FETCH ins.estudiante
+            JOIN FETCH ins.seccion sec
+            JOIN FETCH sec.asignatura
+            JOIN ins.lineas lin
+            WHERE lin.tutor.idUsuario = :idTutor
+              AND i.fechaPublicacion IS NOT NULL
+            ORDER BY i.fechaPublicacion DESC, i.idInforme DESC
+            """)
+    List<InformeFinal> findPublicadosDelTutor(@Param("idTutor") Long idTutor);
 }

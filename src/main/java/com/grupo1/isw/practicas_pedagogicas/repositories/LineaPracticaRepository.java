@@ -49,4 +49,7 @@ public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Lo
     Optional<LineaPractica> findByIdConContexto(@Param("idLinea") Long idLinea);
 
     List<LineaPractica> findByInscripcion_Estudiante_IdUsuario(Long idEstudiante);
+
+    /** HU-14: el tutor supervisa a un estudiante si figura como tutor en alguna de las líneas de su inscripción. */
+    boolean existsByInscripcion_IdInscripcionAndTutor_IdUsuario(Long idInscripcion, Long idTutor);
 }
