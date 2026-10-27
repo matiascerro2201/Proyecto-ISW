@@ -30,6 +30,19 @@
     <section class="pauta" th:each="asignatura : ${asignaturas}">
         <h2 th:text="${asignatura.nombre()}">Práctica Pedagógica</h2>
 
+        <!-- Total de ponderaciones de la asignatura (pautas de evaluación y de documento). Con total 0 no se avisa nada. -->
+        <p th:if="${asignatura.tieneTotal()}">
+            <strong>Total de la asignatura:</strong>
+            <span th:text="|${#numbers.formatDecimal(asignatura.totalPonderacion(), 1, 'POINT', 2, 'COMMA')} de 100 %|">73,00 de 100 %</span>
+        </p>
+        <p class="msg" th:if="${asignatura.incompleto()}"
+           th:text="|Aviso: faltan ${#numbers.formatDecimal(asignatura.faltante(), 1, 'POINT', 2, 'COMMA')} % para llegar a 100. No impide guardar: puede que falte cargar otras pautas de evaluación o de documento.|">
+            Aviso: faltan 27,00 % para llegar a 100.
+        </p>
+        <p class="msg error" th:if="${asignatura.excedido()}">
+            Las ponderaciones de esta asignatura suman más de 100 %. Revisa las pautas de evaluación y de documento.
+        </p>
+
         <p th:if="${#lists.isEmpty(asignatura.pautas())}">Esta asignatura aún no tiene pautas.</p>
 
         <div class="tabla-scroll" th:unless="${#lists.isEmpty(asignatura.pautas())}">

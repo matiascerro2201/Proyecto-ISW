@@ -6,9 +6,11 @@ import com.grupo1.isw.practicas_pedagogicas.dto.PautaFormulario.DimensionFormula
 import com.grupo1.isw.practicas_pedagogicas.models.Asignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.Criterio;
 import com.grupo1.isw.practicas_pedagogicas.models.Dimension;
+import com.grupo1.isw.practicas_pedagogicas.models.PautaDocumento;
 import com.grupo1.isw.practicas_pedagogicas.models.PautaEvaluacion;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoLinea;
 import com.grupo1.isw.practicas_pedagogicas.repositories.EvaluacionAplicadaRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.PautaDocumentoRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaEvaluacionRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.SeccionAsignaturaRepository;
 import org.springframework.http.HttpStatus;
@@ -30,10 +32,16 @@ import java.util.Objects;
  * <p>Reglas: solo se gestionan asignaturas que el profesor imparte; la pauta se valida completa, informando todos
  * los errores juntos, y se guarda completa en una sola transacción; una pauta que ya tiene evaluaciones aplicadas
  * no se puede modificar ni eliminar (para cambiarla se crea una nueva), porque cambiaría notas ya registradas.
+ *
+ * <p>Ponderaciones: la de cada pauta es el % que aporta a la nota final de la asignatura, y el conjunto de las
+ * pautas de la asignatura (de evaluación y de documento) debe sumar 100. Como las pautas se crean de a una, al
+ * guardar solo se bloquea que la suma pase de 100; si queda bajo 100 solo se avisa en pantalla, porque puede
+ * faltar cargar otras pautas.
  */
 @Service
 public class PautaDefinicionService {
     private static final BigDecimal MAXIMO_PONDERACION = new BigDecimal("100");
+    private static final BigDecimal TOTAL_ASIGNATURA = new BigDecimal("100");
     private static final BigDecimal MAXIMO_PUNTAJE = new BigDecimal("999.99");
     private static final int DECIMALES_MAX = 2;
     private static final int MAXIMO_NUMERO_APLICACION = 10;
@@ -44,7 +52,29 @@ public class PautaDefinicionService {
     public record PautaResumen(Long idPauta, TipoLinea tipoLinea, int numeroAplicacion,
                                BigDecimal ponderacion, int cantidadCriterios, boolean enUso) {}
 
-    public record AsignaturaConPautas(Long idAsignatura, String nombre, List<PautaResumen> pautas) {}
+    /**
+     * {@code totalPonderacion} suma las pautas de evaluación y de documento de la asignatura. Si es 0 (por
+     * ejemplo, una asignatura sin pautas) no se muestra ningún aviso.
+     */
+    public record AsignaturaConPautas(Long idAsignatura, String nombre, List<PautaResumen> pautas,
+                                      BigDecimal totalPonderacion) {
+        public boolean tieneTotal() {
+            return totalPonderacion.signum() > 0;
+        }
+
+        /** Aviso, no bloqueo: aún falta ponderación para llegar a 100. */
+        public boolean incompleto() {
+            return tieneTotal() && totalPonderacion.compareTo(TOTAL_ASIGNATURA) < 0;
+        }
+
+        public boolean excedido() {
+            return totalPonderacion.compareTo(TOTAL_ASIGNATURA) > 0;
+        }
+
+        public BigDecimal faltante() {
+            return TOTAL_ASIGNATURA.subtract(totalPonderacion);
+        }
+    }
 
     /** Una pauta cargada para mostrarla en el formulario; {@code enUso} indica que solo se puede consultar. */
     public record PautaEditable(Long idPauta, Long idAsignatura, String nombreAsignatura,
@@ -60,13 +90,16 @@ public class PautaDefinicionService {
     private final PautaEvaluacionRepository pautaRepository;
     private final SeccionAsignaturaRepository seccionRepository;
     private final EvaluacionAplicadaRepository evaluacionRepository;
+    private final PautaDocumentoRepository pautaDocumentoRepository;
 
     public PautaDefinicionService(PautaEvaluacionRepository pautaRepository,
                                   SeccionAsignaturaRepository seccionRepository,
-                                  EvaluacionAplicadaRepository evaluacionRepository) {
+                                  EvaluacionAplicadaRepository evaluacionRepository,
+                                  PautaDocumentoRepository pautaDocumentoRepository) {
         this.pautaRepository = pautaRepository;
         this.seccionRepository = seccionRepository;
         this.evaluacionRepository = evaluacionRepository;
+        this.pautaDocumentoRepository = pautaDocumentoRepository;
     }
 
     // ---------- consulta ----------
@@ -214,6 +247,17 @@ public class PautaDefinicionService {
         BigDecimal ponderacion = parsearDecimal(
                 formulario.getPonderacion(), "La ponderación", MAXIMO_PONDERACION, errores);
 
+        // Las demás pautas de la asignatura (evaluación y documento) más esta no pueden pasar de 100.
+        if (ponderacion != null) {
+            BigDecimal otras = totalPonderaciones(idAsignatura, idPautaExcluida);
+            if (otras.add(ponderacion).compareTo(TOTAL_ASIGNATURA) > 0) {
+                BigDecimal disponible = TOTAL_ASIGNATURA.subtract(otras).max(BigDecimal.ZERO);
+                errores.add("Las demás pautas de la asignatura (de evaluación y de documento) ya suman "
+                        + comoTexto(otras) + " %, así que esta pauta puede tener como máximo "
+                        + comoTexto(disponible) + " %");
+            }
+        }
+
         // La tabla no tiene restricción única: la regla se aplica acá.
         if (tipo != null && numero != null && existeOtraPauta(idAsignatura, tipo, numero, idPautaExcluida)) {
             errores.add("Ya existe una pauta de tipo " + tipo + " para la aplicación " + numero
@@ -275,6 +319,22 @@ public class PautaDefinicionService {
         return pautaRepository.findByAsignatura(idAsignatura).stream()
                 .filter(p -> !Objects.equals(p.getIdPautaEvaluacion(), idPautaExcluida))
                 .anyMatch(p -> p.getTipoLinea() == tipo && Objects.equals(p.getNumeroAplicacion(), numero));
+    }
+
+    /**
+     * Suma las ponderaciones de todas las pautas de la asignatura: las de evaluación (menos la que se está
+     * editando, cuyo valor se reemplaza) y las de documento.
+     */
+    private BigDecimal totalPonderaciones(Long idAsignatura, Long idPautaExcluida) {
+        BigDecimal evaluaciones = pautaRepository.findByAsignatura(idAsignatura).stream()
+                .filter(p -> !Objects.equals(p.getIdPautaEvaluacion(), idPautaExcluida))
+                .map(PautaEvaluacion::getPonderacion)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal documentos = pautaDocumentoRepository
+                .findByAsignatura_IdAsignaturaOrderByTipoAscNumeroAsc(idAsignatura).stream()
+                .map(PautaDocumento::getPonderacion)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return evaluaciones.add(documentos);
     }
 
     private TipoLinea parsearTipoLinea(String texto, List<String> errores) {
@@ -363,7 +423,8 @@ public class PautaDefinicionService {
                         p.getDimensiones().stream().mapToInt(d -> d.getCriterios().size()).sum(),
                         enUso(p)))
                 .toList();
-        return new AsignaturaConPautas(asignatura.getIdAsignatura(), asignatura.getNombre(), pautas);
+        return new AsignaturaConPautas(asignatura.getIdAsignatura(), asignatura.getNombre(), pautas,
+                totalPonderaciones(asignatura.getIdAsignatura(), null));
     }
 
     private PautaFormulario armarFormulario(PautaEvaluacion pauta) {
