@@ -17,11 +17,14 @@ import java.util.List;
 public class PlanificacionService {
     private final PlanificacionRepository planificacionRepository;
     private final LineaPracticaRepository lineaPracticaRepository;
+    private final NotificacionService notificacionService;
 
     public PlanificacionService(PlanificacionRepository planificacionRepository,
-                                LineaPracticaRepository lineaPracticaRepository) {
+                                LineaPracticaRepository lineaPracticaRepository,
+                                NotificacionService notificacionService) {
         this.planificacionRepository = planificacionRepository;
         this.lineaPracticaRepository = lineaPracticaRepository;
+        this.notificacionService = notificacionService;
     }
 
     @Transactional
@@ -51,6 +54,7 @@ public class PlanificacionService {
         planificacion.setFechaRetro(LocalDateTime.now());
 
         planificacionRepository.save(planificacion);
+        notificarAlEstudiante(planificacion, nuevoEstado);
     }
 
     public Planificacion obtenerPlanificacion(Long id) {
@@ -118,7 +122,8 @@ public class PlanificacionService {
             throw new IllegalArgumentException("El contenido de la planificación no puede estar vacío");
         }
 
-        planificacionRepository.save(new Planificacion(linea, texto, LocalDateTime.now()));
+        Planificacion guardada = planificacionRepository.save(new Planificacion(linea, texto, LocalDateTime.now()));
+        notificarAlColaborador(guardada, "envió");
     }
 
     @Transactional
@@ -141,6 +146,28 @@ public class PlanificacionService {
         planificacion.setFechaRetro(null);
 
         planificacionRepository.save(planificacion);
+        notificarAlColaborador(planificacion, "reenvió");
+    }
+
+    /** HU-23: avisa al estudiante de la decisión sin copiar la retroalimentación; corre tras guardar. */
+    private void notificarAlEstudiante(Planificacion planificacion, EstadoPlanificacion decision) {
+        LineaPractica linea = planificacion.getLinea();
+        String resultado = decision == EstadoPlanificacion.APROBADA
+                ? "fue aprobada por tu profesor colaborador."
+                : "fue rechazada por tu profesor colaborador; revisa la retroalimentación y reenvíala.";
+        notificacionService.crear(linea.getInscripcion().getEstudiante().getIdUsuario(),
+                NotificacionService.TIPO_PLANIFICACION,
+                "Tu planificación de clase (" + etiquetaDe(linea) + ") " + resultado,
+                "/estudiante/planificaciones");
+    }
+
+    /** HU-22: avisa al colaborador de la línea; corre en la transacción del guardado. */
+    private void notificarAlColaborador(Planificacion planificacion, String accion) {
+        LineaPractica linea = planificacion.getLinea();
+        String mensaje = linea.getInscripcion().getEstudiante().getNombre() + " " + accion
+                + " una planificación de clase (" + etiquetaDe(linea) + ") para tu revisión.";
+        notificacionService.crear(linea.getColaborador().getIdUsuario(), NotificacionService.TIPO_PLANIFICACION,
+                mensaje, "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar");
     }
 
     private Planificacion obtenerPlanificacionDelEstudiante(Long idEstudiante, Long idPlanificacion) {

@@ -70,6 +70,10 @@
         <li sec:authorize="hasRole('PROFESOR_ASIGNATURA')">
             <a th:href="@{/profesor/pautas}">Pautas de mi asignatura</a>
         </li>
+        <!-- HU-22 -->
+        <li>
+            <a th:href="@{/notificaciones}" th:text="|Notificaciones (${notificacionesNoLeidas})|">Notificaciones (0)</a>
+        </li>
     </ul>
 
     <form th:action="@{/logout}" method="post">
