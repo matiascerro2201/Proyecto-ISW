@@ -7,9 +7,12 @@ import com.grupo1.isw.practicas_pedagogicas.models.Asignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.Ciclo;
 import com.grupo1.isw.practicas_pedagogicas.models.Criterio;
 import com.grupo1.isw.practicas_pedagogicas.models.Dimension;
+import com.grupo1.isw.practicas_pedagogicas.models.PautaDocumento;
 import com.grupo1.isw.practicas_pedagogicas.models.PautaEvaluacion;
+import com.grupo1.isw.practicas_pedagogicas.models.TipoDocumento;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoLinea;
 import com.grupo1.isw.practicas_pedagogicas.repositories.EvaluacionAplicadaRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.PautaDocumentoRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaEvaluacionRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.SeccionAsignaturaRepository;
 import com.grupo1.isw.practicas_pedagogicas.services.PautaDefinicionService;
@@ -58,6 +61,9 @@ class PautaDefinicionServiceTest {
 
     @Mock
     private EvaluacionAplicadaRepository evaluacionRepository;
+
+    @Mock
+    private PautaDocumentoRepository pautaDocumentoRepository;
 
     @InjectMocks
     private PautaDefinicionService service;
@@ -119,6 +125,10 @@ class PautaDefinicionServiceTest {
         Criterio criterio = new Criterio(dimension, texto, new BigDecimal(puntaje), orden);
         criterio.setIdCriterio(id);
         dimension.getCriterios().add(criterio);
+    }
+
+    private PautaDocumento pautaDeDocumento(TipoDocumento tipo, int numero, String ponderacion) {
+        return new PautaDocumento(asignatura, new BigDecimal(ponderacion), tipo, numero);
     }
 
     private void dadoQueElProfesorImparteLaAsignatura() {
@@ -529,5 +539,138 @@ class PautaDefinicionServiceTest {
         assertThrows(IllegalStateException.class, () -> service.eliminar(PROFESOR, ID_PAUTA));
 
         verify(pautaRepository, never()).delete(any());
+    }
+
+    // ---------- total de ponderaciones de la asignatura ----------
+
+    @Test
+    @DisplayName("25. Bloquea una pauta si, sumando evaluación y documento, la asignatura pasa de 100")
+    void crear_superaElTotal() {
+        dadoQueElProfesorImparteLaAsignatura();
+        PautaEvaluacion existente = pautaExistente(1L, TipoLinea.UNICA, 2);
+        existente.setPonderacion(new BigDecimal("60.00"));
+        when(pautaRepository.findByAsignatura(ID_ASIGNATURA)).thenReturn(List.of(existente));
+        when(pautaDocumentoRepository.findByAsignatura_IdAsignaturaOrderByTipoAscNumeroAsc(ID_ASIGNATURA))
+                .thenReturn(List.of(pautaDeDocumento(TipoDocumento.PRODUCTO, 1, "30.00")));
+
+        List<String> errores = erroresDe(formularioValido());   // ponderación 30: 60 + 30 + 30 = 120
+
+        assertEquals(1, errores.size(), errores.toString());
+        assertTrue(errores.get(0).contains("ya suman 90 %"), errores.get(0));
+        assertTrue(errores.get(0).contains("máximo 10 %"), errores.get(0));
+        verify(pautaRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("26. Permite que la asignatura sume exactamente 100")
+    void crear_sumaExactamente100() {
+        dadoQueElProfesorImparteLaAsignatura();
+        PautaEvaluacion existente = pautaExistente(1L, TipoLinea.UNICA, 2);
+        existente.setPonderacion(new BigDecimal("60.00"));
+        when(pautaRepository.findByAsignatura(ID_ASIGNATURA)).thenReturn(List.of(existente));
+        when(pautaDocumentoRepository.findByAsignatura_IdAsignaturaOrderByTipoAscNumeroAsc(ID_ASIGNATURA))
+                .thenReturn(List.of(pautaDeDocumento(TipoDocumento.PRODUCTO, 1, "10.00")));
+        when(pautaRepository.save(any(PautaEvaluacion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.crear(PROFESOR, ID_ASIGNATURA, formularioValido());   // 60 + 10 + 30 = 100
+
+        verify(pautaRepository).save(any(PautaEvaluacion.class));
+    }
+
+    @Test
+    @DisplayName("27. Si la asignatura queda bajo 100 no bloquea: solo se avisa en pantalla")
+    void crear_bajo100_noBloquea() {
+        dadoQueElProfesorImparteLaAsignatura();
+        when(pautaRepository.findByAsignatura(ID_ASIGNATURA)).thenReturn(List.of());
+        when(pautaRepository.save(any(PautaEvaluacion.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.crear(PROFESOR, ID_ASIGNATURA, formularioValido());   // queda en 30 de 100
+
+        verify(pautaRepository).save(any(PautaEvaluacion.class));
+    }
+
+    @Test
+    @DisplayName("28. Al actualizar, el valor anterior de la propia pauta no se suma dos veces")
+    void actualizar_noCuentaSuPropiaPonderacion() {
+        PautaEvaluacion pauta = dadaUnaPautaDelProfesor();          // ponderación actual: 30
+        PautaEvaluacion otra = pautaExistente(2L, TipoLinea.UNICA, 2);
+        otra.setPonderacion(new BigDecimal("70.00"));
+        when(pautaRepository.findByAsignatura(ID_ASIGNATURA)).thenReturn(List.of(pauta, otra));
+
+        service.actualizar(PROFESOR, ID_PAUTA, formularioValido());   // 30 + 70 = 100: permitido
+        verify(pautaRepository).save(pauta);
+
+        PautaFormulario pasada = formularioValido();
+        pasada.setPonderacion("31");                                  // 31 + 70 = 101: rechazado
+        assertThrows(PautaInvalidaException.class, () -> service.actualizar(PROFESOR, ID_PAUTA, pasada));
+    }
+
+    @Test
+    @DisplayName("29. El error del total se informa junto con los demás errores")
+    void crear_totalJuntoConOtrosErrores() {
+        dadoQueElProfesorImparteLaAsignatura();
+        PautaEvaluacion existente = pautaExistente(1L, TipoLinea.UNICA, 2);
+        existente.setPonderacion(new BigDecimal("90.00"));
+        when(pautaRepository.findByAsignatura(ID_ASIGNATURA)).thenReturn(List.of(existente));
+        PautaFormulario formulario = formularioValido();
+        formulario.getDimensiones().get(0).setNombre("");
+
+        List<String> errores = erroresDe(formulario);
+
+        assertEquals(2, errores.size(), errores.toString());
+        assertTrue(errores.stream().anyMatch(e -> e.contains("ya suman 90 %")));
+        assertTrue(errores.stream().anyMatch(e -> e.contains("nombre de la dimensión 1")));
+    }
+
+    @Test
+    @DisplayName("30. El total de la asignatura suma evaluación y documento, y avisa lo que falta")
+    void listar_totalIncluyeDocumentos() {
+        dadoQueElProfesorImparteLaAsignatura();
+        PautaEvaluacion evaluacion = pautaExistente(1L, TipoLinea.UNICA, 1);
+        evaluacion.setPonderacion(new BigDecimal("40.00"));
+        when(pautaRepository.findByAsignatura(ID_ASIGNATURA)).thenReturn(List.of(evaluacion));
+        when(pautaDocumentoRepository.findByAsignatura_IdAsignaturaOrderByTipoAscNumeroAsc(ID_ASIGNATURA))
+                .thenReturn(List.of(
+                        pautaDeDocumento(TipoDocumento.PRODUCTO, 1, "10.00"),
+                        pautaDeDocumento(TipoDocumento.PRODUCTO, 2, "23.00")));
+
+        var asignaturaConPautas = service.listarAsignaturas(PROFESOR).get(0);
+
+        assertEquals(0, new BigDecimal("73.00").compareTo(asignaturaConPautas.totalPonderacion()));
+        assertTrue(asignaturaConPautas.tieneTotal());
+        assertTrue(asignaturaConPautas.incompleto());
+        assertFalse(asignaturaConPautas.excedido());
+        assertEquals(0, new BigDecimal("27.00").compareTo(asignaturaConPautas.faltante()));
+    }
+
+    @Test
+    @DisplayName("31. Una asignatura sin pautas tiene total 0 y no muestra ningún aviso")
+    void listar_sinPautas_sinAviso() {
+        dadoQueElProfesorImparteLaAsignatura();
+        when(pautaRepository.findByAsignatura(ID_ASIGNATURA)).thenReturn(List.of());
+
+        var asignaturaConPautas = service.listarAsignaturas(PROFESOR).get(0);
+
+        assertEquals(0, BigDecimal.ZERO.compareTo(asignaturaConPautas.totalPonderacion()));
+        assertFalse(asignaturaConPautas.tieneTotal());
+        assertFalse(asignaturaConPautas.incompleto());
+        assertFalse(asignaturaConPautas.excedido());
+    }
+
+    @Test
+    @DisplayName("32. Con total exactamente 100 no hay aviso de falta ni de exceso")
+    void listar_total100_sinAviso() {
+        dadoQueElProfesorImparteLaAsignatura();
+        PautaEvaluacion evaluacion = pautaExistente(1L, TipoLinea.UNICA, 1);
+        evaluacion.setPonderacion(new BigDecimal("75.00"));
+        when(pautaRepository.findByAsignatura(ID_ASIGNATURA)).thenReturn(List.of(evaluacion));
+        when(pautaDocumentoRepository.findByAsignatura_IdAsignaturaOrderByTipoAscNumeroAsc(ID_ASIGNATURA))
+                .thenReturn(List.of(pautaDeDocumento(TipoDocumento.INFORME, 1, "25.00")));
+
+        var asignaturaConPautas = service.listarAsignaturas(PROFESOR).get(0);
+
+        assertTrue(asignaturaConPautas.tieneTotal());
+        assertFalse(asignaturaConPautas.incompleto());
+        assertFalse(asignaturaConPautas.excedido());
     }
 }
