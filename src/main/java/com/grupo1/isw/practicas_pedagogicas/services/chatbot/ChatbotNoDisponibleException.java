@@ -5,11 +5,25 @@ public class ChatbotNoDisponibleException extends RuntimeException {
 
     public enum Causa {
         /** El proveedor rechazó la solicitud por exceso de uso (por ejemplo, el límite gratuito). */
-        LIMITE_DEL_PROVEEDOR,
+        LIMITE_DEL_PROVEEDOR("El asistente está recibiendo muchas consultas en este momento. "
+                + "Espera unos minutos e inténtalo de nuevo. Tu mensaje no se perdió."),
         /** El proveedor no respondió dentro del tiempo permitido. */
-        TIEMPO_AGOTADO,
+        TIEMPO_AGOTADO("El asistente tardó demasiado en responder. "
+                + "Inténtalo de nuevo en un momento. Tu mensaje no se perdió."),
         /** Cualquier otro fallo: conexión, error del proveedor, respuesta inutilizable. */
-        ERROR
+        ERROR("El asistente no está disponible en este momento. "
+                + "Inténtalo más tarde. Tu mensaje no se perdió.");
+
+        private final String mensajeParaElEstudiante;
+
+        Causa(String mensajeParaElEstudiante) {
+            this.mensajeParaElEstudiante = mensajeParaElEstudiante;
+        }
+
+        /** Lo que se le muestra al estudiante; su mensaje sigue en el cuadro de texto para reintentar. */
+        public String getMensajeParaElEstudiante() {
+            return mensajeParaElEstudiante;
+        }
     }
 
     private final Causa causa;

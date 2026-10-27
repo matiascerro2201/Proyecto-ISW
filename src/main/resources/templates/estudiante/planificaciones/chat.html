@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Asistente de planificaciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <style>
+        .chat-conversacion { display: flex; flex-direction: column; gap: var(--space-4); margin: var(--space-6) 0; }
+        .chat-turno { display: flex; flex-direction: column; gap: var(--space-2); }
+        .chat-burbuja { max-width: 85%; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
+                        border: 1px solid var(--border); }
+        .chat-burbuja p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere;
+                          font-size: 14.5px; line-height: 1.5; }
+        .chat-autor { font-size: 12px; font-weight: 600; color: var(--ink-500); }
+        .chat-estudiante { align-self: flex-end; background: var(--brand-100); border-color: transparent; }
+        .chat-asistente { align-self: flex-start; background: var(--surface-raised); }
+        .chat-hora { align-self: center; }
+        .chat-planificacion { white-space: pre-wrap; overflow-wrap: anywhere; }
+    </style>
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/estudiante/planificaciones}">Volver a mis planificaciones</a>
+
+    <h1>Asistente de planificaciones</h1>
+    <span class="card__meta" th:text="${chat.etiquetaLinea()}">Práctica Pedagógica (ESPECIALIDAD)</span>
+
+    <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
+
+    <p class="hint">
+        El asistente te orienta para mejorar tu planificación antes de que la revise el profesor: no la escribe
+        por ti ni decide si se aprueba. Revisa la <strong>última versión guardada</strong>; si haces cambios,
+        guárdalos antes de preguntarle.
+    </p>
+
+    <details class="card">
+        <summary>Ver la planificación que revisa el asistente</summary>
+        <div class="card__content chat-planificacion" th:text="${chat.contenido()}">Texto de la planificación</div>
+        <div class="card__retro" th:if="${chat.rechazada()}">
+            <strong>Retroalimentación del profesor</strong>
+            <p class="chat-planificacion" th:text="${chat.retroalimentacion()}">Comentarios del profesor</p>
+        </div>
+    </details>
+
+    <p>
+        <a class="btn btn-secondary"
+           th:href="@{/estudiante/planificaciones/{id}/editar(id=${chat.idPlanificacion()})}">Editar planificación</a>
+    </p>
+
+    <section class="chat-conversacion" aria-live="polite">
+        <p class="hint" th:if="${#lists.isEmpty(chat.turnos())}">
+            Aún no has conversado con el asistente. Escribe abajo tu primera consulta, por ejemplo:
+            «¿Mis objetivos de aprendizaje son claros y se pueden comprobar?».
+        </p>
+        <div class="chat-turno" th:each="turno : ${chat.turnos()}">
+            <div class="chat-burbuja chat-estudiante">
+                <span class="chat-autor">Tú</span>
+                <p th:text="${turno.mensajeEstudiante()}">Mensaje del estudiante</p>
+            </div>
+            <div class="chat-burbuja chat-asistente">
+                <span class="chat-autor">Asistente</span>
+                <p th:text="${turno.respuestaBot()}">Respuesta del asistente</p>
+            </div>
+            <span class="card__meta chat-hora"
+                  th:text="${#temporals.format(turno.fecha(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
+        </div>
+    </section>
+
+    <form id="escribir" method="post" class="card" th:if="${chat.mensajesRestantesHoy() gt 0}"
+          th:action="@{/estudiante/planificaciones/{id}/chat(id=${chat.idPlanificacion()})}">
+        <div class="field">
+            <label for="mensaje">Tu mensaje para el asistente</label>
+            <textarea id="mensaje" name="mensaje" rows="4" required="required"
+                      th:maxlength="${chat.maxCaracteresMensaje()}" th:text="${textoEscrito}"></textarea>
+            <span class="hint" id="contador"
+                  th:text="'Máximo ' + ${chat.maxCaracteresMensaje()} + ' caracteres.'">Máximo 1500 caracteres.</span>
+            <span class="hint"
+                  th:text="'Te quedan ' + ${chat.mensajesRestantesHoy()} + ' mensajes hoy.'">Te quedan 20 mensajes hoy.</span>
+        </div>
+        <button type="submit" id="enviar" class="btn btn-accent">Enviar al asistente</button>
+    </form>
+
+    <p class="msg error" th:unless="${chat.mensajesRestantesHoy() gt 0}">
+        Llegaste al límite de mensajes de hoy con el asistente. Podrás seguir mañana.
+    </p>
+</main>
+
+<script>
+    // La consulta puede tardar unos segundos: se bloquea el botón para no enviarla dos veces.
+    (function () {
+        var formulario = document.getElementById('escribir');
+        var boton = document.getElementById('enviar');
+        if (!formulario || !boton) { return; }
+
+        // Contador: avisa al acercarse al máximo y cuando se llega (el cuadro simplemente deja de aceptar texto).
+        var texto = document.getElementById('mensaje');
+        var contador = document.getElementById('contador');
+        var maximo = parseInt(texto.getAttribute('maxlength'), 10);
+        function actualizarContador() {
+            var n = texto.value.length;
+            contador.textContent = n + ' / ' + maximo + ' caracteres' + (n >= maximo ? ' — llegaste al máximo' : '');
+            contador.style.color = n >= maximo ? 'var(--status-rejected-fg)'
+                    : (n >= maximo * 0.9 ? 'var(--status-pending-fg)' : '');
+        }
+        texto.addEventListener('input', actualizarContador);
+        actualizarContador();
+
+        formulario.addEventListener('submit', function () {
+            boton.disabled = true;
+            boton.textContent = 'Consultando al asistente…';
+        });
+        window.addEventListener('pageshow', function () {
+            boton.disabled = false;
+            boton.textContent = 'Enviar al asistente';
+        });
+    })();
+</script>
+</body>
+</html>

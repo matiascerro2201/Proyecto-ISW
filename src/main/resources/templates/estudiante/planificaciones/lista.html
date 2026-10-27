@@ -47,6 +47,7 @@
         <div class="card__footer" th:if="${p.puedeEditar()}">
             <a class="btn btn-secondary" th:href="@{/estudiante/planificaciones/{id}/editar(id=${p.idPlanificacion()})}"
                th:text="${p.esBorrador()} ? 'Continuar editando' : 'Editar y reenviar'">Editar y reenviar</a>
+            <a class="btn btn-primary" th:href="@{/estudiante/planificaciones/{id}/chat(id=${p.idPlanificacion()})}">Conversar con el asistente</a>
         </div>
     </article>
 </main>

@@ -266,7 +266,7 @@ public class PlanificacionService {
         return texto;
     }
 
-    private Planificacion obtenerPlanificacionDelEstudiante(Long idEstudiante, Long idPlanificacion) {
+    public  Planificacion obtenerPlanificacionDelEstudiante(Long idEstudiante, Long idPlanificacion) {
         Planificacion planificacion = obtenerPlanificacion(idPlanificacion);
         if (!lineaPerteneceAlEstudiante(planificacion.getLinea(), idEstudiante)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para acceder a esta planificación");
