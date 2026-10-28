@@ -9,6 +9,7 @@ import com.grupo1.isw.practicas_pedagogicas.models.InscripcionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.ProfesorAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.SeccionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.repositories.InformeFinalRepository;
+import com.grupo1.isw.practicas_pedagogicas.services.NotificacionService;
 import com.grupo1.isw.practicas_pedagogicas.services.RevisionInformeService;
 
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,6 +51,9 @@ class RevisionInformeServiceTest {
 
     @Mock
     private InformeFinalRepository informeFinalRepository;
+
+    @Mock
+    private NotificacionService notificacionService;
 
     @InjectMocks
     private RevisionInformeService service;
@@ -319,5 +325,29 @@ class RevisionInformeServiceTest {
                 () -> service.publicar(ID_PROFESOR, ID_INFORME));
 
         assertEquals(404, ex.getStatusCode().value());
+    }
+
+    // ---------- HU-17: notificación al estudiante ----------
+
+    @Test
+    @DisplayName("HU-17. Al publicar se notifica al estudiante con el enlace a su informe, sin la nota")
+    void publicar_notificaAlEstudiante() {
+        dadoUnInformeValidado();
+
+        service.publicar(ID_PROFESOR, ID_INFORME);
+
+        verify(notificacionService).crear(4L, NotificacionService.TIPO_INFORME_FINAL,
+                "Tu informe final de desempeño de Práctica Pedagógica (semestre 2 de 2026) ya está disponible.",
+                "/mis-informes/1");
+    }
+
+    @Test
+    @DisplayName("HU-17. Si no se puede publicar, el estudiante no recibe notificación")
+    void publicar_fallido_noNotifica() {
+        dadoUnInformeDelProfesor(); // sin nota final: no se puede publicar
+
+        assertThrows(IllegalStateException.class, () -> service.publicar(ID_PROFESOR, ID_INFORME));
+
+        verify(notificacionService, never()).crear(anyLong(), anyString(), anyString(), anyString());
     }
 }
