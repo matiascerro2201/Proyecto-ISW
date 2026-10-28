@@ -198,7 +198,7 @@ input:focus, textarea:focus, select:focus {
 .badge.enviada, .badge.pendiente  { background: var(--status-pending-bg);  color: var(--status-pending-fg); }
 .badge.aprobada, .badge.aprobado  { background: var(--status-approved-bg); color: var(--status-approved-fg); }
 .badge.rechazada, .badge.rechazado{ background: var(--status-rejected-bg); color: var(--status-rejected-fg); }
-/* Estados del informe final (HU-10/HU-11): validado = calificación fijada, publicado = visible para el estudiante */
+.badge.borrador { background: var(--brand-100); color: var(--brand-700); }
 .badge.validado { background: var(--brand-100); color: var(--brand-700); }
 .badge.publicado { background: var(--status-approved-bg); color: var(--status-approved-fg); }
 

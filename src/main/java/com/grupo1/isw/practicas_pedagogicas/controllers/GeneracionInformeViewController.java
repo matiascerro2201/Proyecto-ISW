@@ -3,6 +3,7 @@ package com.grupo1.isw.practicas_pedagogicas.controllers;
 import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
 import com.grupo1.isw.practicas_pedagogicas.services.GeneracionInformeService;
 import com.grupo1.isw.practicas_pedagogicas.services.InformeNoGenerableException;
+import com.grupo1.isw.practicas_pedagogicas.services.PlazoRevisionService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -19,14 +20,19 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @PreAuthorize("hasRole('PROFESOR_ASIGNATURA')")
 public class GeneracionInformeViewController {
     private final GeneracionInformeService generacionInformeService;
+    private final PlazoRevisionService plazoRevisionService;
 
-    public GeneracionInformeViewController(GeneracionInformeService generacionInformeService) {
+    public GeneracionInformeViewController(GeneracionInformeService generacionInformeService,
+                                           PlazoRevisionService plazoRevisionService) {
         this.generacionInformeService = generacionInformeService;
+        this.plazoRevisionService = plazoRevisionService;
     }
 
     @GetMapping
     public String listar(@AuthenticationPrincipal UsuarioDetails profesor, Model model) {
         model.addAttribute("estudiantes", generacionInformeService.listarEstudiantes(profesor.getIdUsuario()));
+        // HU-12: fechas límite de revisión de cada sección
+        model.addAttribute("plazos", plazoRevisionService.listarPlazos(profesor.getIdUsuario()));
         return "profesor/informes/lista";
     }
 
