@@ -9,6 +9,7 @@ import java.util.List;
 
 
 public interface PlanificacionRepository extends JpaRepository<Planificacion, Long> {
+    List<Planificacion> findByEstado(EstadoPlanificacion estado);
     List<Planificacion> findByEstadoAndLinea_Colaborador_IdUsuarioOrderByFechaEnvioAsc(
             EstadoPlanificacion estado, Long idColaborador);
 
