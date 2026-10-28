@@ -51,4 +51,6 @@ public interface EvaluacionAplicadaRepository extends JpaRepository<EvaluacionAp
             WHERE e.pautaEvaluacion.idPautaEvaluacion = :idPauta
             """)
     boolean existsByPauta(@Param("idPauta") Long idPauta);
+    // Buscar evaluaciones por estado y fecha límite exacta
+    List<EvaluacionAplicada> findByEstadoAndFechaLimite(String estado, java.time.LocalDate fechaLimite);
 }
