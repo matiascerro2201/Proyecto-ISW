@@ -22,14 +22,15 @@
 
     <p><a class="btn btn-accent" th:href="@{/estudiante/planificaciones/nueva}">+ Nueva planificación</a></p>
 
-    <p th:if="${#lists.isEmpty(planificaciones)}">Aún no has enviado ninguna planificación.</p>
+    <p th:if="${#lists.isEmpty(planificaciones)}">Aún no tienes planificaciones.</p>
 
     <article class="card" th:each="p : ${planificaciones}">
         <div class="card__header">
             <strong th:text="${p.etiquetaLinea()}">Asignatura (LÍNEA)</strong>
             <span th:class="'badge ' + ${p.estado().name().toLowerCase()}" th:text="${p.estado()}">ENVIADA</span>
         </div>
-        <span class="card__meta">
+        <span class="card__meta" th:if="${p.esBorrador()}">Borrador: todavía no se envía al colaborador</span>
+        <span class="card__meta" th:unless="${p.esBorrador()}">
             Enviada el
             <span th:text="${#temporals.format(p.fechaEnvio(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
         </span>
@@ -43,8 +44,10 @@
             <p th:text="${p.retroalimentacion()}">Texto de la retroalimentación</p>
         </div>
 
-        <div class="card__footer" th:if="${p.puedeReenviar()}">
-            <a class="btn btn-secondary" th:href="@{/estudiante/planificaciones/{id}/editar(id=${p.idPlanificacion()})}">Editar y reenviar</a>
+        <div class="card__footer" th:if="${p.puedeEditar()}">
+            <a class="btn btn-secondary" th:href="@{/estudiante/planificaciones/{id}/editar(id=${p.idPlanificacion()})}"
+               th:text="${p.esBorrador()} ? 'Continuar editando' : 'Editar y reenviar'">Editar y reenviar</a>
+            <a class="btn btn-primary" th:href="@{/estudiante/planificaciones/{id}/chat(id=${p.idPlanificacion()})}">Conversar con el asistente</a>
         </div>
     </article>
 </main>

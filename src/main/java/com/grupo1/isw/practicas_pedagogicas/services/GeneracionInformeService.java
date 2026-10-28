@@ -123,6 +123,7 @@ public class GeneracionInformeService {
                 estado,
                 informe == null ? null : informe.getIdInforme(),
                 informe == null ? null : informe.getCalificacionSugerida(),
+                informe == null ? null : informe.getCalificacionFinal(),
                 informe == null ? null : informe.getFechaGeneracion(),
                 pendientes);
     }

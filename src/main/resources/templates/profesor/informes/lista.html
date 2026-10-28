@@ -31,6 +31,54 @@
         </ul>
     </div>
 
+    <!-- HU-12: fecha límite de revisión de cada sección, de la más próxima a la más lejana -->
+    <section class="plazos" th:unless="${#lists.isEmpty(plazos)}" aria-labelledby="titulo-plazos">
+        <h2 id="titulo-plazos">Fechas límite de revisión</h2>
+        <p class="hint">
+            Define hasta cuándo revisarás los informes de cada sección. Un informe queda pendiente hasta que lo
+            publicas. Para quitar una fecha, deja el campo vacío y guarda.
+        </p>
+        <p class="alerta" role="alert" th:if="${errorPlazo != null}" th:text="${errorPlazo}">
+            La fecha límite no puede ser anterior a hoy
+        </p>
+
+        <div class="tabla-scroll">
+            <table>
+                <caption class="sr-only">Fechas límite de revisión por sección</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Asignatura</th>
+                        <th scope="col">Período</th>
+                        <th scope="col">Informes pendientes</th>
+                        <th scope="col">Fecha límite</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Definir fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="p : ${plazos}">
+                        <td th:text="${p.nombreAsignatura}">Práctica Pedagógica</td>
+                        <td th:text="|Semestre ${p.semestre} de ${p.anio}|">Semestre 2 de 2026</td>
+                        <td class="desglose__num" th:text="|${p.informesPendientes} de ${p.totalEstudiantes}|">2 de 3</td>
+                        <td th:text="${p.fechaLimite != null ? #temporals.format(p.fechaLimite, 'dd/MM/yyyy') : '—'}">15/11/2026</td>
+                        <td><span class="badge" th:classappend="${p.claseEstado()}" th:text="${p.textoEstado()}">Vence en 5 días</span></td>
+                        <td>
+                            <form class="plazos__form" method="post"
+                                  th:action="@{/profesor/informes/secciones/{id}/fecha-limite(id=${p.idSeccion})}">
+                                <label class="sr-only" th:for="|fecha-${p.idSeccion}|"
+                                       th:text="|Fecha límite de ${p.nombreAsignatura}, semestre ${p.semestre} de ${p.anio}|">Fecha límite</label>
+                                <input type="date" name="fechaLimite" th:id="|fecha-${p.idSeccion}|"
+                                       th:value="${p.fechaLimite}"
+                                       th:attr="min=${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+                                <button type="submit" class="btn btn-secondary">Guardar</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
     <!-- Caso: el profesor aún no tiene estudiantes inscritos en sus secciones -->
     <section th:if="${#lists.isEmpty(estudiantes)}">
         <p>Aún no hay estudiantes inscritos en tus asignaturas.</p>
@@ -46,6 +94,7 @@
                     <th scope="col">Período</th>
                     <th scope="col">Estado</th>
                     <th scope="col">Calificación sugerida</th>
+                    <th scope="col">Calificación final</th>
                     <th scope="col"><span class="sr-only">Acción</span></th>
                 </tr>
             </thead>
@@ -65,6 +114,10 @@
                         th:text="${e.calificacionSugerida != null
                                    ? #numbers.formatDecimal(e.calificacionSugerida, 1, 'POINT', 1, 'COMMA')
                                    : '—'}">6,3</td>
+                    <td class="desglose__num"
+                        th:text="${e.calificacionFinal != null
+                        ? #numbers.formatDecimal(e.calificacionFinal, 1, 'POINT', 1, 'COMMA')
+                        : '—'}">6,5</td>
                     <td>
                         <!-- Faltan evaluaciones o entregas: se dice qué, no solo que no se puede -->
                         <ul class="pendientes" th:if="${e.estado.name() == 'PENDIENTE'}">

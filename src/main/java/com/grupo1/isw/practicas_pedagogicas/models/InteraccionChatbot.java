@@ -2,6 +2,8 @@ package com.grupo1.isw.practicas_pedagogicas.models;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "interaccion_chatbot")
@@ -24,6 +26,10 @@ public class InteraccionChatbot {
 
     @Column(name = "fecha", nullable = false)
     private LocalDateTime fecha;
+
+    /** Lo que el asistente valoró al responder; se guarda junto con la interacción. */
+    @OneToMany(mappedBy = "interaccion", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<HallazgoChatbot> hallazgos = new ArrayList<>();
 
     public InteraccionChatbot() {
     }
@@ -73,5 +79,18 @@ public class InteraccionChatbot {
 
     public void setFecha(LocalDateTime fecha) {
         this.fecha = fecha;
+    }
+
+    public List<HallazgoChatbot> getHallazgos() {
+        return hallazgos;
+    }
+
+    public void setHallazgos(List<HallazgoChatbot> hallazgos) {
+        this.hallazgos = hallazgos;
+    }
+
+    /** Agrega un hallazgo a esta interacción; se guarda al guardar la interacción. */
+    public void agregarHallazgo(CategoriaPlanificacion categoria, NivelHallazgo nivel, String observacion) {
+        hallazgos.add(new HallazgoChatbot(this, categoria, nivel, observacion));
     }
 }

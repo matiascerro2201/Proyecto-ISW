@@ -117,7 +117,7 @@ class PlanificacionServiceTest {
 
     @ParameterizedTest(name = "3. Decisión inválida: {0}")
     @NullSource
-    @EnumSource(value = EstadoPlanificacion.class, names = "ENVIADA")
+    @EnumSource(value = EstadoPlanificacion.class, names = {"BORRADOR", "ENVIADA"})
     void decisionInvalida_lanzaIllegalArgument(EstadoPlanificacion decisionInvalida) {
         dadoQueExisteYPerteneceA(ID_COLABORADOR);
 

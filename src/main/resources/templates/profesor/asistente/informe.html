@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Informe del asistente de planificaciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <style>
+        main { max-width: 1120px; }
+        .inf-seccion { display: flex; flex-direction: column; gap: var(--space-4, 16px); margin-top: var(--space-10, 40px); }
+        .inf-seccion h2 { margin: 0; }
+        .inf-aviso { margin: var(--space-4, 16px) 0; padding: var(--space-3, 12px) var(--space-4, 16px);
+                     border-radius: var(--radius-md, 10px); font-size: 14px; }
+        .inf-aviso-ok { background: var(--status-approved-bg, #E6F6ED); color: var(--status-approved-fg, #146C43); }
+        .inf-aviso-error { background: var(--status-rejected-bg, #FDECEA); color: var(--status-rejected-fg, #B42318); }
+        .inf-filtro { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-3, 12px); margin: var(--space-6, 24px) 0 0; }
+        .inf-filtro label { display: block; font-size: 14px; font-weight: 600; margin-bottom: var(--space-2, 8px); }
+        .inf-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-6, 24px);
+                    margin-top: var(--space-8, 32px); }
+        .inf-kpi { display: flex; flex-direction: column; gap: var(--space-2, 8px); padding: var(--space-6, 24px);
+                   background: var(--surface-raised, #fff); border: 1px solid var(--border, #E2E5EA);
+                   border-radius: var(--radius-lg, 16px); }
+        .inf-etiqueta { font-size: 12.5px; line-height: 18px; font-weight: 500; color: var(--ink-500, #667085); }
+        .inf-cifra { font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif; font-size: 32px; line-height: 40px;
+                     font-weight: 700; color: var(--ink-900, #14181F); }
+        .inf-cifra-menor { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--ink-500, #667085); }
+        .inf-leyenda { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+                       gap: var(--space-3, 12px) var(--space-6, 24px); margin-bottom: var(--space-4, 16px); }
+        .inf-leyenda span { display: inline-flex; align-items: center; gap: var(--space-2, 8px); font-size: 14px; font-weight: 600; }
+        .inf-punto { width: 12px; height: 12px; border-radius: 9999px; }
+        .inf-punto-1 { background: var(--brand-700, #1E3A5F); }
+        .inf-punto-2 { background: var(--brand-500, #3B6EA5); }
+        .inf-desplazable { overflow-x: auto; }
+        .inf-tabla { min-width: 760px; }
+        .inf-fila { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr) minmax(0, 2fr) 96px;
+                    gap: var(--space-6, 24px); align-items: center; padding: var(--space-4, 16px) 0;
+                    border-bottom: 1px solid var(--border, #E2E5EA); }
+        .inf-fila-cabecera { align-items: end; padding: 0 0 var(--space-3, 12px); border-bottom-color: var(--border-strong, #CBD2DC);
+                             font-family: 'Manrope', 'Segoe UI', system-ui, sans-serif; font-weight: 600; font-size: 16px; }
+        .inf-nombre { font-weight: 600; color: var(--ink-900, #14181F); }
+        .inf-barra { display: flex; align-items: center; gap: var(--space-3, 12px); }
+        .inf-pista { flex: 1 1 auto; height: 12px; background: var(--brand-100, #E4EDF7); border-radius: 9999px; overflow: hidden; }
+        .inf-pista-apoyo { background: var(--support-100, #E1F2EE); }
+        .inf-relleno { height: 12px; border-radius: 9999px; }
+        .inf-relleno-1 { background: var(--brand-700, #1E3A5F); }
+        .inf-relleno-2 { background: var(--brand-500, #3B6EA5); }
+        .inf-relleno-apoyo { background: var(--support-600, #257A6E); }
+        .inf-valor { width: 48px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .inf-detalle { display: block; margin-top: 4px; font-size: 12.5px; line-height: 18px; font-weight: 500; color: var(--ink-500, #667085); }
+        .inf-cambio { text-align: right; font-weight: 600; color: var(--support-600, #257A6E); font-variant-numeric: tabular-nums; }
+        .inf-pares { display: flex; flex-wrap: wrap; gap: var(--space-8, 32px); }
+        .inf-par { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2, 8px); }
+        .inf-nota { margin: var(--space-6, 24px) 0 0; padding: var(--space-4, 16px); background: var(--brand-100, #E4EDF7);
+                    border-radius: var(--radius-md, 10px); font-size: 14px; }
+        .inf-encabezado { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4, 16px); }
+        .inf-texto { margin: 0; max-width: 760px; font-size: 16px; line-height: 26px; white-space: pre-wrap; overflow-wrap: anywhere; }
+        .inf-pie { margin-top: var(--space-4, 16px); padding-top: var(--space-4, 16px); border-top: 1px solid var(--border, #E2E5EA); }
+        .inf-vacio { text-align: center; }
+        .inf-vacio .inf-pista { max-width: 360px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Informe del asistente de planificaciones</h1>
+    <p class="hint">
+        Qué aspectos de las planificaciones les cuestan más a tus estudiantes y cómo mejoran al conversar con el
+        asistente. El informe no muestra nombres.
+    </p>
+
+    <p class="inf-aviso inf-aviso-ok" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
+    <p class="inf-aviso inf-aviso-error" th:if="${error}" th:text="${error}">Mensaje de error</p>
+
+    <div class="card" th:if="${#lists.isEmpty(secciones)}">
+        <p>No tienes secciones asignadas, así que todavía no hay un informe que mostrar.</p>
+    </div>
+
+    <th:block th:unless="${#lists.isEmpty(secciones)}">
+
+        <form class="inf-filtro" method="get" th:action="@{/profesor/asistente}">
+            <div>
+                <label for="seccion">Sección</label>
+                <select id="seccion" name="seccion">
+                    <option th:each="s : ${secciones}" th:value="${s.idSeccion()}"
+                            th:text="${s.asignatura() + ' · ' + s.periodo()}"
+                            th:selected="${s.idSeccion() == informe.seccion().idSeccion()}">Práctica Pedagógica · 2026-2</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary">Ver</button>
+        </form>
+
+        <section class="card inf-vacio inf-seccion" th:unless="${informe.suficienteDatos()}">
+            <h2>Todavía no hay suficientes datos</h2>
+            <p>
+                Para proteger la privacidad de los estudiantes, el informe se muestra cuando al menos
+                <strong th:text="${informe.minimoEstudiantes()}">5</strong> de ellos han usado el asistente.
+                Con menos, sería posible reconocer a quién corresponde cada cifra.
+            </p>
+            <strong th:text="${informe.estudiantesConAsistente()} + ' de ' + ${informe.minimoEstudiantes()} + ' estudiantes'">3 de 5 estudiantes</strong>
+            <div class="inf-pista inf-pista-apoyo" aria-hidden="true">
+                <div class="inf-relleno inf-relleno-apoyo"
+                     th:style="'width:' + ${informe.estudiantesConAsistente() * 100 / informe.minimoEstudiantes()} + '%'"></div>
+            </div>
+            <p class="inf-detalle">Cuando se llegue a ese número, aquí aparecerá el informe completo.</p>
+        </section>
+
+        <th:block th:if="${informe.suficienteDatos()}" th:with="r=${informe.resumen()}">
+
+            <div class="inf-kpis">
+                <div class="inf-kpi">
+                    <span class="inf-etiqueta">Estudiantes que usaron el asistente</span>
+                    <span class="inf-cifra"><span th:text="${r.estudiantesConAsistente()}">24</span>
+                        <span class="inf-cifra-menor">de <span th:text="${r.totalEstudiantes()}">30</span></span></span>
+                    <span class="inf-etiqueta" th:text="${r.pctEstudiantesConAsistente()} + '% del curso'">80% del curso</span>
+                </div>
+                <div class="inf-kpi">
+                    <span class="inf-etiqueta">Planificaciones revisadas con el asistente</span>
+                    <span class="inf-cifra" th:text="${r.planificacionesRevisadas()}">61</span>
+                    <span class="inf-etiqueta">Entre borradores y enviadas</span>
+                </div>
+                <div class="inf-kpi">
+                    <span class="inf-etiqueta">Consultas al asistente</span>
+                    <span class="inf-cifra" th:text="${r.consultas()}">187</span>
+                    <span class="inf-etiqueta" th:text="${r.consultasPorPlanificacion()} + ' por planificación'">3,1 por planificación</span>
+                </div>
+                <div class="inf-kpi">
+                    <span class="inf-etiqueta">Enviadas que pasaron antes por el asistente</span>
+                    <span class="inf-cifra" th:text="${r.pctEnviadasConAsistente()} + '%'">71%</span>
+                    <span class="inf-etiqueta"
+                          th:text="${r.enviadasConAsistente()} + ' de ' + ${r.planificacionesEnviadas()} + ' planificaciones enviadas'">41 de 58 planificaciones enviadas</span>
+                </div>
+            </div>
+
+            <section class="inf-seccion" aria-labelledby="titulo-aspectos">
+                <div>
+                    <h2 id="titulo-aspectos">Aspectos que más cuestan</h2>
+                    <p class="hint">
+                        Porcentaje de planificaciones en que el asistente valoró el aspecto como débil, en su primera
+                        revisión y en la última. Cada planificación cuenta una vez, sin importar cuántas consultas hizo
+                        el estudiante.
+                    </p>
+                </div>
+                <div class="card">
+                    <p th:if="${r.planificacionesValoradas() le 0}">Todavía no hay valoraciones del asistente para mostrar.</p>
+                    <th:block th:if="${r.planificacionesValoradas() gt 0}">
+                        <div class="inf-leyenda">
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px 24px;">
+                                <span><i class="inf-punto inf-punto-1" aria-hidden="true"></i>Primera revisión</span>
+                                <span><i class="inf-punto inf-punto-2" aria-hidden="true"></i>Última revisión</span>
+                            </div>
+                            <span class="inf-etiqueta" th:text="'Base: ' + ${r.planificacionesValoradas()} + ' planificaciones'">Base: 61 planificaciones</span>
+                        </div>
+                        <div class="inf-desplazable">
+                            <div class="inf-tabla">
+                                <div class="inf-fila inf-fila-cabecera">
+                                    <span>Aspecto</span>
+                                    <span>Débil en la primera revisión</span>
+                                    <span>Débil en la última revisión</span>
+                                    <span style="text-align: right;">Cambio</span>
+                                </div>
+                                <div class="inf-fila" th:each="a : ${r.aspectosVista()}">
+                                    <span class="inf-nombre" th:text="${a.nombre()}">Evaluación del aprendizaje</span>
+                                    <div>
+                                        <div class="inf-barra">
+                                            <div class="inf-pista" aria-hidden="true">
+                                                <div class="inf-relleno inf-relleno-1" th:style="'width:' + ${a.pctPrimera()} + '%'"></div>
+                                            </div>
+                                            <span class="inf-valor" th:text="${a.pctPrimera()} + '%'">85%</span>
+                                        </div>
+                                        <span class="inf-detalle" th:text="${a.detallePrimera()}">52 de 61</span>
+                                    </div>
+                                    <div>
+                                        <div class="inf-barra">
+                                            <div class="inf-pista" aria-hidden="true">
+                                                <div class="inf-relleno inf-relleno-2" th:style="'width:' + ${a.pctUltima()} + '%'"></div>
+                                            </div>
+                                            <span class="inf-valor" th:text="${a.pctUltima()} + '%'">51%</span>
+                                        </div>
+                                        <span class="inf-detalle" th:text="${a.detalleUltima()}">31 de 61</span>
+                                    </div>
+                                    <span class="inf-cambio" th:text="${a.cambio()}">−34 pts</span>
+                                </div>
+                            </div>
+                        </div>
+                    </th:block>
+                </div>
+            </section>
+
+            <section class="inf-seccion" aria-labelledby="titulo-aprobacion" th:with="ap=${r.aprobacion()}">
+                <div>
+                    <h2 id="titulo-aprobacion">Aprobación en la primera evaluación</h2>
+                    <p class="hint">
+                        De las planificaciones que el colaborador ya evaluó, cuántas se aprobaron en su primera
+                        evaluación, según si el estudiante consultó al asistente antes de enviarla.
+                    </p>
+                </div>
+                <div class="card">
+                    <p th:if="${ap.evaluadasConAsistente() + ap.evaluadasSinAsistente() == 0}">Todavía no hay planificaciones evaluadas.</p>
+                    <div class="inf-pares" th:unless="${ap.evaluadasConAsistente() + ap.evaluadasSinAsistente() == 0}">
+                        <div class="inf-par">
+                            <span class="inf-etiqueta">Consultaron al asistente antes de su primera evaluación</span>
+                            <th:block th:if="${ap.evaluadasConAsistente() gt 0}">
+                                <span class="inf-cifra" th:text="${ap.pctConAsistente()} + '%'">76%</span>
+                                <div class="inf-pista inf-pista-apoyo" aria-hidden="true">
+                                    <div class="inf-relleno inf-relleno-apoyo" th:style="'width:' + ${ap.pctConAsistente()} + '%'"></div>
+                                </div>
+                                <span class="inf-etiqueta"
+                                      th:text="${ap.aprobadasConAsistente()} + ' de ' + ${ap.evaluadasConAsistente()} + ' planificaciones aprobadas'">31 de 41 planificaciones aprobadas</span>
+                            </th:block>
+                            <span class="inf-etiqueta" th:unless="${ap.evaluadasConAsistente() gt 0}">Sin planificaciones evaluadas.</span>
+                        </div>
+                        <div class="inf-par">
+                            <span class="inf-etiqueta">No lo consultaron</span>
+                            <th:block th:if="${ap.evaluadasSinAsistente() gt 0}">
+                                <span class="inf-cifra" th:text="${ap.pctSinAsistente()} + '%'">47%</span>
+                                <div class="inf-pista inf-pista-apoyo" aria-hidden="true">
+                                    <div class="inf-relleno inf-relleno-apoyo" th:style="'width:' + ${ap.pctSinAsistente()} + '%'"></div>
+                                </div>
+                                <span class="inf-etiqueta"
+                                      th:text="${ap.aprobadasSinAsistente()} + ' de ' + ${ap.evaluadasSinAsistente()} + ' planificaciones aprobadas'">8 de 17 planificaciones aprobadas</span>
+                            </th:block>
+                            <span class="inf-etiqueta" th:unless="${ap.evaluadasSinAsistente() gt 0}">Sin planificaciones evaluadas.</span>
+                        </div>
+                    </div>
+                    <p class="inf-nota">
+                        Esta comparación no demuestra que el asistente cause la diferencia: quienes lo usan pueden ser
+                        los estudiantes más motivados. Las planificaciones evaluadas antes de que existiera el
+                        historial pueden no mostrar su primera evaluación real.
+                    </p>
+                </div>
+            </section>
+
+            <section class="inf-seccion" aria-labelledby="titulo-analisis">
+                <div class="inf-encabezado">
+                    <div>
+                        <h2 id="titulo-analisis">Análisis del asistente</h2>
+                        <p class="hint">Resumen redactado por el asistente a partir de las cifras de arriba.</p>
+                    </div>
+                    <form id="form-generar" method="post" th:action="@{/profesor/asistente/generar}">
+                        <input type="hidden" name="seccion" th:value="${informe.seccion().idSeccion()}">
+                        <button type="submit" id="generar" class="btn btn-accent"
+                                th:disabled="${informe.analisisRestantesHoy() le 0}"
+                                th:text="${informe.analisis() == null} ? 'Generar análisis' : 'Regenerar análisis'">Generar análisis</button>
+                    </form>
+                </div>
+                <p class="inf-etiqueta"
+                   th:text="'Te quedan ' + ${informe.analisisRestantesHoy()} + ' análisis hoy para esta sección.'">Te quedan 5 análisis hoy para esta sección.</p>
+
+                <p class="hint" th:if="${informe.analisis() == null}">
+                    Todavía no se ha generado ningún análisis para esta sección. Al pulsar el botón, el asistente lo
+                    redacta a partir de las cifras de arriba y puede tardar unos segundos.
+                </p>
+
+                <div class="card" th:if="${informe.analisis() != null}">
+                    <p class="inf-texto" th:text="${informe.analisis().contenido()}">Texto del análisis</p>
+                    <div class="inf-pie">
+                        <span class="inf-etiqueta"
+                              th:text="'Generado el ' + ${#temporals.format(informe.analisis().fecha(), 'dd/MM/yyyy HH:mm')} + '. Basado en ' + ${informe.analisis().numPlanificaciones()} + ' planificaciones de ' + ${informe.analisis().numEstudiantes()} + ' estudiantes. No incluye nombres ni textos de los estudiantes.'">Generado el 27/10/2026 19:40.</span>
+                    </div>
+                </div>
+            </section>
+
+            <p class="inf-etiqueta" style="margin-top: 40px;">
+                El informe nunca muestra nombres. Si menos de
+                <span th:text="${informe.minimoEstudiantes()}">5</span> estudiantes han usado el asistente, no se
+                muestra, para que ninguno quede identificable.
+            </p>
+        </th:block>
+    </th:block>
+</main>
+
+<script>
+    // Generar el análisis puede tardar unos segundos: se bloquea el botón para no pedirlo dos veces.
+    (function () {
+        var formulario = document.getElementById('form-generar');
+        var boton = document.getElementById('generar');
+        if (!formulario || !boton) { return; }
+        var textoOriginal = boton.textContent;
+        var estabaDeshabilitado = boton.disabled;
+        formulario.addEventListener('submit', function () {
+            boton.disabled = true;
+            boton.textContent = 'Generando el análisis…';
+        });
+        window.addEventListener('pageshow', function () {
+            boton.disabled = estabaDeshabilitado;
+            boton.textContent = textoOriginal;
+        });
+    })();
+</script>
+</body>
+</html>

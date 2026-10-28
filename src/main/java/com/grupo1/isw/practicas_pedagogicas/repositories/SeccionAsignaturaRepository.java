@@ -29,4 +29,14 @@ public interface SeccionAsignaturaRepository extends JpaRepository<SeccionAsigna
             """)
     boolean profesorImparte(@Param("idProfesor") Long idProfesor,
                             @Param("idAsignatura") Long idAsignatura);
+
+    /** HU-12: secciones que dicta el profesor, con su asignatura, para definir la fecha límite de revisión. */
+    @Query("""
+            SELECT s
+            FROM SeccionAsignatura s
+            JOIN FETCH s.asignatura
+            WHERE s.profesor.idUsuario = :idProfesor
+            ORDER BY s.anio DESC, s.semestre DESC
+            """)
+    List<SeccionAsignatura> findDelProfesor(@Param("idProfesor") Long idProfesor);
 }
