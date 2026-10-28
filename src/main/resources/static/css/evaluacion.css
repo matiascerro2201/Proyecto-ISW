@@ -7,3 +7,39 @@
 .criterio p { margin: 0 0 var(--space-2); font-weight: 600; color: var(--ink-900); }
 .criterio .field { max-width: 22rem; }
 .criterio input[type=number] { width: 8rem; }
+
+.comentario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+.btn-voz {
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #334155;
+    transition: all 0.2s ease;
+}
+.btn-voz:hover {
+    background-color: #e2e8f0;
+}
+.btn-voz.grabando {
+    background-color: #fee2e2;
+    border-color: #ef4444;
+    color: #b91c1c;
+    font-weight: 600;
+    animation: pulso 1.5s infinite;
+}
+@keyframes pulso {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+   
