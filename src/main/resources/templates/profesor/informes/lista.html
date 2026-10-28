@@ -46,6 +46,7 @@
                     <th scope="col">Período</th>
                     <th scope="col">Estado</th>
                     <th scope="col">Calificación sugerida</th>
+                    <th scope="col">Calificación final</th>
                     <th scope="col"><span class="sr-only">Acción</span></th>
                 </tr>
             </thead>
@@ -65,6 +66,10 @@
                         th:text="${e.calificacionSugerida != null
                                    ? #numbers.formatDecimal(e.calificacionSugerida, 1, 'POINT', 1, 'COMMA')
                                    : '—'}">6,3</td>
+                    <td class="desglose__num"
+                        th:text="${e.calificacionFinal != null
+                        ? #numbers.formatDecimal(e.calificacionFinal, 1, 'POINT', 1, 'COMMA')
+                        : '—'}">6,5</td>
                     <td>
                         <!-- Faltan evaluaciones o entregas: se dice qué, no solo que no se puede -->
                         <ul class="pendientes" th:if="${e.estado.name() == 'PENDIENTE'}">
