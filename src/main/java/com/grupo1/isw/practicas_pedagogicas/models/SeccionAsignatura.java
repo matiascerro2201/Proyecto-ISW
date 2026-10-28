@@ -2,6 +2,8 @@ package com.grupo1.isw.practicas_pedagogicas.models;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "seccion_asignatura",
        uniqueConstraints = @UniqueConstraint(name = "uq_seccion", columnNames = {"id_asignatura", "anio", "semestre"}))
@@ -25,6 +27,10 @@ public class SeccionAsignatura {
 
     @Column(name = "semestre", nullable = false)
     private Integer semestre;
+
+    /** HU-12: día límite que fija el profesor para revisar los informes de la sección; null si no la definió. */
+    @Column(name = "fecha_limite_revision")
+    private LocalDate fechaLimiteRevision;
 
     public SeccionAsignatura() {
     }
@@ -74,5 +80,13 @@ public class SeccionAsignatura {
 
     public void setSemestre(Integer semestre) {
         this.semestre = semestre;
+    }
+
+    public LocalDate getFechaLimiteRevision() {
+        return fechaLimiteRevision;
+    }
+
+    public void setFechaLimiteRevision(LocalDate fechaLimiteRevision) {
+        this.fechaLimiteRevision = fechaLimiteRevision;
     }
 }
