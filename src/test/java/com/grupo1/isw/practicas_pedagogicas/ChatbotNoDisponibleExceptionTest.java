@@ -38,6 +38,15 @@ class ChatbotNoDisponibleExceptionTest {
         assertEquals(Causa.values().length, distintos);
     }
 
+    @ParameterizedTest(name = "HU-26. La causa {0} trae un mensaje para el profesor, sin hablar de mensajes de estudiantes")
+    @EnumSource(Causa.class)
+    void cadaCausa_tieneMensajeParaElProfesor(Causa causa) {
+        String mensaje = causa.getMensajeParaElProfesor();
+
+        assertFalse(mensaje.isBlank());
+        assertFalse(mensaje.contains("Tu mensaje"), mensaje);
+    }
+
     @Test
     @DisplayName("HU-26. La excepción expone su causa, su mensaje y el error de origen")
     void exponeCausaMensajeYOrigen() {
