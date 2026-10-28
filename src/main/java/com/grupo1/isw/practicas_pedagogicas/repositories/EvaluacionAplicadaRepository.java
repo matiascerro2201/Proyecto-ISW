@@ -43,4 +43,14 @@ public interface EvaluacionAplicadaRepository extends JpaRepository<EvaluacionAp
             ORDER BY p.tipoLinea, p.numeroAplicacion, e.idEvaluacion
             """)
     List<EvaluacionAplicada> findByInscripcion(@Param("idInscripcion") Long idInscripcion);
+    
+    /** HU-01: ¿la pauta ya tiene evaluaciones aplicadas? Si es así, no se puede modificar. */
+    @Query("""
+            SELECT COUNT(e) > 0
+            FROM EvaluacionAplicada e
+            WHERE e.pautaEvaluacion.idPautaEvaluacion = :idPauta
+            """)
+    boolean existsByPauta(@Param("idPauta") Long idPauta);
+    // Buscar evaluaciones por estado y fecha límite exacta
+    List<EvaluacionAplicada> findByEstadoAndFechaLimite(String estado, java.time.LocalDate fechaLimite);
 }

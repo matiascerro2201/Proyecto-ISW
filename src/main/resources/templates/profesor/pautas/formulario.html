@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pauta de evaluación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+</head>
+<body>
+<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<main>
+    <a class="back-link" th:href="@{/profesor/pautas}">Volver a pautas</a>
+
+    <h1 th:text="${idPauta == null ? 'Nueva pauta de evaluación' : (soloLectura ? 'Pauta de evaluación' : 'Editar pauta de evaluación')}">
+        Nueva pauta de evaluación
+    </h1>
+    <p>Asignatura: <strong th:text="${nombreAsignatura}">Práctica Pedagógica</strong></p>
+
+    <p class="msg error" th:if="${error}" th:text="${error}"></p>
+
+    <p class="msg" th:if="${soloLectura}">
+        Esta pauta ya tiene evaluaciones aplicadas, así que solo puedes consultarla. No se puede modificar
+        para no alterar los puntajes ya registrados. Si necesitas cambios, crea una pauta nueva.
+    </p>
+
+    <!-- Errores de validación: todos juntos, para corregir de una vez -->
+    <div class="alerta" role="alert" th:if="${errores != null and !#lists.isEmpty(errores)}">
+        <strong>No se pudo guardar la pauta:</strong>
+        <ul>
+            <li th:each="mensajeError : ${errores}" th:text="${mensajeError}">Falta el puntaje máximo de ...</li>
+        </ul>
+    </div>
+
+    <!-- th:action agrega automáticamente el token CSRF.
+         Los botones de agregar y quitar filas reenvían este mismo formulario con otra "accion". -->
+    <form th:action="${idPauta != null} ? @{/profesor/pautas/{id}/editar(id=${idPauta})} : @{/profesor/pautas/nueva}"
+          method="post">
+
+        <!-- Botón por defecto: al presionar Enter en un campo se guarda, no se quita ninguna fila -->
+        <button type="submit" name="accion" value="guardar" class="sr-only" tabindex="-1" aria-hidden="true"
+                th:unless="${soloLectura}">Guardar pauta</button>
+
+        <input type="hidden" name="asignatura" th:value="${idAsignatura}" th:if="${idPauta == null}">
+
+        <div class="field" style="max-width:14rem;">
+            <label for="tipoLinea">Tipo de línea</label>
+            <select id="tipoLinea" name="tipoLinea" th:disabled="${soloLectura}">
+                <option th:each="tipo : ${tiposLinea}" th:value="${tipo}" th:text="${tipo}"
+                        th:selected="${tipo.name() == formulario.tipoLinea}">UNICA</option>
+            </select>
+        </div>
+
+        <div class="field" style="max-width:14rem;">
+            <label for="numeroAplicacion">Número de aplicación</label>
+            <input type="number" id="numeroAplicacion" name="numeroAplicacion" min="1" max="10"
+                   th:value="${formulario.numeroAplicacion}" th:readonly="${soloLectura}">
+            <span class="hint">Si se evalúa varias veces, 1 es la primera aplicación.</span>
+        </div>
+
+        <div class="field" style="max-width:14rem;">
+            <label for="ponderacion">Ponderación (%)</label>
+            <input type="text" id="ponderacion" name="ponderacion" inputmode="decimal" autocomplete="off"
+                   th:value="${formulario.ponderacion}" th:readonly="${soloLectura}">
+            <span class="hint">Mayor que 0 y hasta 100. Puedes usar coma o punto.</span>
+        </div>
+
+        <!-- Dimensiones y criterios -->
+        <section class="pauta" th:each="dimension, dimStat : ${formulario.dimensiones}">
+            <h2 th:text="|Dimensión ${dimStat.count}|">Dimensión 1</h2>
+
+            <div class="field">
+                <label th:for="|dimension-${dimStat.index}|">Nombre de la dimensión</label>
+                <input type="text" maxlength="200" autocomplete="off"
+                       th:id="|dimension-${dimStat.index}|"
+                       th:name="|dimensiones[${dimStat.index}].nombre|"
+                       th:value="${dimension.nombre}" th:readonly="${soloLectura}">
+            </div>
+
+            <div th:each="criterio, criStat : ${dimension.criterios}"
+                 style="border-left:3px solid var(--border-strong);padding-left:var(--space-4);margin-bottom:var(--space-4);">
+                <div class="field">
+                    <label th:for="|criterio-${dimStat.index}-${criStat.index}|"
+                           th:text="|Criterio ${criStat.count}|">Criterio 1</label>
+                    <input type="text" maxlength="500" autocomplete="off"
+                           th:id="|criterio-${dimStat.index}-${criStat.index}|"
+                           th:name="|dimensiones[${dimStat.index}].criterios[${criStat.index}].descripcion|"
+                           th:value="${criterio.descripcion}" th:readonly="${soloLectura}">
+                </div>
+                <div class="field" style="max-width:12rem;">
+                    <label th:for="|puntaje-${dimStat.index}-${criStat.index}|">Puntaje máximo</label>
+                    <input type="text" inputmode="decimal" autocomplete="off"
+                           th:id="|puntaje-${dimStat.index}-${criStat.index}|"
+                           th:name="|dimensiones[${dimStat.index}].criterios[${criStat.index}].puntajeMax|"
+                           th:value="${criterio.puntajeMax}" th:readonly="${soloLectura}">
+                </div>
+                <button type="submit" name="accion" class="btn btn-danger" formnovalidate
+                        th:unless="${soloLectura}"
+                        th:value="|quitarCriterio-${dimStat.index}-${criStat.index}|">Quitar criterio</button>
+            </div>
+
+            <p th:unless="${soloLectura}">
+                <button type="submit" name="accion" class="btn btn-secondary" formnovalidate
+                        th:value="|agregarCriterio-${dimStat.index}|">Agregar criterio</button>
+                <button type="submit" name="accion" class="btn btn-danger" formnovalidate
+                        th:value="|quitarDimension-${dimStat.index}|">Quitar dimensión</button>
+            </p>
+        </section>
+
+        <p th:unless="${soloLectura}" style="margin-top:var(--space-6);">
+            <button type="submit" name="accion" value="agregarDimension" class="btn btn-secondary"
+                    formnovalidate>Agregar dimensión</button>
+        </p>
+
+        <p th:unless="${soloLectura}" style="margin-top:var(--space-6);">
+            <button type="submit" name="accion" value="guardar" class="btn btn-primary">Guardar pauta</button>
+        </p>
+    </form>
+
+    <!-- Eliminar la pauta completa (solo si no tiene evaluaciones) -->
+    <form th:if="${idPauta != null and !soloLectura}" class="pauta"
+          th:action="@{/profesor/pautas/{id}/eliminar(id=${idPauta})}" method="post">
+        <button type="submit" class="btn btn-danger"
+                onclick="return confirm('¿Eliminar esta pauta completa, con sus dimensiones y criterios?');">
+            Eliminar pauta
+        </button>
+    </form>
+</main>
+</body>
+</html>

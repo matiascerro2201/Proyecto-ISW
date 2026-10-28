@@ -54,12 +54,22 @@
                            th:value="${criterio.puntaje}">
                 </label>
 
-                <label>
-                    Comentario (opcional, solo texto)
+                <div class="campo-comentario">
+                    <div class="comentario-header">
+                        <label th:for="|comentario_${criterio.idCriterio}|">
+                            Comentario (opcional, puedes escribir o dictar por voz)
+                        </label>
+                        <button type="button" class="btn-voz"
+                                th:attr="data-target=|comentario_${criterio.idCriterio}|"
+                                title="Insertar nota de voz convertida a texto">
+                             Dictar nota de voz
+                        </button>
+                    </div>
                     <textarea rows="2"
-                              th:name="|comentario_${criterio.idCriterio}|"
+                              th:id="|comentario_${criterio.idCriterio}|"
+                              th:name="|comentario_${criterio.idCriterio}|"`
                               th:text="${criterio.comentario}"></textarea>
-                </label>
+                </div>
             </div>
         </section>
 
@@ -69,5 +79,142 @@
         </p>
     </form>
 </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const botonesVoz = document.querySelectorAll('.btn-voz');
+
+    if (!SpeechRecognition) {
+        console.warn('El navegador actual no soporta Web Speech API.');
+        botonesVoz.forEach(boton => boton.style.display = 'none');
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-CL';
+    recognition.continuous = true; // No se detiene al hacer pausas al hablar
+    recognition.interimResults = true; // Muestra el texto en tiempo real mientras hablas
+
+    let textareaActivo = null;
+    let botonActivo = null;
+    let grabacionActivaPorUsuario = false;
+    let textoConsolidado = '';
+
+    // Convierte comandos de voz ("coma", "punto", etc.) en signos de puntuación reales y corrige mayúsculas
+    function aplicarPuntuacionYFormato(texto) {
+        let procesado = texto
+            .replace(/\s+punto y coma/gi, ';')
+            .replace(/\s+punto aparte/gi, '.\n')
+            .replace(/\s+nueva l[ií]nea/gi, '\n')
+            .replace(/\s+dos puntos/gi, ':')
+            .replace(/\s+coma/gi, ',')
+            .replace(/\s+punto/gi, '.')
+            .replace(/\s+abrir interrogaci[oó]n/gi, ' ¿')
+            .replace(/\s+cerrar interrogaci[oó]n/gi, '?')
+            .replace(/\s+signo de interrogaci[oó]n/gi, '?')
+            .replace(/\s+abrir exclamaci[oó]n/gi, ' ¡')
+            .replace(/\s+cerrar exclamaci[oó]n/gi, '!');
+
+        // Limpia espacios dobles y asegura un espacio después de cada signo de puntuación
+        procesado = procesado.replace(/([.,;:?!])(?=[a-zA-ZáéíóúÁÉÍÓÚñÑ¿¡])/g, '$1 ');
+        procesado = procesado.replace(/[ ]{2,}/g, ' ');
+
+        // Pone en mayúscula la primera letra del texto y la primera letra después de un punto o salto de línea
+        procesado = procesado.replace(/(^\s*[a-záéíóúñ]|[.?!]\s+[a-záéíóúñ]|\n\s*[a-záéíóúñ])/g, (match) => {
+            return match.toUpperCase();
+        });
+
+        return procesado;
+    }
+
+    function detenerGrabacion() {
+        grabacionActivaPorUsuario = false;
+        recognition.stop();
+        if (botonActivo) {
+            botonActivo.classList.remove('grabando');
+            botonActivo.textContent = 'Dictar nota de voz';
+        }
+        botonActivo = null;
+        textareaActivo = null;
+    }
+
+    botonesVoz.forEach(boton => {
+        boton.addEventListener('click', () => {
+            const targetId = boton.getAttribute('data-target');
+            const textarea = document.getElementById(targetId);
+
+            // si presiona el mismo botón que está grabando, detiene la grabación
+            if (grabacionActivaPorUsuario && botonActivo === boton) {
+                detenerGrabacion();
+                return;
+            }
+
+            // si estaba grabando en otro criterio y presiona uno nuevo, detiene el anterior primero
+            if (grabacionActivaPorUsuario) {
+                detenerGrabacion();
+            }
+
+            textareaActivo = textarea;
+            botonActivo = boton;
+            textoConsolidado = textareaActivo.value.trim();
+            grabacionActivaPorUsuario = true;
+
+            recognition.start();
+        });
+    });
+
+    recognition.addEventListener('start', () => {
+        if (botonActivo) {
+            botonActivo.classList.add('grabando');
+            botonActivo.textContent = 'Detener dictado';
+        }
+    });
+
+    recognition.addEventListener('result', (event) => {
+        if (!textareaActivo) return;
+
+        let textoInterino = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcripcion = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                const separador = (textoConsolidado && !textoConsolidado.endsWith('\n')) ? ' ' : '';
+                textoConsolidado = aplicarPuntuacionYFormato(textoConsolidado + separador + transcripcion.trim());
+            } else {
+                textoInterino += transcripcion;
+            }
+        }
+
+        const separadorInterino = (textoConsolidado && textoInterino) ? ' ' : '';
+        textareaActivo.value = aplicarPuntuacionYFormato(textoConsolidado + separadorInterino + textoInterino);
+        textareaActivo.scrollTop = textareaActivo.scrollHeight;
+    });
+
+    recognition.addEventListener('error', (event) => {
+        // Ignoramos el erorr para que no se corte si hay silencio de más de 2 segundos
+        if (event.error === 'no-speech') {
+            return;
+        }
+        console.error('Error en reconocimiento de voz:', event.error);
+        if (event.error === 'not-allowed') {
+            alert('Debes permitir el acceso al micrófono en tu navegador para dictar notas de voz.');
+            detenerGrabacion();
+        }
+    });
+
+    recognition.addEventListener('end', () => {
+        // Si el navegador cortó la escucha por una pausa larga pero el usuario no ha presionado "Detener",
+        // reiniciamos el micrófono automáticamente para que no se corte.
+        if (grabacionActivaPorUsuario) {
+            textoConsolidado = textareaActivo ? textareaActivo.value.trim() : textoConsolidado;
+            try {
+                recognition.start();
+            } catch (e) {
+            }
+        }
+    });
+});
+</script>
 </body>
 </html>

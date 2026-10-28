@@ -30,9 +30,12 @@ public class RevisionInformeService {
     private static final int LARGO_MAXIMO_TEXTO = 10;
 
     private final InformeFinalRepository informeFinalRepository;
+    private final NotificacionService notificacionService;
 
-    public RevisionInformeService(InformeFinalRepository informeFinalRepository) {
+    public RevisionInformeService(InformeFinalRepository informeFinalRepository,
+                                  NotificacionService notificacionService) {
         this.informeFinalRepository = informeFinalRepository;
+        this.notificacionService = notificacionService;
     }
 
     /** Informes del profesor: primero los que aún no publica, luego los publicados; más recientes arriba. */
@@ -75,6 +78,7 @@ public class RevisionInformeService {
 
     /**
      * Publica el informe: desde este momento el estudiante lo ve y la nota ya no se puede cambiar.
+     * HU-17: además se le notifica que su informe está disponible.
      *
      * @throws IllegalStateException   el informe ya fue publicado, o el profesor aún no fijó la nota final
      * @throws ResponseStatusException 404 si el informe no existe, 403 si no es del profesor
@@ -92,7 +96,24 @@ public class RevisionInformeService {
         informe.setFechaPublicacion(LocalDateTime.now());
 
         informeFinalRepository.save(informe);
+        notificarAlEstudiante(informe);
         return InformeRevisionResponse.desde(informe);
+    }
+
+    /**
+     * HU-17: avisa al estudiante que su informe final ya está disponible, sin incluir la nota en el mensaje.
+     * Corre en la transacción de la publicación: si la notificación falla, el informe tampoco queda publicado.
+     * Solo se publica una vez (exigirNoPublicado), así que el aviso nunca se repite.
+     */
+    private void notificarAlEstudiante(InformeFinal informe) {
+        var inscripcion = informe.getInscripcion();
+        var seccion = inscripcion.getSeccion();
+        notificacionService.crear(inscripcion.getEstudiante().getIdUsuario(),
+                NotificacionService.TIPO_INFORME_FINAL,
+                "Tu informe final de desempeño de " + seccion.getAsignatura().getNombre()
+                        + " (semestre " + seccion.getSemestre() + " de " + seccion.getAnio()
+                        + ") ya está disponible.",
+                "/mis-informes/" + informe.getIdInforme());
     }
 
     private InformeFinal obtenerInformeDelProfesor(Long idProfesor, Long idInforme) {

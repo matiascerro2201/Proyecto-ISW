@@ -14,6 +14,7 @@ public record EstudianteInformeResponse(
         Estado estado,
         Long idInforme,
         BigDecimal calificacionSugerida,
+        BigDecimal calificacionFinal,
         LocalDateTime fechaGeneracion,
         List<String> pendientes
 ) {

@@ -14,3 +14,17 @@
 .desglose h5 { font-family: var(--font-body); font-size: 14px; margin: var(--space-4) 0 var(--space-2); color: var(--ink-700); }
 .desglose__dimension + .desglose__dimension { margin-top: var(--space-2); }
 .desglose__num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* HU-12: fechas límite de revisión (el input de fecha imita a los de base.css) */
+.plazos { margin: 0 0 var(--space-8); }
+.plazos h2 { font-family: var(--font-display); font-size: 18px; margin: 0 0 var(--space-2); }
+.plazos__form { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0; }
+.plazos__form input[type=date] {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--ink-900);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+}

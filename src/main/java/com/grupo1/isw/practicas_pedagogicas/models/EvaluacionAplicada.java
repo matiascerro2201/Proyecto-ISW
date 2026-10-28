@@ -2,6 +2,7 @@ package com.grupo1.isw.practicas_pedagogicas.models;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,14 @@ public class EvaluacionAplicada {
 
     @OneToMany(mappedBy = "evaluacion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DetalleCriterio> detalles = new ArrayList<>();
+
+    // --- NUEVOS CAMPOS HU-06 ---
+    @Column(name = "fecha_limite")
+    private LocalDate fechaLimite;
+
+    @Column(name = "estado", length = 20)
+    private String estado = "PENDIENTE";
+    // ---------------------------
 
     public EvaluacionAplicada() {
     }
@@ -100,5 +109,22 @@ public class EvaluacionAplicada {
 
     public void setDetalles(List<DetalleCriterio> detalles) {
         this.detalles = detalles;
+    }
+
+    // --- NUEVOS GETTERS Y SETTERS HU-06 ---
+    public LocalDate getFechaLimite() {
+        return fechaLimite;
+    }
+
+    public void setFechaLimite(LocalDate fechaLimite) {
+        this.fechaLimite = fechaLimite;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 }
