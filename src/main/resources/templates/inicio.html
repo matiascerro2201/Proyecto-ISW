@@ -74,6 +74,9 @@
         <li>
             <a th:href="@{/notificaciones}" th:text="|Notificaciones (${notificacionesNoLeidas})|">Notificaciones (0)</a>
         </li>
+        <li sec:authorize="hasRole('PROFESOR_ASIGNATURA')">
+            <a th:href="@{/profesor/asistente}">Informe del asistente de planificaciones</a>
+        </li>
     </ul>
 
     <form th:action="@{/logout}" method="post">

@@ -3,6 +3,7 @@ package com.grupo1.isw.practicas_pedagogicas.models;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Entity
@@ -40,6 +41,11 @@ public class Planificacion {
     @OneToMany(mappedBy = "planificacion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<InteraccionChatbot> interacciones = new ArrayList<>();
 
+    // Historial de evaluaciones: es un registro, por eso no lleva orphanRemoval.
+    @OneToMany(mappedBy = "planificacion", cascade = CascadeType.ALL)
+    @OrderBy("fecha ASC, idEvaluacion ASC")
+    private List<EvaluacionPlanificacion> evaluaciones = new ArrayList<>();
+
     public Planificacion() {
     }
 
@@ -56,6 +62,19 @@ public class Planificacion {
         borrador.contenido = contenido;
         borrador.estado = EstadoPlanificacion.BORRADOR;
         return borrador;
+    }
+
+    /**
+     * Anota una decisión del colaborador en el historial. Al guardar la planificación se guarda también la
+     * evaluación (cascada). El historial conserva lo que el estado y la retroalimentación pierden al reenviar.
+     */
+    public void registrarEvaluacion(EstadoPlanificacion decision, String retroalimentacion, LocalDateTime fecha) {
+        evaluaciones.add(new EvaluacionPlanificacion(this, decision, retroalimentacion, fecha));
+    }
+
+    /** Las evaluaciones en orden cronológico; la lista no se puede modificar desde fuera. */
+    public List<EvaluacionPlanificacion> getEvaluaciones() {
+        return Collections.unmodifiableList(evaluaciones);
     }
 
     public Long getIdPlanificacion() {

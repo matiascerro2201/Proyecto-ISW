@@ -52,9 +52,12 @@ public class PlanificacionService {
             throw new IllegalArgumentException("Debe ingresar retroalimentación para rechazar la planificación");
         }
 
+        LocalDateTime ahora = LocalDateTime.now();
         planificacion.setRetroalimentacion(retro);
         planificacion.setEstado(nuevoEstado);
-        planificacion.setFechaRetro(LocalDateTime.now());
+        planificacion.setFechaRetro(ahora);
+        // El estado y la retroalimentación se sobrescriben al reenviar; el historial conserva cada evaluación.
+        planificacion.registrarEvaluacion(nuevoEstado, retro, ahora);
 
         planificacionRepository.save(planificacion);
         notificarAlEstudiante(planificacion, nuevoEstado);
@@ -266,7 +269,8 @@ public class PlanificacionService {
         return texto;
     }
 
-    private Planificacion obtenerPlanificacionDelEstudiante(Long idEstudiante, Long idPlanificacion) {
+    /** La planificación de un estudiante: 404 si no existe y 403 si es de otro. Lo usa también el chat. */
+    public Planificacion obtenerPlanificacionDelEstudiante(Long idEstudiante, Long idPlanificacion) {
         Planificacion planificacion = obtenerPlanificacion(idPlanificacion);
         if (!lineaPerteneceAlEstudiante(planificacion.getLinea(), idEstudiante)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para acceder a esta planificación");
