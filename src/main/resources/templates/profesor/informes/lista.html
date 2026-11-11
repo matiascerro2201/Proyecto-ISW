@@ -9,10 +9,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
     <link rel="stylesheet" th:href="@{/css/informe.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <script th:src="@{/js/lista-asignaturas.js}" defer></script>
 </head>
 <body>
-<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+<th:block th:replace="~{fragments/barra :: barra('/profesor/informes')}"></th:block>
 <main>
     <a class="back-link" th:href="@{/}">Volver al inicio</a>
 
@@ -22,7 +26,6 @@
         El informe explica cómo se obtuvo la calificación sugerida.
     </p>
 
-    <!-- Mensaje y errores que deja la generación (flash attributes) -->
     <p class="exito" role="status" th:if="${mensaje != null}" th:text="${mensaje}">El informe final se generó correctamente.</p>
     <div class="alerta" role="alert" th:if="${errores != null}">
         <strong>No se pudo generar el informe:</strong>
@@ -30,112 +33,151 @@
             <li th:each="motivo : ${errores}" th:text="${motivo}">Falta la evaluación de desempeño</li>
         </ul>
     </div>
+    <p class="alerta" role="alert" th:if="${errorPlazo != null}" th:text="${errorPlazo}">
+        La fecha límite no puede ser anterior a hoy
+    </p>
 
-    <!-- HU-12: fecha límite de revisión de cada sección, de la más próxima a la más lejana -->
-    <section class="plazos" th:unless="${#lists.isEmpty(plazos)}" aria-labelledby="titulo-plazos">
-        <h2 id="titulo-plazos">Fechas límite de revisión</h2>
-        <p class="hint">
-            Define hasta cuándo revisarás los informes de cada sección. Un informe queda pendiente hasta que lo
-            publicas. Para quitar una fecha, deja el campo vacío y guarda.
-        </p>
-        <p class="alerta" role="alert" th:if="${errorPlazo != null}" th:text="${errorPlazo}">
-            La fecha límite no puede ser anterior a hoy
-        </p>
-
-        <div class="tabla-scroll">
-            <table>
-                <caption class="sr-only">Fechas límite de revisión por sección</caption>
-                <thead>
-                    <tr>
-                        <th scope="col">Asignatura</th>
-                        <th scope="col">Período</th>
-                        <th scope="col">Informes pendientes</th>
-                        <th scope="col">Fecha límite</th>
-                        <th scope="col">Estado</th>
-                        <th scope="col">Definir fecha</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="p : ${plazos}">
-                        <td th:text="${p.nombreAsignatura}">Práctica Pedagógica</td>
-                        <td th:text="|Semestre ${p.semestre} de ${p.anio}|">Semestre 2 de 2026</td>
-                        <td class="desglose__num" th:text="|${p.informesPendientes} de ${p.totalEstudiantes}|">2 de 3</td>
-                        <td th:text="${p.fechaLimite != null ? #temporals.format(p.fechaLimite, 'dd/MM/yyyy') : '—'}">15/11/2026</td>
-                        <td><span class="badge" th:classappend="${p.claseEstado()}" th:text="${p.textoEstado()}">Vence en 5 días</span></td>
-                        <td>
-                            <form class="plazos__form" method="post"
-                                  th:action="@{/profesor/informes/secciones/{id}/fecha-limite(id=${p.idSeccion})}">
-                                <label class="sr-only" th:for="|fecha-${p.idSeccion}|"
-                                       th:text="|Fecha límite de ${p.nombreAsignatura}, semestre ${p.semestre} de ${p.anio}|">Fecha límite</label>
-                                <input type="date" name="fechaLimite" th:id="|fecha-${p.idSeccion}|"
-                                       th:value="${p.fechaLimite}"
-                                       th:attr="min=${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
-                                <button type="submit" class="btn btn-secondary">Guardar</button>
-                            </form>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+    <section class="asignaturas" aria-labelledby="titulo-asignaturas">
+        <div class="asignaturas__cab">
+            <h2 id="titulo-asignaturas">Asignaturas</h2>
+            <span class="asignaturas__contador" id="contador" aria-live="polite"
+                  th:text="|${#lists.size(plazos)} ${#lists.size(plazos) == 1 ? 'asignatura' : 'asignaturas'}|">3 asignaturas</span>
         </div>
+
+        <p class="vacio" th:if="${#lists.isEmpty(plazos)}">No tienes asignaturas asignadas.</p>
+
+        <th:block th:unless="${#lists.isEmpty(plazos)}">
+            <div class="filtros" role="search">
+                <div class="filtros__buscar">
+                    <label for="buscar">Buscar</label>
+                    <div class="sugerencias">
+                        <input type="search" id="buscar" placeholder="Asignatura o período" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                        <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias de asignaturas" hidden></ul>
+                    </div>
+                </div>
+                <label>
+                    Período
+                    <select id="filtro-periodo">
+                        <option value="">Todos</option>
+                    </select>
+                </label>
+                <label>
+                    Plazo de revisión
+                    <select id="filtro-estado">
+                        <option value="">Todos</option>
+                        <option value="VENCIDO">Vencido</option>
+                        <option value="PROXIMO">Vence pronto</option>
+                        <option value="EN_PLAZO">En plazo</option>
+                        <option value="SIN_FECHA">Sin fecha</option>
+                        <option value="COMPLETADO">Revisión completa</option>
+                    </select>
+                </label>
+                <label class="filtros__marca">
+                    <input type="checkbox" id="filtro-pendientes">
+                    Con informes por revisar
+                </label>
+                <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+            </div>
+
+            <ul class="asignaturas__lista" id="lista-asignaturas" data-hash="curso">
+                <li class="asignatura" th:each="p : ${plazos}"
+                    th:attr="data-estado=${p.estado.name()}, data-pendientes=${p.informesPendientes}, data-periodo=|Semestre ${p.semestre} de ${p.anio}|, data-orden=${p.anio * 10 + p.semestre}">
+                    <button type="button" class="asignatura__fila" aria-haspopup="dialog"
+                            th:attr="data-id=${p.idSeccion}">
+                        <span class="asignatura__principal">
+                            <span class="asignatura__nombre" th:text="${p.nombreAsignatura}">Práctica Pedagógica</span>
+                            <span class="asignatura__periodo" th:text="|Semestre ${p.semestre} de ${p.anio}|">Semestre 2 de 2026</span>
+                        </span>
+                        <span class="asignatura__dato"><b th:text="${p.totalEstudiantes}">12</b> estudiantes</span>
+                        <span class="asignatura__dato"><b th:text="${p.informesPendientes}">3</b> por revisar</span>
+                        <span class="asignatura__dato"
+                              th:text="${p.fechaLimite != null ? 'Límite ' + #temporals.format(p.fechaLimite, 'dd/MM/yyyy') : 'Sin fecha límite'}">Límite 15/11/2026</span>
+                        <span class="badge" th:classappend="${p.claseEstado()}" th:text="${p.textoEstado()}">Vence en 5 días</span>
+                    </button>
+                </li>
+            </ul>
+            <p class="vacio" id="sin-resultados" hidden>Ninguna asignatura coincide con la búsqueda.</p>
+
+            <template th:each="p : ${plazos}" th:id="|plantilla-${p.idSeccion}|">
+                <p class="curso-periodo" th:text="|Semestre ${p.semestre} de ${p.anio}|">Semestre 2 de 2026</p>
+
+                <form class="plazo-form" method="post"
+                      th:action="@{/profesor/informes/secciones/{id}/fecha-limite(id=${p.idSeccion})}">
+                    <label th:for="|fecha-${p.idSeccion}|">Fecha límite de revisión</label>
+                    <input type="date" name="fechaLimite" th:id="|fecha-${p.idSeccion}|"
+                           th:value="${p.fechaLimite}"
+                           th:attr="min=${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+                    <button type="submit" class="btn btn-secondary">Guardar</button>
+                    <span class="hint">Para quitarla, deja el campo vacío y guarda.</span>
+                </form>
+
+                <ul class="estudiantes" data-vacio="Esta asignatura aún no tiene estudiantes inscritos.">
+                    <th:block th:each="e : ${estudiantes}"
+                              th:if="${e.nombreAsignatura == p.nombreAsignatura and e.anio == p.anio and e.semestre == p.semestre}">
+                        <li>
+                            <details class="estudiante">
+                                <summary>
+                                    <span class="estudiante__nombre" th:text="${e.nombreEstudiante}">Camila Soto</span>
+                                    <span th:switch="${e.estado.name()}">
+                                        <span class="badge pendiente" th:case="'PENDIENTE'">Faltan datos</span>
+                                        <span class="badge listo" th:case="'LISTO'">Listo para generar</span>
+                                        <span class="badge aprobada" th:case="'GENERADO'">Generado</span>
+                                        <span class="badge aprobada" th:case="'VALIDADO'">Validado</span>
+                                        <span class="badge aprobada" th:case="'PUBLICADO'">Publicado</span>
+                                    </span>
+                                </summary>
+                                <div class="estudiante__cuerpo">
+                                    <dl class="estudiante__datos">
+                                        <dt>Calificación sugerida</dt>
+                                        <dd th:text="${e.calificacionSugerida != null
+                                                       ? #numbers.formatDecimal(e.calificacionSugerida, 1, 'POINT', 1, 'COMMA')
+                                                       : '—'}">6,3</dd>
+                                        <dt>Calificación final</dt>
+                                        <dd th:text="${e.calificacionFinal != null
+                                                       ? #numbers.formatDecimal(e.calificacionFinal, 1, 'POINT', 1, 'COMMA')
+                                                       : '—'}">6,5</dd>
+                                    </dl>
+
+                                    <ul class="motivos" th:if="${e.estado.name() == 'PENDIENTE'}">
+                                        <li th:each="motivo : ${e.pendientes}" th:text="${motivo}">Falta la evaluación de desempeño</li>
+                                    </ul>
+
+                                    <ul class="acciones" th:if="${e.puedeGenerar() or e.tieneInforme()}"
+                                        th:attr="aria-label=|Acciones para ${e.nombreEstudiante}|">
+                                        <li th:if="${e.puedeGenerar()}">
+                                            <form method="post"
+                                                  th:action="@{/profesor/informes/inscripciones/{id}/generar(id=${e.idInscripcion})}">
+                                                <button type="submit" class="accion">Generar informe</button>
+                                            </form>
+                                        </li>
+                                        <li th:if="${e.tieneInforme()}">
+                                            <a class="accion" th:href="@{/profesor/informes/{id}(id=${e.idInforme})}">Ver informe final</a>
+                                        </li>
+                                        <li th:if="${e.tieneInforme()}">
+                                            <a class="accion" th:href="@{${'/profesor/informes/' + e.idInforme + '#revisar'}}"
+                                               th:text="${e.estado.name() == 'PUBLICADO' ? 'Ver la revisión del informe' : 'Revisar y publicar'}">Revisar y publicar</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </details>
+                        </li>
+                    </th:block>
+                </ul>
+            </template>
+        </th:block>
     </section>
-
-    <!-- Caso: el profesor aún no tiene estudiantes inscritos en sus secciones -->
-    <section th:if="${#lists.isEmpty(estudiantes)}">
-        <p>Aún no hay estudiantes inscritos en tus asignaturas.</p>
-    </section>
-
-    <div class="tabla-scroll" th:unless="${#lists.isEmpty(estudiantes)}">
-        <table>
-            <caption class="sr-only">Estudiantes y estado de su informe final</caption>
-            <thead>
-                <tr>
-                    <th scope="col">Estudiante</th>
-                    <th scope="col">Asignatura</th>
-                    <th scope="col">Período</th>
-                    <th scope="col">Estado</th>
-                    <th scope="col">Calificación sugerida</th>
-                    <th scope="col">Calificación final</th>
-                    <th scope="col"><span class="sr-only">Acción</span></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="e : ${estudiantes}">
-                    <td th:text="${e.nombreEstudiante}">Camila Soto</td>
-                    <td th:text="${e.nombreAsignatura}">Práctica Pedagógica</td>
-                    <td th:text="|Semestre ${e.semestre} de ${e.anio}|">Semestre 2 de 2026</td>
-                    <td th:switch="${e.estado.name()}">
-                        <span class="badge pendiente" th:case="'PENDIENTE'">Faltan datos</span>
-                        <span class="badge listo" th:case="'LISTO'">Listo para generar</span>
-                        <span class="badge aprobada" th:case="'GENERADO'">Generado</span>
-                        <span class="badge aprobada" th:case="'VALIDADO'">Validado</span>
-                        <span class="badge aprobada" th:case="'PUBLICADO'">Publicado</span>
-                    </td>
-                    <td class="desglose__num"
-                        th:text="${e.calificacionSugerida != null
-                                   ? #numbers.formatDecimal(e.calificacionSugerida, 1, 'POINT', 1, 'COMMA')
-                                   : '—'}">6,3</td>
-                    <td class="desglose__num"
-                        th:text="${e.calificacionFinal != null
-                        ? #numbers.formatDecimal(e.calificacionFinal, 1, 'POINT', 1, 'COMMA')
-                        : '—'}">6,5</td>
-                    <td>
-                        <!-- Faltan evaluaciones o entregas: se dice qué, no solo que no se puede -->
-                        <ul class="pendientes" th:if="${e.estado.name() == 'PENDIENTE'}">
-                            <li th:each="motivo : ${e.pendientes}" th:text="${motivo}">Falta la evaluación de desempeño</li>
-                        </ul>
-
-                        <form th:if="${e.puedeGenerar()}" method="post"
-                              th:action="@{/profesor/informes/inscripciones/{id}/generar(id=${e.idInscripcion})}">
-                            <button type="submit" class="btn btn-primary">Generar informe</button>
-                        </form>
-
-                        <a class="btn btn-ghost" th:if="${e.tieneInforme()}"
-                           th:href="@{/profesor/informes/{id}(id=${e.idInforme})}">Ver informe</a>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <noscript><p class="alerta">Esta página necesita JavaScript para mostrar los estudiantes de cada asignatura.</p></noscript>
 </main>
+
+<dialog class="dialogo dialogo--ancho" id="dialogo-lista" aria-labelledby="dialogo-lista-titulo">
+    <div class="dialogo__cab">
+        <h2 id="dialogo-lista-titulo">Estudiantes</h2>
+        <button type="button" class="dialogo__cerrar" id="dialogo-lista-cerrar" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="dialogo__cuerpo" id="dialogo-lista-cuerpo"></div>
+</dialog>
 </body>
 </html>

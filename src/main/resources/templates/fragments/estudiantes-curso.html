@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="lista">
+    <p class="curso-periodo" th:text="${curso.periodo()}">Semestre 2 de 2026</p>
+
+    <p class="vacio" th:if="${#lists.isEmpty(curso.estudiantes())}">Este curso aún no tiene estudiantes para ti.</p>
+
+    <ul class="estudiantes" th:unless="${#lists.isEmpty(curso.estudiantes())}">
+        <li th:each="e : ${curso.estudiantes()}">
+            <details class="estudiante" th:unless="${#lists.isEmpty(e.acciones())}">
+                <summary>
+                    <span class="estudiante__nombre" th:text="${e.nombre()}">Camila Soto</span>
+                    <span class="badge" th:if="${e.estado() != null}" th:classappend="${e.claseEstado()}"
+                          th:text="${e.estado()}">2 por evaluar</span>
+                </summary>
+                <ul class="acciones" th:attr="aria-label=|Acciones para ${e.nombre()}|">
+                    <li th:each="a : ${e.acciones()}">
+                        <a class="accion" th:href="@{${a.enlace()}}" th:text="${a.etiqueta()}">Pautas de evaluación</a>
+                    </li>
+                </ul>
+            </details>
+
+            <div class="estudiante estudiante--simple" th:if="${#lists.isEmpty(e.acciones())}">
+                <span class="estudiante__nombre" th:text="${e.nombre()}">Camila Soto</span>
+                <span class="badge" th:if="${e.estado() != null}" th:classappend="${e.claseEstado()}"
+                      th:text="${e.estado()}">2 por evaluar</span>
+            </div>
+        </li>
+    </ul>
+</th:block>
+</body>
+</html>

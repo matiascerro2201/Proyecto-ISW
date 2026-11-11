@@ -11,77 +11,125 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
-    <style>
-        .nav-list { list-style: none; margin: var(--space-6) 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-        .nav-list a {
-            display: block; background: var(--surface-raised); border: 1px solid var(--border);
-            border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
-            font-family: var(--font-body); font-weight: 600; color: var(--ink-900); text-decoration: none;
-            transition: border-color 150ms ease-out, box-shadow 150ms ease-out, transform 150ms ease-out;
-        }
-        .nav-list a:hover { border-color: var(--brand-500); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/inicio.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <script th:src="@{/js/inicio.js}" defer></script>
+    <script th:src="@{/js/cursos.js}" defer></script>
 </head>
 <body>
-<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
-<main>
-    <h1>Prácticas Pedagógicas</h1>
+<th:block th:replace="~{fragments/barra :: barra('inicio')}"></th:block>
 
-    <p style="color:var(--ink-500);">
-        Sesión iniciada como
-        <strong style="color:var(--ink-900);" sec:authentication="principal.nombre">Nombre</strong>
-        (<span sec:authentication="principal.rol">ROL</span>)
-    </p>
+<main class="inicio">
+    <div class="inicio__col">
+        <section class="bienvenida">
+            <h1>Bienvenido/a, <span sec:authentication="principal.nombre">Nombre</span></h1>
+            <p class="bienvenida__sesion">
+                Sesión iniciada como
+                <span class="rol" th:text="${rolEtiqueta}">Rol</span>
+            </p>
+        </section>
 
-    <!-- Enlaces por rol. Cada integrante agrega los suyos con sec:authorize. -->
-    <ul class="nav-list">
-        <!-- HU-07 (Benjamín) -->
-        <li sec:authorize="hasRole('ESTUDIANTE')">
-            <a th:href="@{/mis-pautas}">Pautas de evaluación</a>
-        </li>
-        <!-- HU-15/16 (Benjamín) -->
-        <li sec:authorize="hasRole('ESTUDIANTE')">
-            <a th:href="@{/mis-informes}">Mis informes finales</a>
-        </li>
-        <!-- HU-19 (Matías) -->
-        <li sec:authorize="hasRole('ESTUDIANTE')">
-            <a th:href="@{/estudiante/planificaciones}">Mis planificaciones de clase</a>
-        </li>
-        <!-- HU-02 (Josué) -->
-        <li sec:authorize="hasRole('COLABORADOR')">
-            <a th:href="@{/colaborador/lineas}">Mis estudiantes</a>
-        </li>
-        <!-- HU-03 -->
-        <li sec:authorize="hasRole('TUTOR')">
-            <a th:href="@{/tutor/lineas}">Estudiantes que superviso</a>
-        </li>
-        <!-- HU-20/21 (José) -->
-        <li sec:authorize="hasRole('COLABORADOR')">
-            <a th:href="@{/planificaciones/pendientes}">Planificaciones pendientes de evaluación</a>
-        </li>
-        <li sec:authorize="hasRole('ESTUDIANTE')">
-            <a th:href="@{/estudiante/documentos}">Mis entregas</a>
-        </li>
-        <!-- HU-10 -->
-        <li sec:authorize="hasRole('PROFESOR_ASIGNATURA')">
-            <a th:href="@{/profesor/informes}">Informes finales de desempeño</a>
-        </li>
-        <!-- HU-01 (Josué) -->
-        <li sec:authorize="hasRole('PROFESOR_ASIGNATURA')">
-            <a th:href="@{/profesor/pautas}">Pautas de mi asignatura</a>
-        </li>
-        <!-- HU-22 -->
-        <li>
-            <a th:href="@{/notificaciones}" th:text="|Notificaciones (${notificacionesNoLeidas})|">Notificaciones (0)</a>
-        </li>
-        <li sec:authorize="hasRole('PROFESOR_ASIGNATURA')">
-            <a th:href="@{/profesor/asistente}">Informe del asistente de planificaciones</a>
-        </li>
-    </ul>
+        <section class="panel" aria-labelledby="titulo-funciones" th:unless="${#lists.isEmpty(funcionesDelRol)}">
+            <div class="panel__cab">
+                <h2 id="titulo-funciones">Funciones del sistema</h2>
+            </div>
+            <ul class="funciones">
+                <li th:each="f : ${funcionesDelRol}">
+                    <a class="funcion" th:href="@{${f.enlace()}}">
+                        <span class="funcion__titulo" th:text="${f.titulo()}">Mis estudiantes</span>
+                        <span class="funcion__descripcion" th:text="${f.descripcion()}">Para qué sirve</span>
+                    </a>
+                </li>
+            </ul>
+        </section>
 
-    <form th:action="@{/logout}" method="post">
-        <button type="submit" class="btn btn-secondary">Cerrar sesión</button>
-    </form>
+        <section class="panel" aria-labelledby="titulo-cursos">
+            <div class="panel__cab">
+                <h2 id="titulo-cursos">Mis cursos</h2>
+                <span class="panel__meta"
+                      th:text="|${#lists.size(cursos)} ${#lists.size(cursos) == 1 ? 'curso' : 'cursos'}|">2 cursos</span>
+            </div>
+
+            <p class="vacio" th:if="${#lists.isEmpty(cursos)}">Aún no estás asociado a ningún curso.</p>
+
+            <ul class="cursos" th:unless="${#lists.isEmpty(cursos)}">
+                <li th:each="c : ${cursos}">
+                    <a class="curso" th:href="${c.enlace() != null} ? @{${c.enlace()}}"
+                       th:attr="data-ventana=${c.conEstudiantes()} ? 'true', aria-haspopup=${c.conEstudiantes()} ? 'dialog'">
+                        <span class="curso__sigla" aria-hidden="true" th:text="${c.sigla()}">PP</span>
+                        <span class="curso__info">
+                            <span class="curso__nombre" th:text="${c.nombre()}">Práctica Pedagógica</span>
+                            <span class="curso__detalle" th:text="${c.periodo()}">Semestre 2 de 2026</span>
+                        </span>
+                        <span class="curso__etiqueta" th:if="${c.detalle() != null}" th:text="${c.detalle()}">12 estudiantes</span>
+                    </a>
+                </li>
+            </ul>
+        </section>
+    </div>
+
+    <div class="inicio__col">
+        <section class="panel" id="calendario" aria-labelledby="cal-titulo">
+            <div class="panel__cab">
+                <h2 class="cal__titulo" id="cal-titulo">Calendario</h2>
+                <div class="cal__nav" hidden>
+                    <button type="button" id="mes-anterior" aria-label="Mes anterior">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                    <button type="button" id="mes-siguiente" aria-label="Mes siguiente">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="cal__grilla" id="cal-grilla"></div>
+            <noscript><p class="vacio">El calendario necesita JavaScript. Revisa tus fechas en la lista de pendientes.</p></noscript>
+        </section>
+
+        <section class="panel" aria-labelledby="titulo-pendientes">
+            <div class="panel__cab">
+                <h2 id="titulo-pendientes">Pendientes</h2>
+                <span class="panel__meta" th:text="|${#lists.size(pendientes)} por realizar|">3 por realizar</span>
+            </div>
+
+            <p class="filtro" id="filtro" aria-live="polite" hidden>
+                <span id="filtro-texto"></span>
+                <button type="button" class="filtro__quitar" id="quitar-filtro">Ver todos</button>
+            </p>
+
+            <p class="vacio" th:if="${#lists.isEmpty(pendientes)}">No tienes actividades pendientes.</p>
+
+            <ul class="pendientes" id="lista-pendientes" th:unless="${#lists.isEmpty(pendientes)}">
+                <li class="pendiente" th:each="p : ${pendientes}"
+                    th:attr="data-fecha=${p.fecha()}, data-vencida=${p.vencida()}">
+                    <div class="pendiente__fecha" th:if="${p.fecha() != null}">
+                        <b th:text="${#temporals.day(p.fecha())}">12</b>
+                        <small th:text="${#temporals.monthNameShort(p.fecha())}">nov</small>
+                    </div>
+                    <div class="pendiente__fecha pendiente__fecha--sin" th:unless="${p.fecha() != null}">Sin fecha</div>
+
+                    <div class="pendiente__info">
+                        <a class="pendiente__titulo" th:href="${p.enlace() != null} ? @{${p.enlace()}}"
+                           th:text="${p.titulo()}">Entregar Informe 1</a>
+                        <span class="pendiente__detalle" th:text="${p.detalle()}">Práctica Pedagógica</span>
+                    </div>
+
+                    <span class="badge" th:classappend="${p.claseEstado()}" th:text="${p.etiqueta()}">Por entregar</span>
+                </li>
+                <li class="vacio" id="sin-resultados" hidden>No hay pendientes para ese día.</li>
+            </ul>
+        </section>
+    </div>
 </main>
+
+<dialog class="dialogo" id="dialogo-curso" aria-labelledby="dialogo-titulo">
+    <div class="dialogo__cab">
+        <h2 id="dialogo-titulo">Estudiantes</h2>
+        <button type="button" class="dialogo__cerrar" id="dialogo-cerrar" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="dialogo__cuerpo" id="dialogo-cuerpo" aria-live="polite"></div>
+</dialog>
 </body>
 </html>

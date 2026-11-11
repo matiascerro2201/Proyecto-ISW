@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<!-- Uso: <th:block th:replace="~{fragments/barra :: barra('/ruta')}"></th:block> -->
+<th:block th:fragment="barra(activo)">
+<header class="barra" sec:authorize="isAuthenticated()">
+    <span class="barra__marca">
+        <img th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+    </span>
+
+    <nav class="barra__nav" aria-label="Funciones del sistema">
+        <ul>
+            <li><a th:href="@{/}" th:attr="aria-current=${activo == 'inicio'} ? 'page'">Inicio</a></li>
+
+            <li th:each="f : ${funcionesDelRol}">
+                <a th:href="@{${f.enlace()}}" th:text="${f.etiqueta()}"
+                   th:attr="aria-current=${activo == f.enlace()} ? 'page'">Función</a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="barra__acciones">
+        <details class="notif">
+            <summary class="notif__boton"
+                     th:attr="aria-label=${notificacionesNoLeidas != null and notificacionesNoLeidas > 0} ? |Notificaciones, ${notificacionesNoLeidas} sin leer| : 'Notificaciones'">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                <span class="notif__contador" aria-hidden="true"
+                      th:if="${notificacionesNoLeidas != null and notificacionesNoLeidas > 0}"
+                      th:text="${notificacionesNoLeidas > 9 ? '9+' : notificacionesNoLeidas}">1</span>
+            </summary>
+
+            <div class="notif__panel">
+                <div class="notif__cab">
+                    <h2>Notificaciones</h2>
+                    <span th:if="${notificacionesNoLeidas != null and notificacionesNoLeidas > 0}"
+                          th:text="|${notificacionesNoLeidas} sin leer|">1 sin leer</span>
+                </div>
+
+                <p class="notif__vacio" th:if="${notificacionesRecientes == null}"
+                   th:text="${notificacionesNoLeidas != null and notificacionesNoLeidas > 0} ? |Tienes ${notificacionesNoLeidas} sin leer.| : 'No tienes notificaciones nuevas.'">No tienes notificaciones nuevas.</p>
+
+                <p class="notif__vacio"
+                   th:if="${notificacionesRecientes != null and #lists.isEmpty(notificacionesRecientes)}">No tienes notificaciones.</p>
+
+                <ul class="notif__lista"
+                    th:if="${notificacionesRecientes != null and !#lists.isEmpty(notificacionesRecientes)}">
+                    <li class="notif__item" th:each="n : ${notificacionesRecientes}"
+                        th:classappend="${!n.leida()} ? 'notif__item--nueva'">
+                        <span class="notif__punto" aria-hidden="true"></span>
+                        <div class="notif__cuerpo">
+                            <p class="notif__texto" th:text="${n.mensaje()}">Mensaje de la notificación</p>
+                            <span class="notif__meta"
+                                  th:text="${#temporals.format(n.fecha(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
+                            <div class="notif__acciones">
+                                <a class="notif__enlace" th:if="${n.enlace() != null}" th:href="@{${n.enlace()}}">Ver</a>
+                                <form method="post" th:unless="${n.leida()}"
+                                      th:action="@{/notificaciones/{id}/leida(id=${n.idNotificacion()})}">
+                                    <button type="submit" class="notif__enlace">Marcar como leída</button>
+                                </form>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+
+                <a class="notif__pie" th:href="@{/notificaciones}">Ver todas las notificaciones</a>
+            </div>
+        </details>
+
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="barra__boton" aria-label="Cerrar sesión">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+                <span class="barra__texto">Cerrar sesión</span>
+            </button>
+        </form>
+    </div>
+</header>
+<header class="barra" sec:authorize="!isAuthenticated()">
+    <span class="barra__marca">
+        <img th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+    </span>
+    <div class="barra__acciones">
+        <a class="barra__boton" th:href="@{/login}">Iniciar sesión</a>
+    </div>
+</header>
+<script th:src="@{/js/barra.js}" defer></script>
+</th:block>
+</body>
+</html>
