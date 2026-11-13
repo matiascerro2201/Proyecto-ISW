@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mis planificaciones</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,6 +10,9 @@
     <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <script th:src="@{/js/lista-asignaturas.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/estudiante/planificaciones')}"></th:block>
@@ -23,34 +26,122 @@
 
     <p><a class="btn btn-accent" th:href="@{/estudiante/planificaciones/nueva}">+ Nueva planificación</a></p>
 
-    <p th:if="${#lists.isEmpty(planificaciones)}">Aún no tienes planificaciones.</p>
-
-    <article class="card" th:each="p : ${planificaciones}">
-        <div class="card__header">
-            <strong th:text="${p.etiquetaLinea()}">Asignatura (LÍNEA)</strong>
-            <span th:class="'badge ' + ${p.estado().name().toLowerCase()}" th:text="${p.estado()}">ENVIADA</span>
-        </div>
-        <span class="card__meta" th:if="${p.esBorrador()}">Borrador: todavía no se envía al colaborador</span>
-        <span class="card__meta" th:unless="${p.esBorrador()}">
-            Enviada el
-            <span th:text="${#temporals.format(p.fechaEnvio(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
-        </span>
-
-        <p class="card__content" th:text="${p.contenido()}">Contenido de la planificación</p>
-
-        <div class="card__retro" th:if="${p.retroalimentacion() != null}">
-            <strong>Retroalimentación del colaborador</strong>
-            <span class="card__meta" th:if="${p.fechaRetro() != null}"
-                  th:text="${#temporals.format(p.fechaRetro(), 'dd/MM/yyyy HH:mm')}">01/01/2026 12:00</span>
-            <p th:text="${p.retroalimentacion()}">Texto de la retroalimentación</p>
+    <section class="asignaturas" aria-labelledby="titulo-planificaciones">
+        <div class="asignaturas__cab">
+            <h2 id="titulo-planificaciones">Planificaciones</h2>
+            <span class="asignaturas__contador" id="contador" aria-live="polite"
+                  th:text="|${#lists.size(planificaciones)} ${#lists.size(planificaciones) == 1 ? 'planificación' : 'planificaciones'}|">3 planificaciones</span>
         </div>
 
-        <div class="card__footer" th:if="${p.puedeEditar()}">
-            <a class="btn btn-secondary" th:href="@{/estudiante/planificaciones/{id}/editar(id=${p.idPlanificacion()})}"
-               th:text="${p.esBorrador()} ? 'Continuar editando' : 'Editar y reenviar'">Editar y reenviar</a>
-            <a class="btn btn-primary" th:href="@{/estudiante/planificaciones/{id}/chat(id=${p.idPlanificacion()})}">Conversar con el asistente</a>
-        </div>
-    </article>
+        <p class="vacio" th:if="${#lists.isEmpty(planificaciones)}">Aún no tienes planificaciones.</p>
+
+        <th:block th:unless="${#lists.isEmpty(planificaciones)}">
+            <div class="filtros" style="--filtros: 4;" role="search">
+                <div class="filtros__buscar">
+                    <label for="buscar">Asignatura</label>
+                    <div class="sugerencias">
+                        <input type="search" id="buscar" placeholder="Nombre de la asignatura" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                        <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias de asignaturas" hidden></ul>
+                    </div>
+                </div>
+                <label>
+                    Línea
+                    <select id="filtro-linea">
+                        <option value="">Todas</option>
+                    </select>
+                </label>
+                <label>
+                    Estado
+                    <select id="filtro-estado">
+                        <option value="">Todos</option>
+                        <option value="BORRADOR">Borrador</option>
+                        <option value="ENVIADA">Enviada</option>
+                        <option value="APROBADA">Aprobada</option>
+                        <option value="RECHAZADA">Rechazada</option>
+                    </select>
+                </label>
+                <label>
+                    Enviada desde
+                    <input type="date" id="filtro-desde">
+                </label>
+                <label>
+                    Enviada hasta
+                    <input type="date" id="filtro-hasta">
+                </label>
+                <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+            </div>
+            <p class="filtros__aviso" id="filtro-fechas-aviso" role="status" hidden></p>
+
+            <ul class="asignaturas__lista" id="lista-asignaturas" style="--datos: 3;"
+                data-hash="planificacion" data-singular="planificación" data-plural="planificaciones"
+                data-sugerencias-unicas>
+                <li class="asignatura" th:each="p : ${planificaciones}"
+                    th:with="asignatura=${p.etiquetaLinea().substring(0, p.etiquetaLinea().lastIndexOf(' ('))},
+                             tipo=${p.etiquetaLinea().substring(p.etiquetaLinea().lastIndexOf(' (') + 2, p.etiquetaLinea().length() - 1)}"
+                    th:attr="data-estado=${p.estado().name()},
+                             data-linea=${tipo == 'UNICA' ? 'Línea única' : (tipo == 'ESPECIALIDAD' ? 'Especialidad' : (tipo == 'ORIENTACION' ? 'Orientación' : tipo))},
+                             data-fecha=${p.fechaEnvio() != null ? #temporals.format(p.fechaEnvio(), 'yyyy-MM-dd') : ''}">
+                    <button type="button" class="asignatura__fila" aria-haspopup="dialog"
+                            th:with="lineaTexto=${tipo == 'UNICA' ? 'Línea única' : (tipo == 'ESPECIALIDAD' ? 'Especialidad' : (tipo == 'ORIENTACION' ? 'Orientación' : tipo))}"
+                            th:attr="data-id=${p.idPlanificacion()}, data-titulo=|${asignatura}, ${lineaTexto}|">
+                        <span class="asignatura__principal">
+                            <span class="asignatura__nombre" th:text="${asignatura}">Práctica Pedagógica</span>
+                            <span class="asignatura__periodo" th:text="${#strings.abbreviate(p.contenido(), 80)}">Planificación de la clase de fracciones</span>
+                        </span>
+                        <span class="asignatura__dato" th:text="${lineaTexto}">Especialidad</span>
+                        <span class="asignatura__dato"
+                              th:text="${p.esBorrador() ? 'Sin enviar' : 'Enviada el ' + #temporals.format(p.fechaEnvio(), 'dd/MM/yyyy')}">Enviada el 14/09/2026</span>
+                        <span class="asignatura__dato"
+                              th:text="${p.esBorrador()
+                                         ? 'Solo tú la ves'
+                                         : (p.fechaRetro() != null ? 'Evaluada el ' + #temporals.format(p.fechaRetro(), 'dd/MM/yyyy') : 'Esperando evaluación')}">Esperando evaluación</span>
+                        <span th:class="'badge ' + ${p.estado().name().toLowerCase()}" th:switch="${p.estado().name()}">
+                            <th:block th:case="'BORRADOR'">Borrador</th:block>
+                            <th:block th:case="'ENVIADA'">Enviada</th:block>
+                            <th:block th:case="'APROBADA'">Aprobada</th:block>
+                            <th:block th:case="'RECHAZADA'">Rechazada</th:block>
+                        </span>
+                    </button>
+                </li>
+            </ul>
+            <p class="vacio" id="sin-resultados" hidden>Ninguna planificación coincide con los filtros.</p>
+
+            <template th:each="p : ${planificaciones}" th:id="|plantilla-${p.idPlanificacion()}|">
+                <p class="curso-periodo">
+                    <span th:if="${p.esBorrador()}">Borrador: todavía no se envía al colaborador.</span>
+                    <span th:unless="${p.esBorrador()}"
+                          th:text="|Enviada el ${#temporals.format(p.fechaEnvio(), 'dd/MM/yyyy HH:mm')}|">Enviada el 01/01/2026 10:00</span>
+                </p>
+
+                <p class="card__content" th:text="${p.contenido()}">Contenido de la planificación</p>
+
+                <div class="card__retro" th:if="${p.retroalimentacion() != null}">
+                    <strong>Retroalimentación del colaborador</strong>
+                    <span class="card__meta" th:if="${p.fechaRetro() != null}"
+                          th:text="${#temporals.format(p.fechaRetro(), 'dd/MM/yyyy HH:mm')}">01/01/2026 12:00</span>
+                    <p th:text="${p.retroalimentacion()}">Texto de la retroalimentación</p>
+                </div>
+
+                <div class="card__footer" th:if="${p.puedeEditar()}">
+                    <a class="btn btn-secondary" th:href="@{/estudiante/planificaciones/{id}/editar(id=${p.idPlanificacion()})}"
+                       th:text="${p.esBorrador()} ? 'Continuar editando' : 'Editar y reenviar'">Editar y reenviar</a>
+                    <a class="btn btn-primary" th:href="@{/estudiante/planificaciones/{id}/chat(id=${p.idPlanificacion()})}">Conversar con el asistente</a>
+                </div>
+            </template>
+        </th:block>
+    </section>
+    <noscript><p class="alerta">Esta página necesita JavaScript para mostrar cada planificación.</p></noscript>
 </main>
+
+<dialog class="dialogo dialogo--ancho" id="dialogo-lista" aria-labelledby="dialogo-lista-titulo">
+    <div class="dialogo__cab">
+        <h2 id="dialogo-lista-titulo">Planificación</h2>
+        <button type="button" class="dialogo__cerrar" id="dialogo-lista-cerrar" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="dialogo__cuerpo" id="dialogo-lista-cuerpo"></div>
+</dialog>
 </body>
 </html>

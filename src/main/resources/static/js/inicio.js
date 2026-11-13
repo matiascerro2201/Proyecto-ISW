@@ -15,7 +15,7 @@
     var filtro = document.getElementById('filtro');
     var filtroTexto = document.getElementById('filtro-texto');
     var sinResultados = document.getElementById('sin-resultados');
-    var items = Array.prototype.slice.call(document.querySelectorAll('#lista-pendientes .pendiente'));
+    var items = Array.prototype.slice.call(document.querySelectorAll('#lista-pendientes .actividad'));
 
     var porFecha = {};
     items.forEach(function (li) {

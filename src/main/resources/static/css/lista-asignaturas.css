@@ -122,3 +122,7 @@
 .pautas-cab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
 .pautas-cab p { margin: 0; }
 .pautas-cab .btn { min-width: 12rem; }
+
+.linea-bloque { margin: 0 0 var(--space-5); }
+.linea-bloque__cab { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
+.linea-bloque h3 { margin: 0; font-size: 17px; line-height: 24px; }

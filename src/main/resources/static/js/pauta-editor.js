@@ -11,6 +11,10 @@
     var botonAgregar = document.getElementById('agregar-dimension');
     var errorDimensiones = document.getElementById('error-dimensiones');
     var contadorIds = 0;
+    var navLista = document.getElementById('ev-nav-lista');
+    var navVacio = document.getElementById('ev-nav-vacio');
+    var lateral = form.querySelector('.editor__lateral');
+    var movil = window.matchMedia('(max-width: 56rem)');
 
     function todos(raiz, selector) {
         return Array.prototype.slice.call(raiz.querySelectorAll(selector));
@@ -42,10 +46,8 @@
         });
     }
 
-    // ---- Numeración, nombres de los campos y resumen
+    // ---- Numeración y nombres de los campos
     function reindexar() {
-        var criteriosTotal = 0;
-        var puntosTotal = 0;
         var dimensiones = Array.prototype.slice.call(lista.children);
 
         dimensiones.forEach(function (dimension, i) {
@@ -75,14 +77,110 @@
             dimension.querySelector('.dimension__meta').textContent = criterios.length
                 + (criterios.length === 1 ? ' criterio' : ' criterios')
                 + (puntos > 0 ? ', ' + formato(puntos) + ' pts' : '');
-            criteriosTotal += criterios.length;
-            puntosTotal += puntos;
         });
 
-        form.querySelector('[data-resumen="dimensiones"]').textContent = dimensiones.length;
-        form.querySelector('[data-resumen="criterios"]').textContent = criteriosTotal;
-        form.querySelector('[data-resumen="puntaje"]').textContent = formato(puntosTotal);
+        construirNav();
     }
+
+    // ---- Lista reducida de dimensiones (tarjeta izquierda)
+    function elemento(etiqueta, clase, texto) {
+        var el = document.createElement(etiqueta);
+        if (clase) { el.className = clase; }
+        if (texto !== undefined) { el.textContent = texto; }
+        return el;
+    }
+
+    function criterioCompleto(criterio) {
+        return VALIDADORES.texto(criterio.querySelector('[data-campo="descripcion"]').value)
+            && VALIDADORES.puntaje(criterio.querySelector('[data-campo="puntajeMax"]').value);
+    }
+
+    function construirNav() {
+        var dimensiones = Array.prototype.slice.call(lista.children);
+        var fragmento = document.createDocumentFragment();
+
+        dimensiones.forEach(function (dimension, i) {
+            var criterios = todos(dimension, '.criterio');
+            var nombre = dimension.querySelector('[data-campo="nombre"]').value.trim();
+            var item = elemento('li', 'ev-nav__dim');
+            item.setAttribute('data-dim', i);
+            item._dimension = dimension;
+
+            var detalle = elemento('details', 'ev-nav__detalle');
+            detalle.open = dimension._navAbierto === true;
+            var resumen = elemento('summary', 'ev-nav__cab');
+            resumen.appendChild(elemento('span', 'ev-nav__num', String(i + 1)));
+            resumen.appendChild(elemento('span', 'ev-nav__nombre' + (nombre ? '' : ' ev-nav__nombre--vacio'), nombre || 'Sin nombre'));
+            resumen.appendChild(elemento('span', 'ev-nav__avance', String(criterios.length)));
+            detalle.appendChild(resumen);
+
+            var ul = elemento('ul', 'ev-nav__criterios');
+            var completos = 0;
+            criterios.forEach(function (criterio, j) {
+                var descripcion = criterio.querySelector('[data-campo="descripcion"]');
+                var puntaje = criterio.querySelector('[data-campo="puntajeMax"]');
+                var hecho = criterioCompleto(criterio);
+                var conError = descripcion.getAttribute('aria-invalid') === 'true' || puntaje.getAttribute('aria-invalid') === 'true';
+                if (hecho) { completos += 1; }
+                var texto = descripcion.value.trim();
+
+                var boton = elemento('button', 'ev-nav__criterio');
+                boton.type = 'button';
+                boton._criterio = criterio;
+                if (texto) { boton.title = texto; }
+                boton.appendChild(elemento('span', 'ev-punto' + (conError ? ' ev-punto--error' : (hecho ? ' ev-punto--hecho' : ''))));
+                boton.appendChild(elemento('span', 'ev-nav__texto' + (texto ? '' : ' ev-nav__texto--vacio'),
+                    (i + 1) + '.' + (j + 1) + ' ' + (texto || 'Criterio sin descripción')));
+                var fila = elemento('li');
+                fila.appendChild(boton);
+                ul.appendChild(fila);
+            });
+            detalle.appendChild(ul);
+            item.appendChild(detalle);
+            if (nombre && criterios.length && completos === criterios.length) { item.setAttribute('data-completa', ''); }
+            fragmento.appendChild(item);
+        });
+
+        navLista.replaceChildren(fragmento);
+        navVacio.hidden = dimensiones.length > 0;
+        Navegador.resaltarActual(dimensiones, todos(navLista, '.ev-nav__dim'), navLista, false);
+    }
+
+    function irADimension(dimension) {
+        dimension.querySelector('details').open = true;
+        dimension.scrollIntoView({ block: 'start' });
+    }
+
+    function irACriterio(criterio) {
+        criterio.closest('.dimension').querySelector('details').open = true;
+        criterio.scrollIntoView({ block: 'start' });
+        criterio.querySelector('[data-campo="descripcion"]').focus({ preventScroll: true });
+    }
+
+    navLista.addEventListener('click', function (evento) {
+        var resumen = evento.target.closest('.ev-nav__cab');
+        if (resumen) {
+            var detalle = resumen.parentNode;
+            var dimension = detalle.parentNode._dimension;
+            dimension._navAbierto = !detalle.open;
+            // si estaba cerrado se va a abrir: además de expandir la lista, lleva a esa dimensión
+            if (!detalle.open) { irADimension(dimension); }
+            return;
+        }
+        var boton = evento.target.closest('.ev-nav__criterio');
+        if (boton) { irACriterio(boton._criterio); }
+    });
+
+    var lecturaPendiente = false;
+    function seguirLectura() {
+        lecturaPendiente = false;
+        Navegador.ajustarAlto(form, lateral, movil);
+        Navegador.resaltarActual(Array.prototype.slice.call(lista.children), todos(navLista, '.ev-nav__dim'), navLista);
+    }
+    window.addEventListener('scroll', function () {
+        if (!lecturaPendiente) { lecturaPendiente = true; window.requestAnimationFrame(seguirLectura); }
+    }, { passive: true });
+    window.addEventListener('resize', seguirLectura);
 
     // ---- Agregar
     function agregarCriterio(dimension, enfocar) {
@@ -96,6 +194,7 @@
 
     function agregarDimension() {
         var nodo = plantillaDimension.content.firstElementChild.cloneNode(true);
+        nodo._navAbierto = true;
         lista.appendChild(nodo);
         prepararCampos(nodo);
         agregarCriterio(nodo, false);
@@ -191,6 +290,7 @@
             var detalle = control.closest('details');
             if (detalle) { detalle.open = true; }
         });
+        construirNav();
         fallos[0].focus();
         fallos[0].scrollIntoView({ block: 'center' });
     });
@@ -202,12 +302,20 @@
         reindexar();
     });
 
+    // Con el mouse, si va a pulsar un botón no se muestra el error ahora: movería la página y el clic se perdería
+    var puntero = false;
+    document.addEventListener('pointerdown', function () { puntero = true; }, true);
+    document.addEventListener('pointerup', function () { puntero = false; }, true);
+    document.addEventListener('pointercancel', function () { puntero = false; }, true);
+
     form.addEventListener('focusout', function (evento) {
         var control = evento.target;
         var destino = evento.relatedTarget;
-        // Si va a pulsar un botón no se muestra el error ahora: movería la página y el clic se perdería
-        if (destino && destino.closest && destino.closest('button, a')) { return; }
-        if (control.hasAttribute && control.hasAttribute('data-validar') && control.value.trim()) { validarCampo(control); }
+        if (puntero && destino && destino.closest && destino.closest('button, a')) { return; }
+        if (control.hasAttribute && control.hasAttribute('data-validar') && control.value.trim()) {
+            validarCampo(control);
+            construirNav();
+        }
     });
 
     form.addEventListener('click', function (evento) {
@@ -243,6 +351,11 @@
             agregarCriterio(destino.closest('.dimension'), true);
         } else if (destino.id === 'agregar-dimension') {
             agregarDimension();
+        } else if (destino.id === 'ev-expandir' || destino.id === 'ev-plegar') {
+            todos(lista, '.dimension__detalle').forEach(function (detalle) { detalle.open = destino.id === 'ev-expandir'; });
+        } else if (destino.id === 'ev-nav-expandir' || destino.id === 'ev-nav-plegar') {
+            Array.prototype.forEach.call(lista.children, function (dimension) { dimension._navAbierto = destino.id === 'ev-nav-expandir'; });
+            construirNav();
         } else if (destino.hasAttribute('data-cerrar-alerta')) {
             destino.closest('.editor__alerta').hidden = true;
         } else if (destino.id === 'eliminar-pauta') {
@@ -253,5 +366,6 @@
     });
 
     prepararCampos(form);
+    Array.prototype.forEach.call(lista.children, function (dimension, i) { dimension._navAbierto = i === 0; });
     reindexar();
 })();

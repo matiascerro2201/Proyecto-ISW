@@ -174,7 +174,7 @@ public class CursoEstudiantesService {
         return estudiantes;
     }
 
-    private static String tipoDeLinea(LineaPractica linea) {
+    static String tipoDeLinea(LineaPractica linea) {
         String tipo = linea.getTipo().name();
         return switch (tipo) {
             case "UNICA" -> "Línea única";

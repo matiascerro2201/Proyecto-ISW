@@ -183,7 +183,7 @@ a.curso[href]:hover { border-color: var(--brand-500); box-shadow: var(--shadow-s
 }
 
 .pendientes { list-style: none; margin: 0; padding: 0; max-height: 26rem; overflow-y: auto; }
-.pendiente {
+.actividad {
     display: grid;
     grid-template-columns: 56px minmax(0, 1fr) auto;
     gap: var(--space-4);
@@ -191,20 +191,20 @@ a.curso[href]:hover { border-color: var(--brand-500); box-shadow: var(--shadow-s
     padding: var(--space-3) 0;
     border-bottom: 1px solid var(--border);
 }
-.pendiente__fecha {
+.actividad__fecha {
     text-align: center;
     padding: 6px 0;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: var(--surface);
 }
-.pendiente__fecha b { display: block; font-family: var(--font-display); font-size: 20px; line-height: 24px; color: var(--ink-900); }
-.pendiente__fecha small { font-size: 12px; color: var(--ink-500); text-transform: capitalize; }
-.pendiente__fecha--sin { padding: 14px 4px; font-size: 12px; line-height: 16px; color: var(--ink-500); }
-.pendiente__info { min-width: 0; }
-.pendiente__titulo { display: block; font-weight: 600; color: var(--ink-900); text-decoration: none; }
-a.pendiente__titulo[href]:hover { color: var(--brand-700); text-decoration: underline; }
-.pendiente__detalle { display: block; font-size: 13px; color: var(--ink-500); }
+.actividad__fecha b { display: block; font-family: var(--font-display); font-size: 20px; line-height: 24px; color: var(--ink-900); }
+.actividad__fecha small { font-size: 12px; color: var(--ink-500); text-transform: capitalize; }
+.actividad__fecha--sin { padding: 14px 4px; font-size: 12px; line-height: 16px; color: var(--ink-500); }
+.actividad__info { min-width: 0; }
+.actividad__titulo { display: block; font-weight: 600; color: var(--ink-900); text-decoration: none; }
+a.actividad__titulo[href]:hover { color: var(--brand-700); text-decoration: underline; }
+.actividad__detalle { display: block; font-size: 13px; color: var(--ink-500); }
 
 @media (max-width: 56rem) {
     main.inicio { grid-template-columns: minmax(0, 1fr); padding-top: var(--space-6); }
@@ -212,8 +212,8 @@ a.pendiente__titulo[href]:hover { color: var(--brand-700); text-decoration: unde
 @media (max-width: 35rem) {
     main.inicio { padding-left: var(--space-4); padding-right: var(--space-4); }
     .panel { padding: var(--space-4); }
-    .pendiente { grid-template-columns: 50px minmax(0, 1fr); }
-    .pendiente .badge { grid-column: 2; justify-self: start; }
+    .actividad { grid-template-columns: 50px minmax(0, 1fr); }
+    .actividad .badge { grid-column: 2; justify-self: start; }
     .curso__etiqueta { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {

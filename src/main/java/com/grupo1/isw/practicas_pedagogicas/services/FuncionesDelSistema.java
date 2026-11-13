@@ -30,7 +30,7 @@ public final class FuncionesDelSistema {
                     "Aprueba o rechaza las planificaciones que enviaron tus estudiantes.",
                     "/planificaciones/pendientes"),
 
-            de("TUTOR", "Estudiantes que superviso", "Estudiantes que superviso",
+            de("TUTOR", "Mis estudiantes", "Mis estudiantes",
                     "Llena las pautas de evaluación de los estudiantes que supervisas.", "/tutor/lineas"),
 
             de("PROFESOR_ASIGNATURA", "Informes finales de desempeño", "Informes finales",

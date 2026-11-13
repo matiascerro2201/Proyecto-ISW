@@ -100,18 +100,18 @@
             <p class="vacio" th:if="${#lists.isEmpty(pendientes)}">No tienes actividades pendientes.</p>
 
             <ul class="pendientes" id="lista-pendientes" th:unless="${#lists.isEmpty(pendientes)}">
-                <li class="pendiente" th:each="p : ${pendientes}"
+                <li class="actividad" th:each="p : ${pendientes}"
                     th:attr="data-fecha=${p.fecha()}, data-vencida=${p.vencida()}">
-                    <div class="pendiente__fecha" th:if="${p.fecha() != null}">
+                    <div class="actividad__fecha" th:if="${p.fecha() != null}">
                         <b th:text="${#temporals.day(p.fecha())}">12</b>
                         <small th:text="${#temporals.monthNameShort(p.fecha())}">nov</small>
                     </div>
-                    <div class="pendiente__fecha pendiente__fecha--sin" th:unless="${p.fecha() != null}">Sin fecha</div>
+                    <div class="actividad__fecha actividad__fecha--sin" th:unless="${p.fecha() != null}">Sin fecha</div>
 
-                    <div class="pendiente__info">
-                        <a class="pendiente__titulo" th:href="${p.enlace() != null} ? @{${p.enlace()}}"
+                    <div class="actividad__info">
+                        <a class="actividad__titulo" th:href="${p.enlace() != null} ? @{${p.enlace()}}"
                            th:text="${p.titulo()}">Entregar Informe 1</a>
-                        <span class="pendiente__detalle" th:text="${p.detalle()}">Práctica Pedagógica</span>
+                        <span class="actividad__detalle" th:text="${p.detalle()}">Práctica Pedagógica</span>
                     </div>
 
                     <span class="badge" th:classappend="${p.claseEstado()}" th:text="${p.etiqueta()}">Por entregar</span>

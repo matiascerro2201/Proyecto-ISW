@@ -12,6 +12,8 @@
     <link rel="stylesheet" th:href="@{/css/tema.css}">
     <link rel="stylesheet" th:href="@{/css/cursos.css}">
     <link rel="stylesheet" th:href="@{/css/pauta-editor.css}">
+    <link rel="stylesheet" th:href="@{/css/navegador-dimensiones.css}">
+    <script th:src="@{/js/navegador-dimensiones.js}" defer></script>
     <script th:src="@{/js/pauta-editor.js}" defer></script>
 </head>
 <body>
@@ -24,8 +26,8 @@
           th:action="${idPauta != null} ? @{/profesor/pautas/{id}/editar(id=${idPauta})} : @{/profesor/pautas/nueva}">
         <input type="hidden" name="asignatura" th:value="${idAsignatura}" th:if="${idPauta == null}">
 
-        <aside class="editor__lateral" aria-label="Datos de la pauta">
-            <div class="editor__lateral-cuerpo">
+        <aside class="editor__lateral ev-lateral" aria-label="Datos de la pauta">
+            <div class="ev-datos">
                 <p class="editor__etiqueta"
                    th:text="${idPauta == null ? 'Nueva pauta de evaluación' : (soloLectura ? 'Pauta de evaluación' : 'Editar pauta de evaluación')}">Nueva pauta de evaluación</p>
                 <h1 th:text="${nombreAsignatura}">Práctica Pedagógica</h1>
@@ -81,16 +83,19 @@
                     <p class="campo__ayuda">Mayor que 0 y hasta 100. Puedes usar coma o punto.</p>
                     <p class="campo__error" role="alert" hidden></p>
                 </div>
-
-                <dl class="editor__resumen">
-                    <dt>Dimensiones</dt>
-                    <dd data-resumen="dimensiones">0</dd>
-                    <dt>Criterios</dt>
-                    <dd data-resumen="criterios">0</dd>
-                    <dt>Puntaje máximo total</dt>
-                    <dd data-resumen="puntaje">0</dd>
-                </dl>
             </div>
+
+            <nav class="ev-nav" aria-label="Dimensiones de la pauta">
+                <div class="ev-nav__cab-titulo">
+                    <h3 class="ev-nav__titulo">Dimensiones</h3>
+                    <div class="ev-nav__acciones">
+                        <button type="button" class="ev-nav__boton" id="ev-nav-expandir" aria-label="Expandir todas las dimensiones de la lista">Expandir</button>
+                        <button type="button" class="ev-nav__boton" id="ev-nav-plegar" aria-label="Plegar todas las dimensiones de la lista">Plegar</button>
+                    </div>
+                </div>
+                <ul class="ev-nav__lista" id="ev-nav-lista"></ul>
+                <p class="ev-nav__vacio" id="ev-nav-vacio" hidden>Aún no hay dimensiones.</p>
+            </nav>
 
             <div class="editor__acciones" th:unless="${soloLectura}">
                 <button type="submit" name="accion" value="guardar" class="btn btn-primary btn-grande">Guardar pauta</button>
@@ -99,8 +104,12 @@
         </aside>
 
         <section class="editor__principal" aria-labelledby="titulo-dimensiones">
-            <div class="editor__cab">
+            <div class="editor__cab ev-cab">
                 <h2 id="titulo-dimensiones">Dimensiones y criterios</h2>
+                <div class="ev-cab__acciones">
+                    <button type="button" class="btn btn-ghost" id="ev-expandir">Expandir todo</button>
+                    <button type="button" class="btn btn-ghost" id="ev-plegar">Plegar todo</button>
+                </div>
             </div>
 
             <ol class="dimensiones" id="dimensiones"

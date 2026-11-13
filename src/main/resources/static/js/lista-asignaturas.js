@@ -1,4 +1,4 @@
-// Lista de asignaturas con búsqueda y sugerencias, filtros y ventana de detalle. La usan informes y pautas.
+// Lista con búsqueda y sugerencias, filtros y ventana de detalle. La usan informes, pautas, estudiantes y planificaciones.
 (function () {
     'use strict';
 
@@ -10,6 +10,10 @@
     var sugerencias = document.getElementById('sugerencias');
     var periodo = document.getElementById('filtro-periodo');
     var estado = document.getElementById('filtro-estado');
+    var linea = document.getElementById('filtro-linea');
+    var desde = document.getElementById('filtro-desde');
+    var hasta = document.getElementById('filtro-hasta');
+    var avisoFechas = document.getElementById('filtro-fechas-aviso');
     var pendientes = document.getElementById('filtro-pendientes');
     var limpiar = document.getElementById('limpiar-filtros');
     var contador = document.getElementById('contador');
@@ -17,6 +21,10 @@
     var titulo = document.getElementById('dialogo-lista-titulo');
     var cuerpo = document.getElementById('dialogo-lista-cuerpo');
     var cerrar = document.getElementById('dialogo-lista-cerrar');
+
+    var singular = lista.getAttribute('data-singular') || 'asignatura';
+    var plural = lista.getAttribute('data-plural') || 'asignaturas';
+    var sugerenciasUnicas = lista.hasAttribute('data-sugerencias-unicas');
 
     function normalizar(texto) {
         return texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -35,10 +43,12 @@
             nombre: nombre,
             nombreNorm: normalizar(nombre),
             detalle: secundario ? secundario.textContent : periodoTexto,
-            texto: normalizar(nombre + ' ' + periodoTexto),
+            texto: normalizar(nombre + ' ' + periodoTexto + ' ' + (li.getAttribute('data-busqueda') || '')),
             periodo: periodoTexto,
             orden: parseInt(li.getAttribute('data-orden') || '0', 10),
             estado: li.getAttribute('data-estado'),
+            linea: li.getAttribute('data-linea') || '',
+            fecha: li.getAttribute('data-fecha') || '',
             pendientes: parseInt(li.getAttribute('data-pendientes') || '0', 10)
         };
     });
@@ -59,6 +69,42 @@
         });
     }
 
+    if (linea) {
+        var lineasVistas = {};
+        filas.map(function (fila) { return fila.linea; }).filter(Boolean).sort(function (a, b) { return a.localeCompare(b); })
+            .forEach(function (nombre) {
+                if (lineasVistas[nombre]) { return; }
+                lineasVistas[nombre] = true;
+                var opcion = document.createElement('option');
+                opcion.value = nombre;
+                opcion.textContent = nombre;
+                linea.appendChild(opcion);
+            });
+    }
+
+    // Las fechas son aaaa-mm-dd, así que se comparan como texto. Sin fecha (un borrador) no entra en un intervalo.
+    function enIntervalo(fila) {
+        var inicio = desde ? desde.value : '';
+        var fin = hasta ? hasta.value : '';
+        if (!inicio && !fin) { return true; }
+        if (!fila.fecha) { return false; }
+        return (!inicio || fila.fecha >= inicio) && (!fin || fila.fecha <= fin);
+    }
+
+    function avisarFechas() {
+        if (!avisoFechas) { return; }
+        var inicio = desde.value;
+        var fin = hasta.value;
+        var mensaje = '';
+        if (inicio && fin && inicio > fin) {
+            mensaje = 'La fecha inicial es posterior a la final: no hay nada entre esas dos fechas.';
+        } else if ((inicio || fin) && filas.some(function (fila) { return !fila.fecha; })) {
+            mensaje = 'Los borradores no tienen fecha de envío, por eso no aparecen al filtrar por fechas.';
+        }
+        avisoFechas.textContent = mensaje;
+        avisoFechas.hidden = !mensaje;
+    }
+
     function filtrar() {
         var palabras = palabrasDe(buscar.value);
         var visibles = 0;
@@ -66,12 +112,15 @@
             var coincide = (!palabras.length || contiene(fila, palabras))
                 && (!periodo || !periodo.value || fila.periodo === periodo.value)
                 && (!estado || !estado.value || fila.estado === estado.value)
+                && (!linea || !linea.value || fila.linea === linea.value)
+                && enIntervalo(fila)
                 && (!pendientes || !pendientes.checked || fila.pendientes > 0);
             fila.li.hidden = !coincide;
             if (coincide) { visibles += 1; }
         });
-        contador.textContent = visibles + (visibles === 1 ? ' asignatura' : ' asignaturas');
+        contador.textContent = visibles + ' ' + (visibles === 1 ? singular : plural);
         vacio.hidden = visibles !== 0;
+        avisarFechas();
     }
 
     // ---- Sugerencias mientras se escribe
@@ -91,8 +140,11 @@
             .sort(function (a, b) {
                 return a.rango - b.rango || b.fila.orden - a.fila.orden || a.fila.nombreNorm.localeCompare(b.fila.nombreNorm);
             })
-            .slice(0, 8)
-            .map(function (x) { return x.fila; });
+            .map(function (x) { return x.fila; })
+            .filter(function (fila, i, todas) {
+                return !sugerenciasUnicas || todas.findIndex(function (otra) { return otra.nombreNorm === fila.nombreNorm; }) === i;
+            })
+            .slice(0, 8);
     }
 
     function resaltar(destino, texto, palabras) {
@@ -165,7 +217,7 @@
             nombre.className = 'sugerencia__nombre';
             resaltar(nombre, fila.nombre, palabras);
             opcion.appendChild(nombre);
-            if (fila.detalle) {
+            if (fila.detalle && !sugerenciasUnicas) {
                 var detalle = document.createElement('span');
                 detalle.className = 'sugerencia__periodo';
                 detalle.textContent = fila.detalle;
@@ -206,13 +258,16 @@
         }
     });
 
-    [periodo, estado, pendientes].forEach(function (control) {
+    [periodo, estado, linea, desde, hasta, pendientes].forEach(function (control) {
         if (control) { control.addEventListener('change', filtrar); }
     });
     limpiar.addEventListener('click', function () {
         buscar.value = '';
         if (periodo) { periodo.value = ''; }
         if (estado) { estado.value = ''; }
+        if (linea) { linea.value = ''; }
+        if (desde) { desde.value = ''; }
+        if (hasta) { hasta.value = ''; }
         if (pendientes) { pendientes.checked = false; }
         cerrarSugerencias();
         filtrar();
@@ -223,7 +278,7 @@
     function abrir(boton) {
         var plantilla = document.getElementById('plantilla-' + boton.getAttribute('data-id'));
         if (!plantilla) { return; }
-        titulo.textContent = boton.querySelector('.asignatura__nombre').textContent;
+        titulo.textContent = boton.getAttribute('data-titulo') || boton.querySelector('.asignatura__nombre').textContent;
         cuerpo.textContent = '';
         cuerpo.appendChild(plantilla.content.cloneNode(true));
         Array.prototype.forEach.call(cuerpo.querySelectorAll('[data-vacio]'), function (contenedor) {
@@ -250,7 +305,7 @@
     var prefijo = lista.getAttribute('data-hash');
     var enlace = prefijo ? new RegExp('^#' + prefijo + '-(\\d+)$').exec(window.location.hash) : null;
     if (enlace) {
-        var boton = lista.querySelector('.asignatura__fila[data-id="' + enlace[1] + '"]');
+        var boton = lista.querySelector('.asignatura__fila[data-id="' + enlace[1] + '"], .asignatura__fila[data-ids~="' + enlace[1] + '"]');
         if (boton) { abrir(boton); }
     }
 })();

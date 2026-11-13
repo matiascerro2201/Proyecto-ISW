@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- evaluar(base): base es la ruta de las líneas del rol, por ejemplo /tutor/lineas -->
+<main class="editor-pagina" th:fragment="evaluar(base)"
+      th:with="hayAvisos=${errores != null and !#lists.isEmpty(errores)}">
+    <a class="back-link" th:href="@{${base + '/' + form.idLinea}}">Volver a las pautas del estudiante</a>
+
+    <h1 class="ev-titulo" th:text="${form.edicion} ? 'Editar evaluación' : 'Evaluar con la pauta'">Editar evaluación</h1>
+
+    <form class="editor" id="ev-form" method="post" novalidate
+          th:action="@{${base + '/' + form.idLinea + '/pautas/' + form.idPautaEvaluacion}}">
+        <aside class="editor__lateral ev-lateral" aria-label="Datos de la evaluación">
+            <div class="ev-datos">
+                <div class="editor__alerta" id="alerta-servidor" role="alert" th:if="${hayAvisos}">
+                    <button type="button" class="editor__alerta-cerrar" data-cerrar-alerta aria-label="Cerrar aviso">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                    <strong>No se pudo guardar la evaluación:</strong>
+                    <ul>
+                        <li th:each="mensajeError : ${errores}" th:text="${mensajeError}">Falta el puntaje de ...</li>
+                    </ul>
+                </div>
+
+                <p class="editor__etiqueta">Estudiante</p>
+                <h2 class="ev-nombre" th:text="${form.nombreEstudiante}">Camila Soto</h2>
+                <p class="ev-asignatura" th:text="${form.nombreAsignatura}">Práctica Pedagógica</p>
+
+                <dl class="ev-meta">
+                    <dt>Línea</dt>
+                    <dd th:switch="${form.tipoLinea}">
+                        <span th:case="'UNICA'">Línea única</span>
+                        <span th:case="'ESPECIALIDAD'">Especialidad</span>
+                        <span th:case="'ORIENTACION'">Orientación</span>
+                        <span th:case="*" th:text="${form.tipoLinea}">Línea</span>
+                    </dd>
+                    <dt>Aplicación</dt>
+                    <dd th:text="${form.numeroAplicacion}">1</dd>
+                    <dt>Ponderación</dt>
+                    <dd th:text="|${#numbers.formatDecimal(form.ponderacion, 1, 'POINT', 2, 'COMMA')} %|">50,00 %</dd>
+                </dl>
+
+                <div class="ev-avance">
+                    <p class="ev-avance__puntaje">Puntaje <strong data-total>0</strong> de <span data-maximo>0</span></p>
+                    <progress class="ev-avance__barra" max="1" value="0" data-barra aria-label="Criterios con puntaje"></progress>
+                    <p class="ev-avance__texto"><span data-evaluados>0</span> de <span data-criterios>0</span> criterios con puntaje</p>
+                </div>
+            </div>
+
+            <nav class="ev-nav" aria-label="Dimensiones de la pauta">
+                <div class="ev-nav__cab-titulo">
+                    <h3 class="ev-nav__titulo">Dimensiones</h3>
+                    <div class="ev-nav__acciones">
+                        <button type="button" class="ev-nav__boton" id="ev-nav-expandir" aria-label="Expandir todas las dimensiones de la lista">Expandir</button>
+                        <button type="button" class="ev-nav__boton" id="ev-nav-plegar" aria-label="Plegar todas las dimensiones de la lista">Plegar</button>
+                    </div>
+                </div>
+                <ul class="ev-nav__lista" id="ev-nav-lista">
+                    <li class="ev-nav__dim" th:each="dimension, d : ${form.dimensiones}" th:attr="data-dim=${d.index}">
+                        <details class="ev-nav__detalle" th:open="${d.first}">
+                            <summary class="ev-nav__cab">
+                                <span class="ev-nav__num" th:text="${d.count}">1</span>
+                                <span class="ev-nav__nombre" th:text="${dimension.nombre}">Preparación</span>
+                                <span class="ev-nav__avance" data-avance-nav></span>
+                            </summary>
+                            <ul class="ev-nav__criterios">
+                                <li th:each="criterio, c : ${dimension.criterios}">
+                                    <button type="button" class="ev-nav__criterio" th:attr="data-ir=${criterio.idCriterio}, title=${criterio.descripcion}">
+                                        <span class="ev-punto" aria-hidden="true"></span>
+                                        <span class="ev-nav__texto" th:text="|${d.count}.${c.count} ${criterio.descripcion}|">1.1 Define objetivos</span>
+                                    </button>
+                                </li>
+                            </ul>
+                        </details>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="editor__acciones">
+                <button type="submit" class="btn btn-primary btn-grande"
+                        th:text="${form.edicion} ? 'Guardar cambios' : 'Guardar evaluación'">Guardar evaluación</button>
+            </div>
+        </aside>
+
+        <section class="editor__principal" aria-labelledby="titulo-dimensiones">
+            <div class="editor__cab ev-cab">
+                <h2 id="titulo-dimensiones">Dimensiones y criterios</h2>
+                <div class="ev-cab__acciones">
+                    <button type="button" class="btn btn-ghost" id="ev-expandir">Expandir todo</button>
+                    <button type="button" class="btn btn-ghost" id="ev-plegar">Plegar todo</button>
+                </div>
+            </div>
+
+            <ol class="dimensiones" id="ev-dimensiones">
+                <li class="ev-dim" th:each="dimension, d : ${form.dimensiones}" th:id="|dim-${d.index}|">
+                    <details class="dimension__detalle" th:open="${d.first or hayAvisos}">
+                        <summary class="dimension__cab">
+                            <span class="dimension__numero" th:text="${d.count}">1</span>
+                            <span class="dimension__titulo" th:text="${dimension.nombre}">Preparación</span>
+                            <span class="dimension__meta" data-meta-dim></span>
+                        </summary>
+                        <div class="dimension__cuerpo">
+                            <ul class="ev-criterios">
+                                <li class="ev-criterio" th:each="criterio, c : ${dimension.criterios}"
+                                    th:id="|criterio-${criterio.idCriterio}|" th:attr="data-id=${criterio.idCriterio}">
+                                    <div class="ev-criterio__texto">
+                                        <span class="ev-criterio__num" th:text="|${d.count}.${c.count}|">1.1</span>
+                                        <p th:text="${criterio.descripcion}">Descripción del criterio</p>
+                                    </div>
+
+                                    <div class="campo ev-criterio__puntaje">
+                                        <label class="campo__control">
+                                            <span class="campo__etiqueta">Puntaje
+                                                <span class="ev-max" th:text="|(máx. ${#numbers.formatDecimal(criterio.puntajeMax, 1, 'POINT', 2, 'COMMA')})|">(máx. 4,00)</span>
+                                            </span>
+                                            <input type="number" step="0.01" min="0" inputmode="decimal" autocomplete="off"
+                                                   data-validar="puntaje"
+                                                   th:attr="max=${criterio.puntajeMax}, data-max=${criterio.puntajeMax}"
+                                                   th:name="|puntaje_${criterio.idCriterio}|" th:value="${criterio.puntaje}">
+                                        </label>
+                                        <p class="campo__error" role="alert" hidden></p>
+                                    </div>
+
+                                    <div class="ev-criterio__comentario">
+                                        <div class="ev-comentario__cab">
+                                            <label class="campo__etiqueta" th:for="|comentario_${criterio.idCriterio}|">Comentario (opcional)</label>
+                                            <button type="button" class="btn-voz" title="Insertar nota de voz convertida a texto"
+                                                    th:attr="data-target=|comentario_${criterio.idCriterio}|">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+                                                <span class="btn-voz__texto">Dictar nota de voz</span>
+                                            </button>
+                                        </div>
+                                        <textarea rows="2"
+                                                  th:id="|comentario_${criterio.idCriterio}|"
+                                                  th:name="|comentario_${criterio.idCriterio}|"
+                                                  th:text="${criterio.comentario}"></textarea>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </details>
+                </li>
+            </ol>
+        </section>
+    </form>
+</main>
+
+</body>
+</html>

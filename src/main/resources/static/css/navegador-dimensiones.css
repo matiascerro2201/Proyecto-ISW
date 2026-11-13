@@ -1,0 +1,48 @@
+.ev-cab { position: sticky; top: calc(64px + var(--space-4)); z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.ev-cab__acciones { display: flex; gap: var(--space-1); }
+.ev-dim, .ev-criterio, .dimension, .criterio { scroll-margin-top: calc(64px + var(--space-4) + 4.5rem); }
+
+.ev-lateral { overflow-y: auto; }
+.ev-lateral .ev-datos { flex: 0 0 auto; padding: var(--space-5) var(--space-6) var(--space-4); }
+.ev-lateral .editor__acciones { position: sticky; bottom: 0; }
+
+.ev-nav { flex: 1 1 auto; min-height: 9rem; display: flex; flex-direction: column; padding: 0 var(--space-3) var(--space-3) var(--space-4); border-top: 1px solid var(--border); }
+.ev-nav__cab-titulo { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin: var(--space-3) 0 var(--space-2) var(--space-2); }
+.ev-nav__acciones { display: flex; gap: 2px; }
+.ev-nav__boton { appearance: none; padding: 3px 8px; border: 0; border-radius: var(--radius-sm); background: transparent; font-family: var(--font-body); font-size: 12px; font-weight: 600; color: var(--brand-700); cursor: pointer; }
+.ev-nav__boton:hover { background: var(--brand-100); }
+.ev-nav__titulo { margin: 0; font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-500); }
+.ev-nav__lista { flex: 1 1 auto; min-height: 0; margin: 0; padding: 0 var(--space-1) 0 0; overflow-y: auto; list-style: none; scrollbar-gutter: stable; }
+.ev-nav__vacio { margin: var(--space-2); font-size: 13px; color: var(--ink-500); }
+
+.ev-nav__cab { display: flex; align-items: center; gap: var(--space-2); padding: 6px var(--space-2); border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 600; color: var(--ink-900); list-style: none; cursor: pointer; }
+.ev-nav__cab::-webkit-details-marker { display: none; }
+.ev-nav__cab::after { content: "+"; flex: none; width: 16px; text-align: center; font-weight: 700; color: var(--ink-500); }
+.ev-nav__detalle[open] > .ev-nav__cab::after { content: "\2212"; }
+.ev-nav__cab:hover { background: var(--brand-100); }
+.ev-nav__num { flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--brand-100); font-size: 12px; font-weight: 700; color: var(--brand-700); }
+.ev-nav__nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-nav__nombre--vacio { font-style: italic; font-weight: 500; color: var(--ink-500); }
+.ev-nav__avance { flex: none; font-size: 12px; font-weight: 500; color: var(--ink-500); }
+.ev-nav__dim[aria-current="true"] > .ev-nav__detalle > .ev-nav__cab { background: var(--brand-100); color: var(--brand-700); }
+.ev-nav__dim[data-completa] .ev-nav__num { background: var(--status-approved-fg); color: #fff; }
+
+.ev-nav__criterios { margin: 2px 0 6px 18px; padding: 0 0 0 var(--space-2); list-style: none; border-left: 2px solid var(--border); }
+.ev-nav__criterio { appearance: none; display: flex; align-items: center; gap: var(--space-2); width: 100%; padding: 5px var(--space-2); border: 0; border-radius: var(--radius-sm); background: transparent; font-family: var(--font-body); font-size: 13px; color: var(--ink-700); text-align: left; cursor: pointer; }
+.ev-nav__criterio:hover { background: var(--brand-100); }
+.ev-nav__texto { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ev-nav__texto--vacio { font-style: italic; color: var(--ink-500); }
+.ev-punto { flex: none; width: 10px; height: 10px; border: 2px solid var(--ink-300); border-radius: 50%; }
+.ev-punto--hecho { border-color: var(--status-approved-fg); background: var(--status-approved-fg); }
+.ev-punto--error { border-color: var(--status-rejected-fg); background: var(--status-rejected-fg); }
+
+@media (max-width: 56rem) {
+    .ev-lateral { overflow-y: visible; }
+    .ev-lateral .ev-datos { padding: var(--space-4) var(--space-5); }
+    .ev-lateral .editor__acciones { position: fixed; }
+    .ev-nav { flex: none; min-height: 0; }
+    .ev-nav__lista { max-height: 14rem; }
+}
+@media (max-width: 40rem) {
+    .ev-cab__acciones { display: none; }
+}

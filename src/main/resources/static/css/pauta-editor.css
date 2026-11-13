@@ -12,15 +12,10 @@
     box-shadow: var(--sombra-suave);
     overflow: hidden;
 }
-.editor__lateral-cuerpo { flex: 1; min-height: 0; padding: var(--space-6); overflow-y: auto; }
 .editor__etiqueta { margin: 0 0 var(--space-1); font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-500); }
 .editor__lateral h1 { margin: 0 0 var(--space-4); font-size: 26px; line-height: 32px; }
 .editor__lateral h2 { margin: var(--space-5) 0 var(--space-3); font-size: 16px; line-height: 24px; color: var(--ink-700); }
 .editor__lateral .msg { margin: 0 0 var(--space-3); font-size: 13px; }
-
-.editor__resumen { margin: var(--space-5) 0 0; padding: var(--space-3) var(--space-4); gap: var(--space-1) var(--space-4); border-radius: var(--radius-md); background: var(--brand-100); font-size: 14px; }
-.editor__resumen dt { color: var(--ink-700); }
-.editor__resumen dd { font-weight: 700; color: var(--ink-900); text-align: right; }
 
 .editor__acciones { flex: none; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) var(--space-6) var(--space-6); border-top: 1px solid var(--border); background: var(--surface-raised); }
 .editor__acciones .btn { width: 100%; }
@@ -69,7 +64,8 @@
 .editor__alerta-cerrar { appearance: none; position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: var(--radius-full); background: transparent; color: inherit; cursor: pointer; }
 .editor__alerta-cerrar:hover { background: rgba(180, 35, 24, 0.12); }
 
-.editor__principal { min-width: 0; }
+main.editor-pagina { padding-bottom: 0; }
+.editor__principal { min-width: 0; padding-bottom: var(--space-12); }
 .editor__cab { margin-bottom: var(--space-3); padding: var(--space-3) var(--space-5); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--sombra-suave); }
 .editor__cab h2 { margin: 0; font-size: 20px; line-height: 28px; }
 
@@ -129,7 +125,6 @@
     main.editor-pagina { padding-bottom: 8rem; }
     .editor { display: block; }
     .editor__lateral { position: static; max-height: none; margin-bottom: var(--space-4); border-radius: var(--radius-lg); overflow: visible; }
-    .editor__lateral-cuerpo { padding: var(--space-4) var(--space-5); overflow: visible; }
     .editor__acciones {
         position: fixed;
         left: 0;

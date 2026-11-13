@@ -15,7 +15,7 @@
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/colaborador/lineas')}"></th:block>
 <main>
-    <a class="back-link" th:href="@{/colaborador/lineas}">Volver a mis estudiantes</a>
+    <a class="back-link" th:href="@{${'/colaborador/lineas#estudiante-' + linea.idLinea}}">Volver a mis estudiantes</a>
 
     <h1 th:text="${linea.nombreEstudiante}">Estudiante Uno</h1>
     <p>
