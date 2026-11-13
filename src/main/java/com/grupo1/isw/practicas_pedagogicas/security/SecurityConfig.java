@@ -22,7 +22,8 @@ public class SecurityConfig {
             )
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/")
+                // true: siempre al inicio, no a la última página pedida
+                .defaultSuccessUrl("/", true)
                 .permitAll()
             )
             .logout(logout -> logout

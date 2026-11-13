@@ -1,0 +1,74 @@
+.login__layout { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+
+.login__lateral {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-8);
+    padding: var(--space-10) var(--space-12);
+    background: var(--brand-200);
+}
+.login__logo {
+    align-self: flex-start;
+    display: inline-flex;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+}
+.login__logo img { display: block; height: 56px; width: auto; }
+.login__lateral h2 {
+    max-width: 14ch;
+    margin: 0;
+    font-size: clamp(28px, 3.2vw, 40px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+.login__lateral p { max-width: 36ch; margin: var(--space-3) 0 0; color: var(--ink-700); }
+
+main.login__principal {
+    max-width: none;
+    margin: 0;
+    padding: var(--space-10) var(--space-6);
+    display: grid;
+    place-items: center;
+}
+.login__caja {
+    width: 100%;
+    max-width: 24rem;
+    padding: var(--space-8);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    box-shadow: var(--sombra-suave);
+}
+.login__caja h1 { margin: 0; font-size: 28px; line-height: 36px; }
+.login__sub { margin: var(--space-2) 0 var(--space-6); color: var(--ink-500); }
+.login__caja .btn { width: 100%; margin-top: var(--space-2); padding: 12px var(--space-5); font-size: 15px; }
+
+.clave { position: relative; }
+.clave input { padding-right: 5.5rem; }
+.clave__ver {
+    appearance: none;
+    position: absolute;
+    top: 50%;
+    right: var(--space-2);
+    transform: translateY(-50%);
+    padding: 6px 10px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand-700);
+    cursor: pointer;
+}
+.clave__ver:hover { background: var(--brand-100); }
+
+@media (max-width: 56rem) {
+    .login__layout { grid-template-columns: minmax(0, 1fr); }
+    .login__lateral { padding: var(--space-4) var(--space-6); }
+    .login__texto { display: none; }
+    .login__logo img { height: 44px; }
+    main.login__principal { align-items: start; padding-top: var(--space-8); }
+}
