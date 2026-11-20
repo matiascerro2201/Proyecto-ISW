@@ -1,9 +1,11 @@
 package com.grupo1.isw.practicas_pedagogicas.controllers;
 
 import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
+import com.grupo1.isw.practicas_pedagogicas.services.CursoEstudiantesService;
 import com.grupo1.isw.practicas_pedagogicas.services.GeneracionInformeService;
 import com.grupo1.isw.practicas_pedagogicas.services.InformeNoGenerableException;
 import com.grupo1.isw.practicas_pedagogicas.services.PlazoRevisionService;
+import com.grupo1.isw.practicas_pedagogicas.services.RevisionInformeService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -21,11 +23,17 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class GeneracionInformeViewController {
     private final GeneracionInformeService generacionInformeService;
     private final PlazoRevisionService plazoRevisionService;
+    private final RevisionInformeService revisionInformeService;
+    private final CursoEstudiantesService cursoEstudiantesService;
 
     public GeneracionInformeViewController(GeneracionInformeService generacionInformeService,
-                                           PlazoRevisionService plazoRevisionService) {
+                                           PlazoRevisionService plazoRevisionService,
+                                           RevisionInformeService revisionInformeService,
+                                           CursoEstudiantesService cursoEstudiantesService) {
         this.generacionInformeService = generacionInformeService;
         this.plazoRevisionService = plazoRevisionService;
+        this.revisionInformeService = revisionInformeService;
+        this.cursoEstudiantesService = cursoEstudiantesService;
     }
 
     @GetMapping
@@ -41,6 +49,9 @@ public class GeneracionInformeViewController {
                           @AuthenticationPrincipal UsuarioDetails profesor,
                           Model model) {
         model.addAttribute("informe", generacionInformeService.obtenerParaProfesor(profesor.getIdUsuario(), idInforme));
+        // HU-11: estado de la revisión (nota final, si se puede guardar o publicar)
+        model.addAttribute("revision", revisionInformeService.obtenerInforme(profesor.getIdUsuario(), idInforme));
+        model.addAttribute("idSeccion", cursoEstudiantesService.idSeccionDelInforme(profesor.getIdUsuario(), idInforme));
         return "profesor/informes/detalle";
     }
 
