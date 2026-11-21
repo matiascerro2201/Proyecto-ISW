@@ -13,135 +13,317 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/tema.css}">
     <style>
-        .chat-conversacion { display: flex; flex-direction: column; gap: var(--space-4); margin: var(--space-6) 0; }
+        /* ---------- Pantalla completa: chat a la izquierda, planificación a la derecha ---------- */
+        main.chat-pagina {
+            --chat-alto: max(30rem, calc(100vh - 9.5rem));
+            padding-top: var(--space-6);
+            padding-bottom: var(--space-6);
+        }
+        .chat-pagina .back-link { margin-bottom: var(--space-3); }
+        .chat-layout {
+            display: grid;
+            grid-template-columns: minmax(24rem, 5fr) minmax(0, 6fr);
+            gap: var(--space-5);
+            height: var(--chat-alto);
+        }
+        .chat-caja, .chat-doc {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            background: var(--surface-raised);
+            box-shadow: var(--sombra-suave);
+            overflow: hidden;
+        }
+
+        /* Cabecera del chat: título y botón (?) */
+        .chat-cab {
+            flex: none;
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5);
+            border-bottom: 1px solid var(--border);
+        }
+        .chat-cab__texto { flex: 1; min-width: 0; }
+        .chat-cab h1 { margin: 0; font-size: 18px; line-height: 26px; }
+        .chat-cab__linea { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                           font-size: 12px; color: var(--ink-500); }
+        .chat-ayuda-boton {
+            appearance: none;
+            flex: none;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 1px solid var(--border-strong);
+            border-radius: 50%;
+            background: var(--surface-raised);
+            font: 700 15px/1 var(--font-display);
+            color: var(--ink-700);
+            cursor: pointer;
+        }
+        .chat-ayuda-boton:hover, .chat-ayuda-boton[aria-expanded="true"] { background: var(--brand-100); }
+
+        /* Ayuda: queda oculta tras el botón (?) y se abre sobre el chat */
+        .chat-ayuda {
+            position: absolute;
+            top: 58px;
+            left: var(--space-3);
+            right: var(--space-3);
+            z-index: 5;
+            max-height: calc(100% - 70px);
+            overflow-y: auto;
+            padding: var(--space-4);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-md);
+            background: var(--surface-raised);
+            box-shadow: var(--shadow-md);
+            font-size: 13px;
+            line-height: 20px;
+        }
+        .chat-ayuda[hidden] { display: none; }
+        .chat-ayuda h2 { margin: 0 0 var(--space-1); font-size: 13px; line-height: 20px; }
+        .chat-ayuda p { margin: 0 0 var(--space-3); color: var(--ink-700); }
+        .chat-ayuda p:last-child { margin-bottom: 0; }
+
+        /* Mensajes: se leen de arriba abajo y los nuevos aparecen al final, junto a la caja de escritura */
+        .chat-mensajes {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            padding: var(--space-4) var(--space-5);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        .chat-conversacion { display: flex; flex-direction: column; gap: var(--space-4); margin-top: auto; }
         .chat-turno { display: flex; flex-direction: column; gap: var(--space-2); }
-        .chat-burbuja { max-width: 85%; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
+        .chat-burbuja { max-width: 88%; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
                         border: 1px solid var(--border); }
         .chat-burbuja p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere;
                           font-size: 14.5px; line-height: 1.5; }
         .chat-autor { font-size: 12px; font-weight: 600; color: var(--ink-500); }
         .chat-estudiante { align-self: flex-end; background: var(--brand-100); border-color: transparent; }
-        .chat-asistente { align-self: flex-start; background: var(--surface-raised); }
+        .chat-asistente { align-self: flex-start; background: var(--surface); }
         .chat-hora { align-self: center; }
         .chat-planificacion { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .chat-vacio { margin: 0; font-size: 13px; line-height: 20px; color: var(--ink-500); }
 
-        /* Modo panel: sin barra, sin título ni lo que ya se ve en la página que contiene el panel */
-        html.embebido body { background: var(--surface-raised); }
+        /* Pie fijo: botón de revisión (discreto) y caja de escritura */
+        .chat-pie {
+            flex: none;
+            padding: var(--space-3) var(--space-4) var(--space-4);
+            border-top: 1px solid var(--border);
+            background: var(--surface-raised);
+        }
+        .chat-herramientas { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2); }
+        .chat-revision { margin: 0; }
+        .chat-revision .btn { min-height: 0; padding: 5px 12px; font-size: 13px; line-height: 20px; }
+        .chat-aviso { margin: 0; font-size: 12px; line-height: 18px; color: var(--ink-500); }
+        .chat-compositor { display: flex; align-items: flex-end; gap: var(--space-2); margin: 0; }
+        .chat-compositor textarea { flex: 1; min-width: 0; resize: none; }
+        .chat-compositor .btn { flex: none; }
+        .chat-pie .msg { margin: 0 0 var(--space-2); }
+        .chat-contadores { display: flex; justify-content: space-between; gap: var(--space-3);
+                           margin-top: var(--space-1); font-size: 12px; line-height: 18px; color: var(--ink-500); }
+        .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+                   clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+        /* Bloque derecho: la planificación */
+        .chat-doc__cab {
+            flex: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-4);
+            padding: var(--space-3) var(--space-6);
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .chat-doc__nombre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                            font-weight: 600; color: var(--ink-700); }
+        .chat-doc__cab a { flex: none; font-weight: 600; }
+        .chat-doc__retro { flex: none; max-height: 30%; overflow-y: auto; padding: var(--space-2) var(--space-6);
+                           border-bottom: 1px solid var(--border); background: var(--status-pending-bg);
+                           font-size: 13px; line-height: 20px; }
+        .chat-doc__retro summary { cursor: pointer; font-weight: 600; }
+        .chat-doc__retro p { margin: var(--space-2) 0 0; }
+        .chat-doc__marco { flex: 1 1 auto; width: 100%; min-height: 0; border: 0; background: var(--surface); }
+
+        @media (max-width: 56rem) {
+            main.chat-pagina { --chat-alto: auto; }
+            .chat-layout { display: flex; flex-direction: column; height: auto; }
+            .chat-caja { height: 80vh; min-height: 28rem; }
+            .chat-doc { height: 70vh; min-height: 24rem; }
+        }
+
+        /* ---------- Modo panel (dentro de la burbuja): el chat ocupa todo el marco ---------- */
+        html.embebido, html.embebido body { height: 100%; margin: 0; background: var(--surface-raised); overflow: hidden; }
         html.embebido .barra, html.embebido .solo-completa { display: none; }
-        html.embebido main { max-width: none; padding: var(--space-3) var(--space-4) var(--space-4); }
-        html.embebido .chat-conversacion { margin: var(--space-3) 0; }
-        html.embebido .chat-burbuja { max-width: 92%; }
-        html.embebido .card { margin: var(--space-3) 0; padding: var(--space-4); }
-        html.embebido .hint { margin: 0 0 var(--space-2); font-size: 12px; line-height: 18px; }
+        html.embebido main.chat-pagina { max-width: none; height: 100%; margin: 0; padding: 0; }
+        html.embebido .chat-layout { display: block; height: 100%; }
+        html.embebido .chat-caja { height: 100%; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
+        html.embebido .chat-cab { padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4); }
+        html.embebido .chat-mensajes { padding: var(--space-3) var(--space-4); }
+        html.embebido .chat-burbuja { max-width: 94%; }
+        html.embebido .chat-ayuda { top: 48px; }
     </style>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/estudiante/planificaciones')}"></th:block>
-<main>
-    <a class="back-link solo-completa" th:href="@{/estudiante/planificaciones}">Volver a mis planificaciones</a>
+<main class="chat-pagina">
+    <!-- Vuelve al borrador de esta planificación, no al listado -->
+    <a class="back-link solo-completa"
+       th:href="@{/estudiante/planificaciones/{id}/editar(id=${chat.idPlanificacion()})}">Volver al borrador</a>
 
-    <h1 class="solo-completa">Asistente de planificaciones</h1>
-    <span class="card__meta solo-completa" th:text="${chat.etiquetaLinea()}">Práctica Pedagógica (ESPECIALIDAD)</span>
+    <div class="chat-layout">
+        <section class="chat-caja" aria-label="Conversación con el asistente">
+            <header class="chat-cab">
+                <div class="chat-cab__texto">
+                    <h1 class="solo-completa">Asistente de planificaciones</h1>
+                    <span class="chat-cab__linea" th:text="${chat.etiquetaLinea()}">Práctica Pedagógica (ESPECIALIDAD)</span>
+                </div>
+                <button type="button" class="chat-ayuda-boton" id="chat-ayuda-boton"
+                        aria-expanded="false" aria-controls="chat-ayuda"
+                        aria-label="Cómo funciona el asistente" title="Cómo funciona el asistente">?</button>
+            </header>
 
-    <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
-
-    <p class="hint">
-        El asistente te orienta para mejorar tu planificación antes de que la revise el profesor: no la escribe
-        por ti ni decide si se aprueba. Revisa la <strong>última versión guardada</strong>; si haces cambios,
-        guárdalos antes de preguntarle.
-    </p>
-
-    <p class="hint">
-        <strong>Privacidad:</strong> tus mensajes y tu planificación se envían a un servicio externo de inteligencia
-        artificial para generar las respuestas, así que no incluyas datos personales (tu nombre, el de tus
-        estudiantes o el de tu centro). Además, el asistente valora tu planificación por aspectos: el profesor de
-        la asignatura solo ve resultados agregados del curso, sin nombres, y nunca tu conversación.
-    </p>
-
-    <details class="card solo-completa">
-        <summary>Ver la planificación que revisa el asistente</summary>
-        <div class="card__content">
-            <p>
-                <strong th:text="${chat.archivoOriginal()}">planificacion.pdf</strong>
-                · subida el <span th:text="${#temporals.format(chat.archivoFecha(), 'dd-MM-yyyy HH:mm')}">fecha</span>
-            </p>
-            <iframe th:src="@{/estudiante/planificaciones/{id}/archivo(id=${chat.idPlanificacion()})}"
-                    title="Vista previa de la planificación"
-                    style="width:100%; height:480px; border:1px solid #ccc;"></iframe>
-            <p><a th:href="@{/estudiante/planificaciones/{id}/archivo(id=${chat.idPlanificacion()})}"
-                target="_blank" rel="noopener">Abrir en otra pestaña</a></p>
-        </div>
-        <div class="card__retro" th:if="${chat.rechazada()}">
-            <strong>Retroalimentación del profesor</strong>
-            <p class="chat-planificacion" th:text="${chat.retroalimentacion()}">Comentarios del profesor</p>
-        </div>
-    </details>
-
-    <p class="solo-completa">
-        <a class="btn btn-secondary"
-           th:href="@{/estudiante/planificaciones/{id}/editar(id=${chat.idPlanificacion()})}">Editar planificación</a>
-    </p>
-
-    <section class="chat-conversacion" aria-live="polite">
-        <p class="hint" th:if="${#lists.isEmpty(chat.turnos())}">
-            Aún no has conversado con el asistente. Escribe abajo tu primera consulta, por ejemplo:
-            «¿Mis objetivos de aprendizaje son claros y se pueden comprobar?».
-        </p>
-        <div class="chat-turno" th:each="turno : ${chat.turnos()}">
-            <div class="chat-burbuja chat-estudiante">
-                <span class="chat-autor"
-                th:text="${turno.tipo().name() == 'REVISION'} ? 'Tú · Revisión completa' : 'Tú · Pregunta'">Tú</span>
-                <p th:text="${turno.mensajeEstudiante()}">Mensaje del estudiante</p>
+            <div class="chat-ayuda" id="chat-ayuda" role="region" aria-label="Ayuda del asistente" hidden>
+                <h2>¿Qué hace el asistente?</h2>
+                <p>
+                    Te orienta para mejorar tu planificación antes de que la revise el profesor: no la escribe
+                    por ti ni decide si se aprueba. Revisa la <strong>última versión guardada</strong>; si haces
+                    cambios, guárdalos antes de preguntarle.
+                </p>
+                <h2>Pregunta y revisión completa</h2>
+                <p>
+                    Con una <strong>pregunta</strong> consultas un punto concreto. La <strong>revisión completa</strong>
+                    evalúa tu planificación aspecto por aspecto. Cada planificación tiene un número limitado de
+                    revisiones completas, que no se reinicia al subir un PDF nuevo, y cada una cuenta además como un
+                    mensaje del día.
+                </p>
+                <h2>Privacidad</h2>
+                <p>
+                    Tus mensajes y tu planificación se envían a un servicio externo de inteligencia artificial para
+                    generar las respuestas, así que no incluyas datos personales (tu nombre, el de tus estudiantes o
+                    el de tu centro). El profesor de la asignatura solo ve resultados agregados del curso, sin
+                    nombres, y nunca tu conversación.
+                </p>
             </div>
-            <div class="chat-burbuja chat-asistente">
-                <span class="chat-autor"
-                th:text="${turno.tipo().name() == 'REVISION'} ? 'Asistente · Revisión completa' : 'Asistente · Pregunta'">Asistente</span>
-                <p th:text="${turno.respuestaBot()}">Respuesta del asistente</p>
+
+            <div class="chat-mensajes" id="chat-mensajes">
+                <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
+
+                <section class="chat-conversacion" aria-live="polite">
+                    <p class="chat-vacio" th:if="${#lists.isEmpty(chat.turnos())}">
+                        Aún no has conversado con el asistente. Escribe abajo tu primera consulta, por ejemplo:
+                        «¿Mis objetivos de aprendizaje son claros y se pueden comprobar?».
+                    </p>
+                    <div class="chat-turno" th:each="turno : ${chat.turnos()}">
+                        <div class="chat-burbuja chat-estudiante">
+                            <span class="chat-autor"
+                            th:text="${turno.tipo().name() == 'REVISION'} ? 'Tú · Revisión completa' : 'Tú · Pregunta'">Tú</span>
+                            <p th:text="${turno.mensajeEstudiante()}">Mensaje del estudiante</p>
+                        </div>
+                        <div class="chat-burbuja chat-asistente">
+                            <span class="chat-autor"
+                            th:text="${turno.tipo().name() == 'REVISION'} ? 'Asistente · Revisión completa' : 'Asistente · Pregunta'">Asistente</span>
+                            <p th:text="${turno.respuestaBot()}">Respuesta del asistente</p>
+                        </div>
+                        <span class="card__meta chat-hora"
+                              th:text="${#temporals.format(turno.fecha(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
+                    </div>
+                </section>
             </div>
-            <span class="card__meta chat-hora"
-                  th:text="${#temporals.format(turno.fecha(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
-        </div>
-    </section>
 
-    <form id="revision" method="post" class="card"
-          th:if="${chat.revisionesRestantes() gt 0 and chat.mensajesRestantesHoy() gt 0}"
-          th:action="@{/estudiante/planificaciones/{id}/chat/revision(id=${chat.idPlanificacion()})}">
-        <strong>Revisión completa</strong>
-        <p class="hint">
-            El asistente revisa tu planificación completa, aspecto por aspecto. Cada planificación tiene un número
-            limitado de revisiones, que no se reinicia al subir un PDF nuevo. Cuenta además como un mensaje del día.
-        </p>
-        <p class="hint"
-           th:text="'Te quedan ' + ${chat.revisionesRestantes()} + ' de ' + ${chat.maxRevisiones()} + ' revisiones.'">
-            Te quedan 2 de 2 revisiones.</p>
-        <button type="submit" id="pedir-revision" class="btn btn-accent">Pedir revisión completa</button>
-    </form>
-    
-    <p class="hint" th:if="${chat.revisionesRestantes() le 0}"
-       th:text="'Ya usaste ' + (${chat.maxRevisiones() == 1} ? 'la revisión completa' : 'las ' + ${chat.maxRevisiones()} + ' revisiones completas') + ' de esta planificación. Puedes seguir haciendo preguntas al asistente o consultar a tu profesor, tutor o colaborador.'">
-        Ya usaste las 2 revisiones completas de esta planificación. Puedes seguir haciendo preguntas al asistente o
-        consultar a tu profesor, tutor o colaborador.
-    </p>
+            <div class="chat-pie">
+                <div class="chat-herramientas">
+                    <form id="revision" method="post" class="chat-revision"
+                          th:if="${chat.revisionesRestantes() gt 0 and chat.mensajesRestantesHoy() gt 0}"
+                          th:action="@{/estudiante/planificaciones/{id}/chat/revision(id=${chat.idPlanificacion()})}">
+                        <button type="submit" id="pedir-revision" class="btn btn-secondary"
+                                th:title="'Revisión completa de tu planificación. Te quedan ' + ${chat.revisionesRestantes()} + ' de ' + ${chat.maxRevisiones()}">Pedir revisión completa</button>
+                    </form>
+                    <span class="chat-aviso" th:if="${chat.revisionesRestantes() gt 0}"
+                          th:text="'Revisiones: ' + ${chat.revisionesRestantes()} + ' de ' + ${chat.maxRevisiones()}">Revisiones: 2 de 2</span>
+                    <span class="chat-aviso" th:if="${chat.revisionesRestantes() le 0}"
+                          th:text="${chat.maxRevisiones() == 1} ? 'Ya usaste la revisión completa. Aún puedes hacer preguntas.' : 'Ya usaste las ' + ${chat.maxRevisiones()} + ' revisiones completas. Aún puedes hacer preguntas.'">
+                        Ya usaste las 2 revisiones completas. Aún puedes hacer preguntas.</span>
+                </div>
 
-    <form id="escribir" method="post" class="card" th:if="${chat.mensajesRestantesHoy() gt 0}"
-          th:action="@{/estudiante/planificaciones/{id}/chat(id=${chat.idPlanificacion()})}">
-        <div class="field">
-            <label for="mensaje">Tu mensaje para el asistente</label>
-            <textarea id="mensaje" name="mensaje" rows="4" required="required"
-                      th:maxlength="${chat.maxCaracteresMensaje()}" th:text="${textoEscrito}"></textarea>
-            <span class="hint" id="contador"
-                  th:text="'Máximo ' + ${chat.maxCaracteresMensaje()} + ' caracteres.'">Máximo 1500 caracteres.</span>
-            <span class="hint"
-                  th:text="'Te quedan ' + ${chat.mensajesRestantesHoy()} + ' mensajes hoy.'">Te quedan 20 mensajes hoy.</span>
-        </div>
-        <button type="submit" id="enviar" class="btn btn-accent">Enviar al asistente</button>
-    </form>
+                <form id="escribir" method="post" th:if="${chat.mensajesRestantesHoy() gt 0}"
+                      th:action="@{/estudiante/planificaciones/{id}/chat(id=${chat.idPlanificacion()})}">
+                    <div class="chat-compositor">
+                        <label for="mensaje" class="sr-only">Tu pregunta para el asistente</label>
+                        <textarea id="mensaje" name="mensaje" rows="2" required="required"
+                                  placeholder="Escribe tu pregunta para el asistente"
+                                  th:maxlength="${chat.maxCaracteresMensaje()}" th:text="${textoEscrito}"></textarea>
+                        <button type="submit" id="enviar" class="btn btn-accent">Enviar</button>
+                    </div>
+                    <div class="chat-contadores">
+                        <span id="contador"
+                              th:text="'Máximo ' + ${chat.maxCaracteresMensaje()} + ' caracteres.'">Máximo 1500 caracteres.</span>
+                        <span th:text="'Te quedan ' + ${chat.mensajesRestantesHoy()} + ' mensajes hoy.'">Te quedan 20 mensajes hoy.</span>
+                    </div>
+                </form>
 
-    <p class="msg error" th:unless="${chat.mensajesRestantesHoy() gt 0}">
-        Llegaste al límite de mensajes de hoy con el asistente. Podrás seguir mañana.
-    </p>
+                <p class="msg error" th:unless="${chat.mensajesRestantesHoy() gt 0}">
+                    Llegaste al límite de mensajes de hoy con el asistente. Podrás seguir mañana.
+                </p>
+            </div>
+        </section>
+
+        <!-- Planificación que revisa el asistente (solo en pantalla completa) -->
+        <section class="chat-doc solo-completa" aria-label="Planificación">
+            <div class="chat-doc__cab">
+                <span class="chat-doc__nombre">
+                    <span th:text="${chat.archivoOriginal()}">planificacion.pdf</span>
+                    · subida el <span th:text="${#temporals.format(chat.archivoFecha(), 'dd-MM-yyyy HH:mm')}">fecha</span>
+                </span>
+                <a th:href="@{/estudiante/planificaciones/{id}/archivo(id=${chat.idPlanificacion()})}"
+                   target="_blank" rel="noopener">Abrir en otra pestaña</a>
+            </div>
+            <details class="chat-doc__retro" th:if="${chat.rechazada()}">
+                <summary>Retroalimentación del profesor</summary>
+                <p class="chat-planificacion" th:text="${chat.retroalimentacion()}">Comentarios del profesor</p>
+            </details>
+            <iframe class="chat-doc__marco"
+                    th:src="@{/estudiante/planificaciones/{id}/archivo(id=${chat.idPlanificacion()})}"
+                    title="Vista previa de la planificación"></iframe>
+        </section>
+    </div>
 </main>
 
+<script>
+    // Ayuda (?): se abre y se cierra con el botón, con Escape o al pulsar fuera.
+    (function () {
+        var boton = document.getElementById('chat-ayuda-boton');
+        var ayuda = document.getElementById('chat-ayuda');
+        function alternar(abrir) {
+            ayuda.hidden = !abrir;
+            boton.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+        }
+        boton.addEventListener('click', function (e) { e.stopPropagation(); alternar(ayuda.hidden); });
+        document.addEventListener('click', function (e) {
+            if (!ayuda.hidden && !ayuda.contains(e.target)) { alternar(false); }
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !ayuda.hidden) { alternar(false); boton.focus(); }
+        });
+    })();
+
+    // La conversación crece hacia abajo: al cargar se muestra siempre el último mensaje.
+    (function () {
+        var mensajes = document.getElementById('chat-mensajes');
+        function alFinal() { mensajes.scrollTop = mensajes.scrollHeight; }
+        alFinal();
+        window.addEventListener('load', alFinal);
+        window.addEventListener('pageshow', alFinal);
+    })();
+</script>
 <script>
     // La consulta puede tardar unos segundos: se bloquea el botón para no enviarla dos veces.
     (function () {
@@ -164,11 +346,11 @@
 
         formulario.addEventListener('submit', function () {
             boton.disabled = true;
-            boton.textContent = 'Consultando al asistente…';
+            boton.textContent = 'Consultando…';
         });
         window.addEventListener('pageshow', function () {
             boton.disabled = false;
-            boton.textContent = 'Enviar al asistente';
+            boton.textContent = 'Enviar';
         });
     })();
 </script>
