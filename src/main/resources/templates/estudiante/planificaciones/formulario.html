@@ -12,115 +12,183 @@
     <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/tema.css}">
-    <style>
-        .subida__fila { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
-        .subida__progreso { width: 100%; max-width: 420px; height: 14px; }
-        .subida__progreso[hidden] { display: none; }
-        .subida__estado { margin: var(--space-2) 0 0; }
-        .subida__avisos { margin: var(--space-3) 0 0; padding-left: 1.2em; }
-        .vista-previa { width: 100%; height: 520px; border: 1px solid #ccc; border-radius: 6px; }
-        .archivo-actual { display: flex; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
-        .texto-antiguo { white-space: pre-wrap; overflow-wrap: anywhere; }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/pauta-editor.css}">
+    <link rel="stylesheet" th:href="@{/css/planificacion-editor.css}">
     <script th:src="@{/js/planificacion-pdf.js}" defer></script>
+    <script th:src="@{/js/asistente-burbuja.js}" defer
+            th:if="${planificacion != null and planificacion.tieneArchivo()}"></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/estudiante/planificaciones')}"></th:block>
-<main>
+<main class="editor-pagina pl-pagina">
     <a class="back-link" th:href="@{/estudiante/planificaciones}">Volver a mis planificaciones</a>
 
-    <h1 th:text="${titulo}">Nueva planificación de clase</h1>
+    <div class="editor pl-editor">
 
-    <p class="msg ok" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
-    <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
+        <!-- Bloque izquierdo: información, subida del PDF y acciones -->
+        <aside class="editor__lateral pl-lateral" aria-label="Datos de la planificación">
+            <div class="pl-datos">
+                <p class="editor__etiqueta">Planificación de clase</p>
+                <h1 th:text="${titulo}">Nueva planificación de clase</h1>
 
-    <div class="card">
-        <!-- Planificación ya guardada (borrador o rechazada): la línea está definida y, si fue rechazada,
-             se muestra la retroalimentación que motivó el rechazo -->
-        <div th:if="${planificacion != null}">
-            <p><strong>Línea:</strong> <span th:text="${planificacion.etiquetaLinea()}">Asignatura (LÍNEA)</span></p>
-            <div class="card__retro" th:if="${planificacion.retroalimentacion() != null}">
-                <strong>Retroalimentación del colaborador</strong>
-                <p th:text="${planificacion.retroalimentacion()}">Texto de la retroalimentación</p>
-            </div>
-        </div>
+                <p class="msg ok" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
+                <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
 
-        <p class="hint">
-            Sube tu planificación en el <strong>formato estándar</strong> (PDF con texto, máximo 20 MB).
-            ¿No lo tienes? Descárgalo en
-            <a th:href="@{/plantillas/plantilla-planificacion.docx}" download>Word</a> o
-            <a th:href="@{/plantillas/plantilla-planificacion.pdf}" download>PDF</a>,
-            complétalo y expórtalo a PDF. No uses fotos ni escaneos: el asistente necesita poder leer el texto.
-        </p>
+                <!-- Planificación ya guardada (borrador o rechazada) -->
+                <div th:if="${planificacion != null}">
+                    <dl class="pl-meta">
+                        <dt>Línea</dt>
+                        <dd th:text="${planificacion.etiquetaLinea()}">Asignatura (LÍNEA)</dd>
+                        <dt>Estado</dt>
+                        <dd>
+                            <span class="badge" th:classappend="${planificacion.esBorrador()} ? 'borrador' : 'rechazada'"
+                                  th:text="${planificacion.esBorrador()} ? 'Borrador' : 'Rechazada'">Borrador</span>
+                        </dd>
+                        <dt th:if="${planificacion.tieneArchivo()}">Archivo</dt>
+                        <dd th:if="${planificacion.tieneArchivo()}">
+                            <span class="pl-archivo__nombre" th:text="${planificacion.archivoOriginal()}">planificacion.pdf</span>
+                            <span class="hint">
+                                <span th:text="${#numbers.formatDecimal(planificacion.archivoTamano() / 1024.0, 1, 0)} + ' KB'">120 KB</span>
+                                · Subido el
+                                <span th:text="${#temporals.format(planificacion.archivoFecha(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
+                            </span>
+                        </dd>
+                    </dl>
 
-        <!-- Subida: la hace planificacion-pdf.js con XMLHttpRequest para poder mostrar el avance -->
-        <div id="subida-pdf"
-             th:attr="data-url-subida=@{${urlSubida}}, data-id-planificacion=${planificacion != null ? planificacion.idPlanificacion() : ''}, data-url-editar=@{/estudiante/planificaciones}">
+                    <div class="card__retro" th:if="${planificacion.retroalimentacion() != null}">
+                        <strong>Retroalimentación del colaborador</strong>
+                        <p th:text="${planificacion.retroalimentacion()}">Texto de la retroalimentación</p>
+                    </div>
 
-            <div class="field" th:if="${planificacion == null}">
-                <label for="idLinea">Línea de práctica</label>
-                <select id="idLinea" name="idLinea">
-                    <option value="">Selecciona una línea...</option>
-                    <option th:each="l : ${lineas}" th:value="${l.idLinea()}"
-                            th:text="${l.etiqueta()}">Asignatura (LÍNEA)</option>
-                </select>
-                <p class="msg error" th:if="${#lists.isEmpty(lineas)}">
-                    No tienes líneas de práctica asignadas, por lo que aún no puedes enviar planificaciones.
+                    <p class="msg error" th:unless="${planificacion.tieneArchivo()}">
+                        Esta planificación aún no tiene un PDF. Súbelo para poder enviarla o conversar con el asistente.
+                    </p>
+                </div>
+
+                <!-- Formato esperado y plantilla (abierto al crear; plegable al editar) -->
+                <details class="pl-ayuda" th:open="${planificacion == null}">
+                    <summary>Formato del archivo</summary>
+                    <p class="hint">
+                        Sube tu planificación en el <strong>formato estándar</strong> (PDF con texto, máximo 20 MB).
+                        ¿No lo tienes? Descárgalo en
+                        <a th:href="@{/plantillas/plantilla-planificacion.docx}" download>Word</a> o
+                        <a th:href="@{/plantillas/plantilla-planificacion.pdf}" download>PDF</a>,
+                        complétalo y expórtalo a PDF. No uses fotos ni escaneos: el asistente necesita poder leer el texto.
+                    </p>
+                </details>
+
+                <!-- Subida: la hace planificacion-pdf.js con XMLHttpRequest para poder mostrar el avance -->
+                <div id="subida-pdf" class="pl-subida"
+                     th:attr="data-url-subida=@{${urlSubida}}, data-id-planificacion=${planificacion != null ? planificacion.idPlanificacion() : ''}, data-url-editar=@{/estudiante/planificaciones}">
+
+                    <!-- Avisos del último PDF subido (por ejemplo, secciones que no se encontraron) -->
+                    <ul class="subida__avisos pl-avisos" id="avisos-subida" hidden></ul>
+
+                    <div class="field" th:if="${planificacion == null}">
+                        <label for="idLinea">Línea de práctica</label>
+                        <select id="idLinea" name="idLinea">
+                            <option value="">Selecciona una línea...</option>
+                            <option th:each="l : ${lineas}" th:value="${l.idLinea()}"
+                                    th:text="${l.etiqueta()}">Asignatura (LÍNEA)</option>
+                        </select>
+                        <p class="msg error" th:if="${#lists.isEmpty(lineas)}">
+                            No tienes líneas de práctica asignadas, por lo que aún no puedes enviar planificaciones.
+                        </p>
+                    </div>
+
+                    <div class="field">
+                        <label for="archivo-pdf"
+                               th:text="${planificacion != null and planificacion.tieneArchivo()} ? 'Reemplazar el PDF por otra versión' : 'Subir archivo PDF'">Subir archivo PDF</label>
+                        <div class="subida__fila">
+                            <input type="file" id="archivo-pdf" accept="application/pdf,.pdf">
+                            <button type="button" id="boton-subir" class="btn" disabled
+                                    th:classappend="${planificacion == null} ? 'btn-accent' : 'btn-secondary'"
+                                    th:text="${planificacion != null and planificacion.tieneArchivo()} ? 'Reemplazar PDF' : 'Subir PDF'">Subir PDF</button>
+                        </div>
+                        <progress class="subida__progreso" id="progreso-subida" max="100" value="0" hidden></progress>
+                        <p class="subida__estado" id="estado-subida" role="status" aria-live="polite"></p>
+                    </div>
+
+                    <p class="hint" th:if="${planificacion == null}">
+                        Al subir el PDF se crea tu borrador, que solo ves tú. Después podrás revisarlo,
+                        enviarlo al profesor o conversar con el asistente.
+                    </p>
+                </div>
+
+                <details class="pl-ayuda" th:if="${planificacion != null and planificacion.contenido() != null}">
+                    <summary>Texto anterior de esta planificación (solo de referencia)</summary>
+                    <p class="texto-antiguo" th:text="${planificacion.contenido()}">Texto anterior</p>
+                </details>
+
+                <p class="hint" th:if="${planificacion != null and planificacion.esBorrador()}">
+                    Solo tú ves tu borrador: el colaborador no lo recibe hasta que lo envíes.
                 </p>
             </div>
 
-            <div class="field">
-                <label for="archivo-pdf"
-                       th:text="${planificacion != null and planificacion.tieneArchivo()} ? 'Reemplazar el PDF por otra versión' : 'Archivo PDF de la planificación'">Archivo PDF</label>
-                <div class="subida__fila">
-                    <input type="file" id="archivo-pdf" accept="application/pdf,.pdf">
-                    <button type="button" class="btn btn-secondary" id="boton-subir" disabled>Subir PDF</button>
-                </div>
-                <progress class="subida__progreso" id="progreso-subida" max="100" value="0" hidden></progress>
-                <p class="subida__estado" id="estado-subida" role="status" aria-live="polite"></p>
-                <ul class="subida__avisos hint" id="avisos-subida" hidden></ul>
+            <!-- Acciones: subir el PDF ya deja guardado el borrador -->
+            <form class="editor__acciones" method="post" th:action="@{${accionEnviar}}" th:if="${planificacion != null}">
+                <button type="submit" class="btn btn-accent" th:disabled="${!planificacion.tieneArchivo()}"
+                        th:text="${etiquetaEnviar}">Enviar al profesor</button>
+                <a class="btn btn-secondary" th:href="@{/estudiante/planificaciones}"
+                   th:text="${planificacion.esBorrador()} ? 'Guardar borrador y volver' : 'Volver a mis planificaciones'">Guardar borrador y volver</a>
+            </form>
+        </aside>
+
+        <!-- Bloque derecho: el PDF, siempre a la vista -->
+        <section class="editor__principal pl-visor" aria-label="Vista del PDF"
+                 th:if="${planificacion != null and planificacion.tieneArchivo()}">
+            <header class="pl-visor__cab">
+                <span class="pl-visor__nombre" th:text="${planificacion.archivoOriginal()}">planificacion.pdf</span>
+                <a th:href="@{${urlArchivo}}" target="_blank" rel="noopener">Abrir en otra pestaña</a>
+            </header>
+            <iframe class="pl-visor__marco" th:src="@{${urlArchivo}}" title="Vista previa de la planificación"></iframe>
+        </section>
+
+        <section class="editor__principal pl-visor pl-visor--vacio" aria-label="Vista del PDF"
+                 th:if="${planificacion == null or !planificacion.tieneArchivo()}">
+            <div class="pl-vacio">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+                    <path d="M14 3v5h5M9 13h6M9 17h6"/>
+                </svg>
+                <h2>Tu planificación aparecerá aquí</h2>
+                <p>Cuando subas el PDF lo verás en este recuadro mientras trabajas, y podrás conversar
+                    con el asistente para mejorarla antes de enviarla al profesor.</p>
             </div>
-        </div>
-
-        <!-- PDF subido: datos y vista previa -->
-        <div th:if="${planificacion != null and planificacion.tieneArchivo()}">
-            <p class="archivo-actual">
-                <span><strong th:text="${planificacion.archivoOriginal()}">planificacion.pdf</strong>
-                    · <span th:text="${#numbers.formatDecimal(planificacion.archivoTamano() / 1024.0, 1, 0)} + ' KB'">120 KB</span></span>
-                <span>Subido el <span th:text="${#temporals.format(planificacion.archivoFecha(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span></span>
-            </p>
-            <iframe class="vista-previa" th:src="@{${urlArchivo}}" title="Vista previa de la planificación"></iframe>
-            <p><a th:href="@{${urlArchivo}}" target="_blank" rel="noopener">Abrir en otra pestaña</a></p>
-        </div>
-
-        <p class="msg error" th:if="${planificacion != null and !planificacion.tieneArchivo()}">
-            Esta planificación aún no tiene un PDF. Súbelo para poder enviarla o conversar con el asistente.
-        </p>
-        <details th:if="${planificacion != null and planificacion.contenido() != null}">
-            <summary>Texto anterior de esta planificación (solo de referencia)</summary>
-            <p class="texto-antiguo" th:text="${planificacion.contenido()}">Texto anterior</p>
-        </details>
-
-        <!-- Acciones: subir el PDF ya deja guardado el borrador -->
-        <form th:if="${planificacion != null}" method="post" th:action="@{${accionEnviar}}"
-              style="display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;">
-            <button type="submit" class="btn btn-accent" th:disabled="${!planificacion.tieneArchivo()}"
-                    th:text="${etiquetaEnviar}">Enviar al profesor</button>
-            <a class="btn btn-primary" th:if="${planificacion.tieneArchivo()}"
-               th:href="@{/estudiante/planificaciones/{id}/chat(id=${planificacion.idPlanificacion()})}">Conversar con el asistente</a>
-            <a class="btn btn-ghost" th:href="@{/estudiante/planificaciones}">Guardar y volver</a>
-        </form>
-        <p class="hint" th:if="${planificacion == null}">
-            Al subir el PDF se crea tu borrador y podrás revisarlo, enviarlo o conversar con el asistente.
-        </p>
-        <p class="hint" th:if="${planificacion != null and planificacion.esBorrador()}">
-            Tu borrador ya está guardado y solo lo ves tú: el colaborador no lo recibe hasta que lo envíes.
-        </p>
-        <p class="hint" th:if="${planificacion != null}">
-            <strong>Privacidad:</strong> al conversar con el asistente, el contenido de tu PDF se envía a un servicio
-            externo de inteligencia artificial. No incluyas datos personales (tu nombre, el de tus estudiantes o el de tu centro).
-        </p>
+        </section>
     </div>
 </main>
+
+<!-- Asistente: burbuja flotante que abre la conversación en un panel (el mismo chat de siempre) -->
+<div class="asistente" id="asistente" th:if="${planificacion != null and planificacion.tieneArchivo()}"
+     th:attr="data-url-chat=@{/estudiante/planificaciones/{id}/chat(id=${planificacion.idPlanificacion()})}">
+    <section class="asistente__panel" id="asistente-panel" role="dialog" aria-label="Asistente de planificaciones" hidden>
+        <header class="asistente__cab">
+            <strong>Asistente</strong>
+            <a th:href="@{/estudiante/planificaciones/{id}/chat(id=${planificacion.idPlanificacion()})}"
+               target="_blank" rel="noopener">Pantalla completa</a>
+            <button type="button" class="asistente__cerrar" id="asistente-cerrar" aria-label="Cerrar el asistente">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </header>
+        <iframe class="asistente__marco" id="asistente-marco" title="Conversación con el asistente"></iframe>
+    </section>
+
+    <div class="asistente__fila">
+        <button type="button" class="asistente__saludo" id="asistente-saludo">
+            Hola, ¿quieres conversar con el asistente?
+        </button>
+        <button type="button" class="asistente__burbuja" id="asistente-boton"
+                aria-expanded="false" aria-controls="asistente-panel" aria-label="Abrir el asistente">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>
+                <path d="M9 11h.01M12 11h.01M15 11h.01"/>
+            </svg>
+        </button>
+    </div>
+</div>
 </body>
 </html>

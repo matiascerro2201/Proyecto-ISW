@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <!-- Dentro del panel de la burbuja del asistente esta pantalla se muestra compacta (ver .embebido) -->
+    <script>if (window.self !== window.top) { document.documentElement.classList.add('embebido'); }</script>
     <title>Asistente de planificaciones</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,15 +24,24 @@
         .chat-asistente { align-self: flex-start; background: var(--surface-raised); }
         .chat-hora { align-self: center; }
         .chat-planificacion { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+        /* Modo panel: sin barra, sin título ni lo que ya se ve en la página que contiene el panel */
+        html.embebido body { background: var(--surface-raised); }
+        html.embebido .barra, html.embebido .solo-completa { display: none; }
+        html.embebido main { max-width: none; padding: var(--space-3) var(--space-4) var(--space-4); }
+        html.embebido .chat-conversacion { margin: var(--space-3) 0; }
+        html.embebido .chat-burbuja { max-width: 92%; }
+        html.embebido .card { margin: var(--space-3) 0; padding: var(--space-4); }
+        html.embebido .hint { margin: 0 0 var(--space-2); font-size: 12px; line-height: 18px; }
     </style>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/estudiante/planificaciones')}"></th:block>
 <main>
-    <a class="back-link" th:href="@{/estudiante/planificaciones}">Volver a mis planificaciones</a>
+    <a class="back-link solo-completa" th:href="@{/estudiante/planificaciones}">Volver a mis planificaciones</a>
 
-    <h1>Asistente de planificaciones</h1>
-    <span class="card__meta" th:text="${chat.etiquetaLinea()}">Práctica Pedagógica (ESPECIALIDAD)</span>
+    <h1 class="solo-completa">Asistente de planificaciones</h1>
+    <span class="card__meta solo-completa" th:text="${chat.etiquetaLinea()}">Práctica Pedagógica (ESPECIALIDAD)</span>
 
     <p class="msg error" th:if="${error}" th:text="${error}">Mensaje de error</p>
 
@@ -47,7 +58,7 @@
         la asignatura solo ve resultados agregados del curso, sin nombres, y nunca tu conversación.
     </p>
 
-    <details class="card">
+    <details class="card solo-completa">
         <summary>Ver la planificación que revisa el asistente</summary>
         <div class="card__content">
             <p>
@@ -66,15 +77,15 @@
         </div>
     </details>
 
-    <p>
+    <p class="solo-completa">
         <a class="btn btn-secondary"
            th:href="@{/estudiante/planificaciones/{id}/editar(id=${chat.idPlanificacion()})}">Editar planificación</a>
     </p>
 
     <section class="chat-conversacion" aria-live="polite">
         <p class="hint" th:if="${#lists.isEmpty(chat.turnos())}">
-            Aún no has conversado con el asistente. Puedes pedir una revisión completa con el botón de más abajo
-            o escribir una pregunta, por ejemplo: «¿Mis objetivos de aprendizaje son claros y se pueden comprobar?».
+            Aún no has conversado con el asistente. Escribe abajo tu primera consulta, por ejemplo:
+            «¿Mis objetivos de aprendizaje son claros y se pueden comprobar?».
         </p>
         <div class="chat-turno" th:each="turno : ${chat.turnos()}">
             <div class="chat-burbuja chat-estudiante">
@@ -105,7 +116,7 @@
             Te quedan 2 de 2 revisiones.</p>
         <button type="submit" id="pedir-revision" class="btn btn-accent">Pedir revisión completa</button>
     </form>
-
+    
     <p class="hint" th:if="${chat.revisionesRestantes() le 0}"
        th:text="'Ya usaste ' + (${chat.maxRevisiones() == 1} ? 'la revisión completa' : 'las ' + ${chat.maxRevisiones()} + ' revisiones completas') + ' de esta planificación. Puedes seguir haciendo preguntas al asistente o consultar a tu profesor, tutor o colaborador.'">
         Ya usaste las 2 revisiones completas de esta planificación. Puedes seguir haciendo preguntas al asistente o
@@ -115,15 +126,15 @@
     <form id="escribir" method="post" class="card" th:if="${chat.mensajesRestantesHoy() gt 0}"
           th:action="@{/estudiante/planificaciones/{id}/chat(id=${chat.idPlanificacion()})}">
         <div class="field">
-            <label for="mensaje">Tu pregunta para el asistente</label>
+            <label for="mensaje">Tu mensaje para el asistente</label>
             <textarea id="mensaje" name="mensaje" rows="4" required="required"
                       th:maxlength="${chat.maxCaracteresMensaje()}" th:text="${textoEscrito}"></textarea>
             <span class="hint" id="contador"
                   th:text="'Máximo ' + ${chat.maxCaracteresMensaje()} + ' caracteres.'">Máximo 1500 caracteres.</span>
             <span class="hint"
-                  th:text="'Te quedan ' + ${chat.mensajesRestantesHoy()} + ' mensajes hoy (las revisiones completas también cuentan).'">Te quedan 10 mensajes hoy.</span>
+                  th:text="'Te quedan ' + ${chat.mensajesRestantesHoy()} + ' mensajes hoy.'">Te quedan 20 mensajes hoy.</span>
         </div>
-        <button type="submit" id="enviar" class="btn btn-accent">Enviar pregunta</button>
+        <button type="submit" id="enviar" class="btn btn-accent">Enviar al asistente</button>
     </form>
 
     <p class="msg error" th:unless="${chat.mensajesRestantesHoy() gt 0}">
@@ -157,7 +168,7 @@
         });
         window.addEventListener('pageshow', function () {
             boton.disabled = false;
-            boton.textContent = 'Enviar pregunta';
+            boton.textContent = 'Enviar al asistente';
         });
     })();
 </script>
