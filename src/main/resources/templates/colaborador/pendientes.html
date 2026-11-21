@@ -31,7 +31,7 @@
                     <th scope="col">Estudiante</th>
                     <th scope="col">Línea</th>
                     <th scope="col">Enviada</th>
-                    <th scope="col">Contenido</th>
+                    <th scope="col">Planificación</th>
                     <th scope="col"><span class="sr-only">Acción</span></th>
                 </tr>
             </thead>
@@ -40,7 +40,7 @@
                     <td style="font-weight:600;color:var(--ink-900);" th:text="${p.linea?.inscripcion?.estudiante?.nombre}">Nombre del estudiante</td>
                     <td th:text="${p.linea?.tipo}">ESPECIALIDAD</td>
                     <td th:text="${#temporals.format(p.fechaEnvio, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
-                    <td th:text="${#strings.abbreviate(p.contenido, 90)}">Resumen del contenido</td>
+                    <td th:text="${p.tieneArchivo() ? 'PDF: ' + p.archivoOriginal : (p.contenido != null ? #strings.abbreviate(p.contenido, 90) : '')}">Resumen del contenido</td>
                     <td>
                         <a class="btn btn-primary"
                            th:href="@{/planificaciones/{id}/evaluar(id=${p.idPlanificacion})}">Evaluar</a>

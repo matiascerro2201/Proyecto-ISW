@@ -73,7 +73,8 @@ class HistorialEvaluacionServiceTest {
     }
 
     private Planificacion enviada() {
-        Planificacion planificacion = new Planificacion(linea(), "Texto inicial", LocalDateTime.now().minusDays(2));
+        Planificacion planificacion = new Planificacion(linea(), null, LocalDateTime.now().minusDays(2));
+        planificacion.adjuntarArchivo("archivo.pdf", "plan.pdf", 1234L, "Texto inicial", LocalDateTime.now().minusDays(2));
         planificacion.setIdPlanificacion(ID_PLANIFICACION);
         return planificacion;
     }
@@ -134,7 +135,7 @@ class HistorialEvaluacionServiceTest {
 
         service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Faltan objetivos medibles",
                 EstadoPlanificacion.RECHAZADA);
-        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION, "Texto mejorado");
+        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION);
 
         // Al reenviar, la planificación olvida el rechazo: justo lo que el historial viene a conservar.
         assertEquals(EstadoPlanificacion.ENVIADA, planificacion.getEstado());
@@ -199,14 +200,14 @@ class HistorialEvaluacionServiceTest {
     }
 
     @Test
-    @DisplayName("HU-26. Guardar cambios y enviar un borrador no registran evaluaciones")
+    @DisplayName("HU-26. Enviar un borrador no registra evaluaciones")
     void operacionesDelEstudiante_noRegistranEvaluaciones() {
-        Planificacion borrador = Planificacion.borrador(linea(), "Borrador");
+        Planificacion borrador = Planificacion.borrador(linea(), null);
+        borrador.adjuntarArchivo("archivo.pdf", "plan.pdf", 1234L, "Texto del borrador", LocalDateTime.now());
         borrador.setIdPlanificacion(ID_PLANIFICACION);
         dadoQueExiste(borrador);
 
-        service.guardarCambios(ID_ESTUDIANTE, ID_PLANIFICACION, "Borrador editado");
-        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, "Borrador final");
+        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION);
 
         assertEquals(EstadoPlanificacion.ENVIADA, borrador.getEstado());
         assertTrue(borrador.getEvaluaciones().isEmpty());

@@ -49,7 +49,17 @@
 
     <details class="card">
         <summary>Ver la planificación que revisa el asistente</summary>
-        <div class="card__content chat-planificacion" th:text="${chat.contenido()}">Texto de la planificación</div>
+        <div class="card__content">
+            <p>
+                <strong th:text="${chat.archivoOriginal()}">planificacion.pdf</strong>
+                · subida el <span th:text="${#temporals.format(chat.archivoFecha(), 'dd-MM-yyyy HH:mm')}">fecha</span>
+            </p>
+            <iframe th:src="@{/estudiante/planificaciones/{id}/archivo(id=${chat.idPlanificacion()})}"
+                    title="Vista previa de la planificación"
+                    style="width:100%; height:480px; border:1px solid #ccc;"></iframe>
+            <p><a th:href="@{/estudiante/planificaciones/{id}/archivo(id=${chat.idPlanificacion()})}"
+                target="_blank" rel="noopener">Abrir en otra pestaña</a></p>
+        </div>
         <div class="card__retro" th:if="${chat.rechazada()}">
             <strong>Retroalimentación del profesor</strong>
             <p class="chat-planificacion" th:text="${chat.retroalimentacion()}">Comentarios del profesor</p>

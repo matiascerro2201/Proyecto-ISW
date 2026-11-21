@@ -89,7 +89,8 @@ public class ChatbotService {
     /** Lo que necesita la pantalla del chat. */
     public record VistaChat(Long idPlanificacion,
                             String etiquetaLinea,
-                            String contenido,
+                            String archivoOriginal,
+                            LocalDateTime archivoFecha,
                             String retroalimentacion,
                             boolean rechazada,
                             List<Turno> turnos,
@@ -112,6 +113,7 @@ public class ChatbotService {
     public void enviarMensaje(Long idEstudiante, Long idPlanificacion, String mensaje) {
         Planificacion planificacion = planificacionService.obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
         validarQueSePuedeConversar(planificacion.getEstado());
+        validarQueTieneArchivo(planificacion.tieneArchivo());
         String texto = validarMensaje(mensaje);
         validarLimiteDiario(idEstudiante);
 
@@ -124,7 +126,7 @@ public class ChatbotService {
         List<Mensaje> historial = historialParaElAsistente(interaccionRepository
                 .findByPlanificacion_IdPlanificacionAndFechaGreaterThanEqualOrderByFechaAscIdInteraccionAsc(
                         idPlanificacion, desde));
-        String reglas = instrucciones.armar(categorias, planificacion.getContenido(),
+        String reglas = instrucciones.armar(categorias, planificacion.getTextoExtraido(),
                 planificacion.getRetroalimentacion());
         List<String> codigos = categorias.stream().map(CategoriaPlanificacion::getCodigo).toList();
 
@@ -145,6 +147,7 @@ public class ChatbotService {
     public VistaChat obtenerConversacion(Long idEstudiante, Long idPlanificacion) {
         PlanificacionVista planificacion = planificacionService.obtenerVistaDelEstudiante(idEstudiante, idPlanificacion);
         validarQueSePuedeConversar(planificacion.estado());
+        validarQueTieneArchivo(planificacion.tieneArchivo());
 
         List<Turno> turnos = interaccionRepository
                 .findByPlanificacion_IdPlanificacionAndFechaGreaterThanEqualOrderByFechaAscIdInteraccionAsc(
@@ -157,7 +160,7 @@ public class ChatbotService {
         int restantes = (int) Math.max(0L, maxMensajesPorDia - enviadosHoy);
 
         return new VistaChat(planificacion.idPlanificacion(), planificacion.etiquetaLinea(),
-                planificacion.contenido(), planificacion.retroalimentacion(),
+                planificacion.archivoOriginal(), planificacion.archivoFecha(), planificacion.retroalimentacion(),
                 planificacion.estado() == EstadoPlanificacion.RECHAZADA, turnos, restantes, maxCaracteresMensaje);
     }
 
@@ -165,6 +168,14 @@ public class ChatbotService {
         if (!PlanificacionService.esEditable(estado)) {
             throw new IllegalStateException(
                     "Solo se puede conversar con el asistente sobre una planificación en borrador o rechazada");
+        }
+    }
+
+    /** El asistente lee el texto del PDF subido; las planificaciones antiguas, solo con texto, no tienen chat. */
+    private void validarQueTieneArchivo(boolean tieneArchivo) {
+        if (!tieneArchivo) {
+            throw new IllegalStateException(
+                    "Sube el PDF de tu planificación (formato estándar) para conversar con el asistente");
         }
     }
 

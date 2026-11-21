@@ -93,14 +93,23 @@ class ChatbotServiceTest {
 
     // ------------------------------------------------------------------ ayudas
 
+    /** HU-31/32: el asistente lee el texto extraído del PDF, no el cuadro de texto antiguo. */
+    private Planificacion conArchivo(Planificacion planificacion, String textoExtraido) {
+        planificacion.adjuntarArchivo("archivo.pdf", "plan.pdf", 1234L, textoExtraido,
+                LocalDateTime.of(2026, 10, 1, 9, 0));
+        return planificacion;
+    }
+
     private Planificacion borrador() {
-        Planificacion borrador = Planificacion.borrador(null, "Texto del borrador");
+        Planificacion borrador = Planificacion.borrador(null, null);
+        conArchivo(borrador, "Texto del borrador");
         borrador.setIdPlanificacion(ID_PLANIFICACION);
         return borrador;
     }
 
     private Planificacion rechazada(String retroalimentacion, LocalDateTime fechaRetro) {
-        Planificacion rechazada = new Planificacion(null, "Texto mejorado", LocalDateTime.of(2026, 10, 1, 9, 0));
+        Planificacion rechazada = new Planificacion(null, null, LocalDateTime.of(2026, 10, 1, 9, 0));
+        conArchivo(rechazada, "Texto mejorado");
         rechazada.setIdPlanificacion(ID_PLANIFICACION);
         rechazada.setEstado(EstadoPlanificacion.RECHAZADA);
         rechazada.setRetroalimentacion(retroalimentacion);
@@ -109,10 +118,17 @@ class ChatbotServiceTest {
     }
 
     private Planificacion enEstado(EstadoPlanificacion estado) {
-        Planificacion planificacion = new Planificacion(null, "Texto", LocalDateTime.of(2026, 10, 1, 9, 0));
+        Planificacion planificacion = new Planificacion(null, null, LocalDateTime.of(2026, 10, 1, 9, 0));
+        conArchivo(planificacion, "Texto");
         planificacion.setIdPlanificacion(ID_PLANIFICACION);
         planificacion.setEstado(estado);
         return planificacion;
+    }
+
+    private PlanificacionVista vistaConArchivo(String etiqueta, EstadoPlanificacion estado, String retroalimentacion,
+                                               LocalDateTime fechaEnvio, LocalDateTime fechaRetro) {
+        return new PlanificacionVista(ID_PLANIFICACION, etiqueta, null, estado, retroalimentacion,
+                fechaEnvio, fechaRetro, "plan.pdf", 1234L, LocalDateTime.of(2026, 10, 1, 9, 0));
     }
 
     private InteraccionChatbot previa(String mensaje, String respuesta) {
@@ -489,14 +505,60 @@ class ChatbotServiceTest {
         assertEquals(ChatbotService.MAX_CARACTERES_RESPUESTA, guardada.getRespuestaBot().length());
     }
 
+    // ------------------------------------------------------- HU-31/32: PDF
+
+    @Test
+    @DisplayName("HU-31/32. El asistente recibe el texto extraído del PDF, no el texto antiguo de la planificación")
+    void enviarMensaje_usaElTextoExtraidoDelPdf() {
+        Planificacion planificacion = Planificacion.borrador(null, "Texto viejo del cuadro de texto");
+        conArchivo(planificacion, "Texto extraído del PDF");
+        planificacion.setIdPlanificacion(ID_PLANIFICACION);
+        dadoQueLaPlanificacionEs(planificacion);
+        dadoQueHayAspectos();
+        dadoQueElAsistenteResponde(new Respuesta("Respuesta", List.of()));
+
+        enviar("¿Cómo está?");
+
+        Solicitud solicitud = solicitudEnviada();
+        assertTrue(solicitud.instrucciones().contains("Texto extraído del PDF"));
+        assertFalse(solicitud.instrucciones().contains("Texto viejo"));
+    }
+
+    @Test
+    @DisplayName("HU-31/32. Sin PDF subido no se puede conversar con el asistente: IllegalState y no se consulta")
+    void enviarMensaje_sinArchivo_lanzaIllegalState() {
+        Planificacion sinArchivo = Planificacion.borrador(null, "Plan antiguo solo con texto");
+        sinArchivo.setIdPlanificacion(ID_PLANIFICACION);
+        dadoQueLaPlanificacionEs(sinArchivo);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> service.enviarMensaje(ID_ESTUDIANTE, ID_PLANIFICACION, "Hola"));
+
+        assertTrue(ex.getMessage().contains("PDF"), ex.getMessage());
+        verifyNoInteractions(chatbotClient, interaccionRepository);
+    }
+
+    @Test
+    @DisplayName("HU-31/32. La pantalla del chat de una planificación sin PDF lanza IllegalState")
+    void obtenerConversacion_sinArchivo_lanzaIllegalState() {
+        when(planificacionService.obtenerVistaDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION))
+                .thenReturn(new PlanificacionVista(ID_PLANIFICACION, "L", "Plan antiguo",
+                        EstadoPlanificacion.BORRADOR, null, null, null));
+
+        assertThrows(IllegalStateException.class,
+                () -> service.obtenerConversacion(ID_ESTUDIANTE, ID_PLANIFICACION));
+
+        verifyNoInteractions(interaccionRepository);
+    }
+
     // --------------------------------------------------------------- pantalla
 
     @Test
     @DisplayName("HU-26. La conversación de un borrador trae los turnos en orden y los mensajes que quedan hoy")
     void obtenerConversacion_borrador() {
         when(planificacionService.obtenerVistaDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION))
-                .thenReturn(new PlanificacionVista(ID_PLANIFICACION, "Práctica (ESPECIALIDAD)", "Plan actual",
-                        EstadoPlanificacion.BORRADOR, null, null, null));
+                .thenReturn(vistaConArchivo("Práctica (ESPECIALIDAD)", EstadoPlanificacion.BORRADOR,
+                        null, null, null));
         dadoQueElHistorialEs(previa("m1", "r1"), previa("m2", "r2"));
         dadoQueSeUsaronHoy(1);
 
@@ -509,7 +571,8 @@ class ChatbotServiceTest {
         assertEquals(MAX_POR_DIA - 1, vista.mensajesRestantesHoy());
         assertEquals(MAX_CARACTERES, vista.maxCaracteresMensaje());
         assertEquals("Práctica (ESPECIALIDAD)", vista.etiquetaLinea());
-        assertEquals("Plan actual", vista.contenido());
+        assertEquals("plan.pdf", vista.archivoOriginal());
+        assertEquals(LocalDateTime.of(2026, 10, 1, 9, 0), vista.archivoFecha());
         assertEquals(ChatbotService.DESDE_SIEMPRE, fechaConsultadaDelHistorial());
     }
 
@@ -517,8 +580,7 @@ class ChatbotServiceTest {
     @DisplayName("HU-26. Pasado el límite diario los mensajes restantes son 0, nunca negativos")
     void obtenerConversacion_restantesNoSonNegativos() {
         when(planificacionService.obtenerVistaDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION))
-                .thenReturn(new PlanificacionVista(ID_PLANIFICACION, "L", "Plan", EstadoPlanificacion.BORRADOR,
-                        null, null, null));
+                .thenReturn(vistaConArchivo("L", EstadoPlanificacion.BORRADOR, null, null, null));
         dadoQueSeUsaronHoy(MAX_POR_DIA + 4);
 
         assertEquals(0, service.obtenerConversacion(ID_ESTUDIANTE, ID_PLANIFICACION).mensajesRestantesHoy());
@@ -529,7 +591,7 @@ class ChatbotServiceTest {
     void obtenerConversacion_rechazada() {
         LocalDateTime rechazo = LocalDateTime.of(2026, 10, 3, 12, 0);
         when(planificacionService.obtenerVistaDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION))
-                .thenReturn(new PlanificacionVista(ID_PLANIFICACION, "L", "Plan", EstadoPlanificacion.RECHAZADA,
+                .thenReturn(vistaConArchivo("L", EstadoPlanificacion.RECHAZADA,
                         "Falta la evaluación", rechazo.minusDays(1), rechazo));
         dadoQueElHistorialEs(previa("actual", "r"));
 

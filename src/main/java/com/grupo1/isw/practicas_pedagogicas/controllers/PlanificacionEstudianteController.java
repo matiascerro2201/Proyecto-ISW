@@ -10,6 +10,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+/**
+ * Páginas de las planificaciones del estudiante. El PDF se sube aparte (PlanificacionArchivoController);
+ * subirlo ya deja guardado el borrador, así que aquí solo queda enviar o reenviar.
+ */
 @Controller
 @RequestMapping("/estudiante/planificaciones")
 @PreAuthorize("hasRole('ESTUDIANTE')")
@@ -31,48 +35,13 @@ public class PlanificacionEstudianteController {
         return VISTA_LISTA;
     }
 
+    /** Elige la línea y sube el PDF; al subirlo se crea el borrador y la página pasa a su edición. */
     @GetMapping("/nueva")
     public String nueva(@AuthenticationPrincipal UsuarioDetails usuario, Model model) {
-        cargarFormularioNueva(model, usuario.getIdUsuario(), null, "", null);
+        model.addAttribute("titulo", "Nueva planificación de clase");
+        model.addAttribute("urlSubida", BASE + "/archivo");
+        model.addAttribute("lineas", planificacionService.obtenerLineasDelEstudiante(usuario.getIdUsuario()));
         return VISTA_FORMULARIO;
-    }
-
-    /** "Enviar al profesor" desde el formulario de una planificación nueva: se crea y se envía de una vez. */
-    @PostMapping
-    public String crear(@RequestParam(required = false) Long idLinea,
-                        @RequestParam(defaultValue = "") String contenido,
-                        @AuthenticationPrincipal UsuarioDetails usuario,
-                        Model model,
-                        RedirectAttributes redirectAttributes) {
-        Long idEstudiante = usuario.getIdUsuario();
-        try {
-            planificacionService.crearPlanificacion(idEstudiante, idLinea, contenido);
-        } catch (IllegalArgumentException e) {
-            cargarFormularioNueva(model, idEstudiante, idLinea, contenido, e.getMessage());
-            return VISTA_FORMULARIO;
-        }
-        redirectAttributes.addFlashAttribute("mensaje", "Planificación enviada correctamente.");
-        return "redirect:" + BASE;
-    }
-
-    /** "Guardar borrador" desde el formulario de una planificación nueva: solo la ve el estudiante. */
-    @PostMapping("/borrador")
-    public String guardarComoBorrador(@RequestParam(required = false) Long idLinea,
-                                      @RequestParam(defaultValue = "") String contenido,
-                                      @AuthenticationPrincipal UsuarioDetails usuario,
-                                      Model model,
-                                      RedirectAttributes redirectAttributes) {
-        Long idEstudiante = usuario.getIdUsuario();
-        Long idBorrador;
-        try {
-            idBorrador = planificacionService.crearBorrador(idEstudiante, idLinea, contenido);
-        } catch (IllegalArgumentException e) {
-            cargarFormularioNueva(model, idEstudiante, idLinea, contenido, e.getMessage());
-            return VISTA_FORMULARIO;
-        }
-        redirectAttributes.addFlashAttribute("mensaje",
-                "Borrador guardado. Solo tú puedes verlo hasta que lo envíes.");
-        return "redirect:" + BASE + "/" + idBorrador + "/editar";
     }
 
     @GetMapping("/{id}/editar")
@@ -89,42 +58,21 @@ public class PlanificacionEstudianteController {
             return "redirect:" + BASE;
         }
 
-        cargarFormularioEdicion(model, planificacion, planificacion.contenido(), null);
+        cargarFormularioEdicion(model, planificacion, null);
         return VISTA_FORMULARIO;
-    }
-
-    /** Guarda el texto sin cambiar el estado (borrador o rechazada). */
-    @PostMapping("/{id}/guardar")
-    public String guardar(@PathVariable Long id,
-                          @RequestParam(defaultValue = "") String contenido,
-                          @AuthenticationPrincipal UsuarioDetails usuario,
-                          Model model,
-                          RedirectAttributes redirectAttributes) {
-        Long idEstudiante = usuario.getIdUsuario();
-        try {
-            planificacionService.guardarCambios(idEstudiante, id, contenido);
-        } catch (IllegalArgumentException e) {
-            return volverAlFormulario(model, idEstudiante, id, contenido, e.getMessage());
-        } catch (IllegalStateException e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:" + BASE;
-        }
-        redirectAttributes.addFlashAttribute("mensaje", "Cambios guardados.");
-        return "redirect:" + BASE + "/" + id + "/editar";
     }
 
     /** Envía un borrador al colaborador. No depende del asistente. */
     @PostMapping("/{id}/enviar")
     public String enviar(@PathVariable Long id,
-                         @RequestParam(defaultValue = "") String contenido,
                          @AuthenticationPrincipal UsuarioDetails usuario,
                          Model model,
                          RedirectAttributes redirectAttributes) {
         Long idEstudiante = usuario.getIdUsuario();
         try {
-            planificacionService.enviarBorrador(idEstudiante, id, contenido);
+            planificacionService.enviarBorrador(idEstudiante, id);
         } catch (IllegalArgumentException e) {
-            return volverAlFormulario(model, idEstudiante, id, contenido, e.getMessage());
+            return volverAlFormulario(model, idEstudiante, id, e.getMessage());
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:" + BASE;
@@ -135,15 +83,14 @@ public class PlanificacionEstudianteController {
 
     @PostMapping("/{id}/reenviar")
     public String reenviar(@PathVariable Long id,
-                           @RequestParam(defaultValue = "") String contenido,
                            @AuthenticationPrincipal UsuarioDetails usuario,
                            Model model,
                            RedirectAttributes redirectAttributes) {
         Long idEstudiante = usuario.getIdUsuario();
         try {
-            planificacionService.reenviarPlanificacion(idEstudiante, id, contenido);
+            planificacionService.reenviarPlanificacion(idEstudiante, id);
         } catch (IllegalArgumentException e) {
-            return volverAlFormulario(model, idEstudiante, id, contenido, e.getMessage());
+            return volverAlFormulario(model, idEstudiante, id, e.getMessage());
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:" + BASE;
@@ -152,37 +99,23 @@ public class PlanificacionEstudianteController {
         return "redirect:" + BASE;
     }
 
-    private String volverAlFormulario(Model model, Long idEstudiante, Long id, String contenido, String error) {
+    private String volverAlFormulario(Model model, Long idEstudiante, Long id, String error) {
         PlanificacionVista planificacion = planificacionService.obtenerVistaDelEstudiante(idEstudiante, id);
-        cargarFormularioEdicion(model, planificacion, contenido, error);
+        cargarFormularioEdicion(model, planificacion, error);
         return VISTA_FORMULARIO;
     }
 
-    private void cargarFormularioNueva(Model model, Long idEstudiante, Long idLineaSeleccionada,
-                                       String contenido, String error) {
-        model.addAttribute("titulo", "Nueva planificación de clase");
-        model.addAttribute("accionGuardar", BASE + "/borrador");
-        model.addAttribute("accionEnviar", BASE);
-        model.addAttribute("etiquetaGuardar", "Guardar borrador");
-        model.addAttribute("etiquetaEnviar", "Enviar al profesor");
-        model.addAttribute("lineas", planificacionService.obtenerLineasDelEstudiante(idEstudiante));
-        model.addAttribute("idLineaSeleccionada", idLineaSeleccionada);
-        model.addAttribute("contenido", contenido);
-        model.addAttribute("error", error);
-    }
-
     /** Formulario de una planificación ya guardada: un borrador (se envía) o una rechazada (se reenvía). */
-    private void cargarFormularioEdicion(Model model, PlanificacionVista planificacion, String contenido, String error) {
+    private void cargarFormularioEdicion(Model model, PlanificacionVista planificacion, String error) {
         String base = BASE + "/" + planificacion.idPlanificacion();
         boolean borrador = planificacion.esBorrador();
 
         model.addAttribute("titulo", borrador ? "Editar borrador" : "Editar y reenviar planificación");
-        model.addAttribute("accionGuardar", base + "/guardar");
+        model.addAttribute("urlSubida", BASE + "/archivo");
+        model.addAttribute("urlArchivo", base + "/archivo");
         model.addAttribute("accionEnviar", base + (borrador ? "/enviar" : "/reenviar"));
-        model.addAttribute("etiquetaGuardar", "Guardar cambios");
         model.addAttribute("etiquetaEnviar", borrador ? "Enviar al profesor" : "Reenviar al profesor");
         model.addAttribute("planificacion", planificacion);
-        model.addAttribute("contenido", contenido);
         model.addAttribute("error", error);
     }
 }

@@ -228,15 +228,20 @@ class PlanificacionServiceTest {
         verify(notificacionService, never()).crear(any(), any(), any(), any());
     }
 
-    @Test
-    @DisplayName("HU-22. Al crear una planificación se notifica al colaborador de la línea")
-    void crear_notificaAlColaboradorDeLaLinea() {
-        when(lineaPracticaRepository.findById(ID_LINEA))
-                .thenReturn(Optional.of(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
-        when(planificacionRepository.save(any(Planificacion.class)))
-                .thenAnswer(invocacion -> conIdNuevo(invocacion.getArgument(0)));
+    private Planificacion conArchivo(Planificacion planificacion) {
+        planificacion.adjuntarArchivo("archivo.pdf", "plan.pdf", 1234L, "Texto extraído del PDF",
+                LocalDateTime.now().minusDays(1));
+        return planificacion;
+    }
 
-        service.crearPlanificacion(ID_ESTUDIANTE, ID_LINEA, "Plan de clase");
+    @Test
+    @DisplayName("HU-22. Al enviar un borrador con PDF se notifica al colaborador de la línea")
+    void enviar_notificaAlColaboradorDeLaLinea() {
+        Planificacion borrador = conArchivo(Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), null));
+        borrador.setIdPlanificacion(77L);
+        when(planificacionRepository.findById(77L)).thenReturn(Optional.of(borrador));
+
+        service.enviarBorrador(ID_ESTUDIANTE, 77L);
 
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
         verify(notificacionService).crear(eq(ID_COLABORADOR), eq(NotificacionService.TIPO_PLANIFICACION),
@@ -245,13 +250,14 @@ class PlanificacionServiceTest {
     }
 
     @Test
-    @DisplayName("HU-22. Si la línea es de otro estudiante (403) no se guarda ni se notifica")
-    void crear_lineaAjena_noNotifica() {
-        when(lineaPracticaRepository.findById(ID_LINEA))
-                .thenReturn(Optional.of(lineaDe(ID_OTRO_ESTUDIANTE, ID_COLABORADOR)));
+    @DisplayName("HU-22. Si el borrador es de otro estudiante (403) no se guarda ni se notifica")
+    void enviar_borradorAjeno_noNotifica() {
+        Planificacion ajeno = conArchivo(Planificacion.borrador(lineaDe(ID_OTRO_ESTUDIANTE, ID_COLABORADOR), null));
+        ajeno.setIdPlanificacion(ID_PLANIFICACION);
+        when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(ajeno));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.crearPlanificacion(ID_ESTUDIANTE, ID_LINEA, "Plan de clase"));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
 
         assertEquals(403, ex.getStatusCode().value());
         verify(planificacionRepository, never()).save(any());
@@ -259,28 +265,16 @@ class PlanificacionServiceTest {
     }
 
     @Test
-    @DisplayName("HU-22. Con contenido vacío no se guarda ni se notifica")
-    void crear_contenidoVacio_noNotifica() {
-        when(lineaPracticaRepository.findById(ID_LINEA))
-                .thenReturn(Optional.of(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
-
-        assertThrows(IllegalArgumentException.class,
-                () -> service.crearPlanificacion(ID_ESTUDIANTE, ID_LINEA, "   "));
-
-        verify(planificacionRepository, never()).save(any());
-        verificarQueNoSeNotifico();
-    }
-
-    @Test
     @DisplayName("HU-22. Si falla el guardado no se crea la notificación")
-    void crear_falloAlGuardar_noNotifica() {
-        when(lineaPracticaRepository.findById(ID_LINEA))
-                .thenReturn(Optional.of(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
+    void enviar_falloAlGuardar_noNotifica() {
+        Planificacion borrador = conArchivo(Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), null));
+        borrador.setIdPlanificacion(ID_PLANIFICACION);
+        when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(borrador));
         when(planificacionRepository.save(any(Planificacion.class)))
                 .thenThrow(new IllegalStateException("Falla de base de datos"));
 
         assertThrows(IllegalStateException.class,
-                () -> service.crearPlanificacion(ID_ESTUDIANTE, ID_LINEA, "Plan de clase"));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
 
         verificarQueNoSeNotifico();
     }
@@ -288,13 +282,13 @@ class PlanificacionServiceTest {
     @Test
     @DisplayName("HU-22. Al reenviar una planificación rechazada se notifica al colaborador de la línea")
     void reenviar_notificaAlColaboradorDeLaLinea() {
-        Planificacion rechazada = new Planificacion(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), "Plan viejo",
-                LocalDateTime.now().minusDays(2));
+        Planificacion rechazada = conArchivo(new Planificacion(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), null,
+                LocalDateTime.now().minusDays(2)));
         rechazada.setIdPlanificacion(ID_PLANIFICACION);
         rechazada.setEstado(EstadoPlanificacion.RECHAZADA);
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(rechazada));
 
-        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION, "Plan corregido");
+        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION);
 
         assertEquals(EstadoPlanificacion.ENVIADA, rechazada.getEstado());
         verify(planificacionRepository).save(rechazada);
@@ -302,6 +296,25 @@ class PlanificacionServiceTest {
         verify(notificacionService).crear(eq(ID_COLABORADOR), eq(NotificacionService.TIPO_PLANIFICACION),
                 mensaje.capture(), eq("/planificaciones/10/evaluar"));
         assertTrue(mensaje.getValue().contains("Camila Soto reenvió"), mensaje.getValue());
+    }
+
+    @Test
+    @DisplayName("HU-31/32. Reenviar una rechazada sin PDF lanza IllegalArgument: sigue rechazada y no se notifica")
+    void reenviar_sinArchivo_siguesiendoRechazada() {
+        Planificacion rechazada = new Planificacion(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), "Plan antiguo de texto",
+                LocalDateTime.now().minusDays(2));
+        rechazada.setIdPlanificacion(ID_PLANIFICACION);
+        rechazada.setEstado(EstadoPlanificacion.RECHAZADA);
+        rechazada.setRetroalimentacion("Faltan objetivos");
+        when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(rechazada));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION));
+
+        assertEquals(EstadoPlanificacion.RECHAZADA, rechazada.getEstado());
+        assertEquals("Faltan objetivos", rechazada.getRetroalimentacion());
+        verify(planificacionRepository, never()).save(any());
+        verificarQueNoSeNotifico();
     }
 
     @Test
@@ -314,7 +327,7 @@ class PlanificacionServiceTest {
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(aprobada));
 
         assertThrows(IllegalStateException.class,
-                () -> service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION, "Plan corregido"));
+                () -> service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION));
 
         verify(planificacionRepository, never()).save(any());
         verificarQueNoSeNotifico();
@@ -387,22 +400,14 @@ class PlanificacionServiceTest {
     @Test
     @DisplayName("HU-22/23. Flujo completo: enviar, rechazar y reenviar notifican al destinatario correcto")
     void flujoCompleto_notificaEnCadaPaso() {
-        when(lineaPracticaRepository.findById(ID_LINEA))
-                .thenReturn(Optional.of(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
-        Planificacion[] enBase = new Planificacion[1];
-        when(planificacionRepository.save(any(Planificacion.class))).thenAnswer(invocacion -> {
-            Planificacion guardada = invocacion.getArgument(0);
-            guardada.setIdPlanificacion(ID_PLANIFICACION_NUEVA);
-            enBase[0] = guardada;
-            return guardada;
-        });
-        when(planificacionRepository.findById(ID_PLANIFICACION_NUEVA))
-                .thenAnswer(invocacion -> Optional.of(enBase[0]));
+        Planificacion borrador = conArchivo(Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), null));
+        borrador.setIdPlanificacion(ID_PLANIFICACION_NUEVA);
+        when(planificacionRepository.findById(ID_PLANIFICACION_NUEVA)).thenReturn(Optional.of(borrador));
 
-        service.crearPlanificacion(ID_ESTUDIANTE, ID_LINEA, "Plan de clase");
+        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION_NUEVA);
         service.evaluarPlanificacion(ID_PLANIFICACION_NUEVA, ID_COLABORADOR, "Faltan objetivos",
                 EstadoPlanificacion.RECHAZADA);
-        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION_NUEVA, "Plan con objetivos");
+        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION_NUEVA);
 
         ArgumentCaptor<Long> destinatarios = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<String> enlaces = ArgumentCaptor.forClass(String.class);
