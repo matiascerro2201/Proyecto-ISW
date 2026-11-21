@@ -4,7 +4,8 @@
 
     var lista = document.getElementById('lista-asignaturas');
     var dialogo = document.getElementById('dialogo-lista');
-    if (!lista || !dialogo || typeof dialogo.showModal !== 'function') { return; }
+    if (!lista) { return; }
+    var conVentana = !!dialogo && typeof dialogo.showModal === 'function';
 
     var buscar = document.getElementById('buscar');
     var sugerencias = document.getElementById('sugerencias');
@@ -274,38 +275,40 @@
         buscar.focus();
     });
 
-    // ---- Ventana de detalle de la asignatura
-    function abrir(boton) {
-        var plantilla = document.getElementById('plantilla-' + boton.getAttribute('data-id'));
-        if (!plantilla) { return; }
-        titulo.textContent = boton.getAttribute('data-titulo') || boton.querySelector('.asignatura__nombre').textContent;
-        cuerpo.textContent = '';
-        cuerpo.appendChild(plantilla.content.cloneNode(true));
-        Array.prototype.forEach.call(cuerpo.querySelectorAll('[data-vacio]'), function (contenedor) {
-            if (contenedor.querySelector('li')) { return; }
-            var aviso = document.createElement('p');
-            aviso.className = 'vacio';
-            aviso.textContent = contenedor.getAttribute('data-vacio');
-            contenedor.parentNode.insertBefore(aviso, contenedor.nextSibling);
+    if (conVentana) {
+        // ---- Ventana de detalle de la asignatura
+        function abrir(boton) {
+            var plantilla = document.getElementById('plantilla-' + boton.getAttribute('data-id'));
+            if (!plantilla) { return; }
+            titulo.textContent = boton.getAttribute('data-titulo') || boton.querySelector('.asignatura__nombre').textContent;
+            cuerpo.textContent = '';
+            cuerpo.appendChild(plantilla.content.cloneNode(true));
+            Array.prototype.forEach.call(cuerpo.querySelectorAll('[data-vacio]'), function (contenedor) {
+                if (contenedor.querySelector('li')) { return; }
+                var aviso = document.createElement('p');
+                aviso.className = 'vacio';
+                aviso.textContent = contenedor.getAttribute('data-vacio');
+                contenedor.parentNode.insertBefore(aviso, contenedor.nextSibling);
+            });
+            if (!dialogo.open) { dialogo.showModal(); }
+        }
+
+        lista.addEventListener('click', function (evento) {
+            var boton = evento.target.closest ? evento.target.closest('.asignatura__fila') : null;
+            if (boton) { abrir(boton); }
         });
-        if (!dialogo.open) { dialogo.showModal(); }
-    }
 
-    lista.addEventListener('click', function (evento) {
-        var boton = evento.target.closest ? evento.target.closest('.asignatura__fila') : null;
-        if (boton) { abrir(boton); }
-    });
+        cerrar.addEventListener('click', function () { dialogo.close(); });
+        dialogo.addEventListener('click', function (evento) {
+            if (evento.target === dialogo) { dialogo.close(); }
+        });
 
-    cerrar.addEventListener('click', function () { dialogo.close(); });
-    dialogo.addEventListener('click', function (evento) {
-        if (evento.target === dialogo) { dialogo.close(); }
-    });
-
-    // Enlace directo a una asignatura: #<prefijo>-<id>, con el prefijo en data-hash de la lista
-    var prefijo = lista.getAttribute('data-hash');
-    var enlace = prefijo ? new RegExp('^#' + prefijo + '-(\\d+)$').exec(window.location.hash) : null;
-    if (enlace) {
-        var boton = lista.querySelector('.asignatura__fila[data-id="' + enlace[1] + '"], .asignatura__fila[data-ids~="' + enlace[1] + '"]');
-        if (boton) { abrir(boton); }
+        // Enlace directo a una asignatura: #<prefijo>-<id>, con el prefijo en data-hash de la lista
+        var prefijo = lista.getAttribute('data-hash');
+        var enlace = prefijo ? new RegExp('^#' + prefijo + '-(\\d+)$').exec(window.location.hash) : null;
+        if (enlace) {
+            var boton = lista.querySelector('.asignatura__fila[data-id="' + enlace[1] + '"], .asignatura__fila[data-ids~="' + enlace[1] + '"]');
+            if (boton) { abrir(boton); }
+        }
     }
 })();

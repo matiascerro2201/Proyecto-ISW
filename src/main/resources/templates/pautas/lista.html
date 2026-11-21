@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pautas de evaluación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <script th:src="@{/js/lista-asignaturas.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/mis-pautas')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Pautas de evaluación</h1>
+    <p>Aquí aparecen las pautas de tus asignaturas. Elige una para ver con qué criterios serás evaluado.</p>
+
+    <p class="msg" th:if="${soloAsignatura != null}">
+        Mostrando solo las pautas de <strong th:text="${soloAsignatura}">Práctica Pedagógica</strong>.
+        <a th:href="@{/mis-pautas}">Ver todas mis pautas</a>
+    </p>
+
+    <section class="asignaturas" aria-labelledby="titulo-pautas">
+        <div class="asignaturas__cab">
+            <h2 id="titulo-pautas">Pautas</h2>
+            <span class="asignaturas__contador" id="contador" aria-live="polite"
+                  th:text="|${#lists.size(pautas)} ${#lists.size(pautas) == 1 ? 'pauta' : 'pautas'}|">4 pautas</span>
+        </div>
+
+        <p class="vacio" th:if="${#lists.isEmpty(pautas)}">
+            Aún no tienes pautas de evaluación disponibles. Cuando tus asignaturas tengan pautas registradas, aparecerán en esta lista.
+        </p>
+
+        <th:block th:unless="${#lists.isEmpty(pautas)}">
+            <div class="filtros" style="--filtros: 2;" role="search">
+                <div class="filtros__buscar">
+                    <label for="buscar">Asignatura</label>
+                    <div class="sugerencias">
+                        <input type="search" id="buscar" placeholder="Nombre de la asignatura" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                        <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias de asignaturas" hidden></ul>
+                    </div>
+                </div>
+                <label>
+                    Línea
+                    <select id="filtro-linea">
+                        <option value="">Todas</option>
+                    </select>
+                </label>
+                <label>
+                    Período
+                    <select id="filtro-periodo">
+                        <option value="">Todos</option>
+                    </select>
+                </label>
+                <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+            </div>
+
+            <ul class="asignaturas__lista" id="lista-asignaturas" style="--datos: 3;"
+                data-singular="pauta" data-plural="pautas" data-sugerencias-unicas>
+                <li class="asignatura" th:each="p : ${pautas}"
+                    th:attr="data-linea=${p.linea()}, data-periodo=${p.periodo()}, data-orden=${p.anio() * 10 + p.semestre()}">
+                    <a class="asignatura__fila" th:href="@{/mis-pautas/{id}(id=${p.idPauta()})}">
+                        <span class="asignatura__principal">
+                            <span class="asignatura__nombre" th:text="${p.asignatura()}">Práctica Pedagógica</span>
+                            <span class="asignatura__periodo" th:text="${p.periodo()}">Semestre 2 de 2026</span>
+                        </span>
+                        <span class="asignatura__dato" th:text="${p.linea()}">Especialidad</span>
+                        <span class="asignatura__dato" th:text="|Aplicación ${p.numeroAplicacion()}|">Aplicación 1</span>
+                        <span class="asignatura__dato"
+                              th:text="|Ponderación ${#numbers.formatDecimal(p.ponderacion(), 1, 'POINT', 2, 'COMMA')} %|">Ponderación 50,00 %</span>
+                        <span class="asignatura__ver">Ver pauta</span>
+                    </a>
+                </li>
+            </ul>
+            <p class="vacio" id="sin-resultados" hidden>Ninguna pauta coincide con los filtros.</p>
+        </th:block>
+    </section>
+</main>
+</body>
+</html>

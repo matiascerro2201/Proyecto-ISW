@@ -3,60 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Pautas de evaluación</title>
+    <title>Pauta de evaluación</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/pauta-editor.css}">
+    <link rel="stylesheet" th:href="@{/css/navegador-dimensiones.css}">
+    <link rel="stylesheet" th:href="@{/css/evaluar-pauta.css}">
+    <link rel="stylesheet" th:href="@{/css/ver-pauta.css}">
+    <script th:src="@{/js/navegador-dimensiones.js}" defer></script>
+    <script th:src="@{/js/ver-pauta.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/mis-pautas')}"></th:block>
-<main>
-    <a class="back-link" th:href="@{/mis-pautas}">Volver a mis asignaturas</a>
+<main class="editor-pagina">
+    <a class="back-link" th:href="@{/mis-pautas}">Volver a mis pautas</a>
 
-    <h1>Pautas de evaluación</h1>
-    <p><strong th:text="${resultado.nombreAsignatura}">Práctica Pedagógica</strong></p>
+    <h1 class="ev-titulo">Pauta de evaluación</h1>
+    <p class="ver-aviso">Esta es la pauta con la que serás evaluado. Solo puedes consultarla.</p>
 
-    <!-- Caso: la asignatura aún no tiene pautas registradas -->
-    <section th:if="${#lists.isEmpty(resultado.pautas)}">
-        <p>Aún no hay pautas registradas para esta asignatura.</p>
-        <p>Cuando estén disponibles, las verás aquí.</p>
-    </section>
+    <div class="editor" id="ver-pauta">
+        <aside class="editor__lateral ev-lateral" aria-label="Datos de la pauta">
+            <div class="ev-datos">
+                <p class="editor__etiqueta">Asignatura</p>
+                <h2 class="ev-nombre" th:text="${pauta.asignatura()}">Práctica Pedagógica</h2>
+                <p class="ev-asignatura" th:text="${pauta.periodo()}">Semestre 2 de 2026</p>
 
-    <article class="pauta" th:each="pauta : ${resultado.pautas}">
-        <h2 th:switch="${pauta.tipoLinea}">
-            <span th:case="'UNICA'">Línea única</span>
-            <span th:case="'ESPECIALIDAD'">Especialidad</span>
-            <span th:case="'ORIENTACION'">Orientación</span>
-            <span th:case="*" th:text="${pauta.tipoLinea}">Línea</span>
-        </h2>
-        <p th:text="|Aplicación ${pauta.numeroAplicacion}. Ponderación: ${#numbers.formatDecimal(pauta.ponderacion, 1, 'POINT', 2, 'COMMA')} %|">
-            Aplicación 1. Ponderación: 50,00 %
-        </p>
-
-        <section th:each="dimension : ${pauta.dimensiones}">
-            <h3 th:text="${dimension.nombre}">Dimensión</h3>
-            <div class="tabla-scroll">
-                <table>
-                    <caption class="sr-only" th:text="|Criterios de ${dimension.nombre}|">Criterios</caption>
-                    <thead>
-                        <tr>
-                            <th scope="col">Criterio</th>
-                            <th scope="col">Puntaje máximo</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="criterio : ${dimension.criterios}">
-                            <td th:text="${criterio.descripcion}">Descripción del criterio</td>
-                            <td th:text="${#numbers.formatDecimal(criterio.puntajeMax, 1, 'POINT', 2, 'COMMA')}">4,00</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <dl class="ev-meta">
+                    <dt>Línea</dt>
+                    <dd th:text="${pauta.linea()}">Especialidad</dd>
+                    <dt>Aplicación</dt>
+                    <dd th:text="${pauta.numeroAplicacion()}">1</dd>
+                    <dt>Ponderación</dt>
+                    <dd th:text="|${#numbers.formatDecimal(pauta.ponderacion(), 1, 'POINT', 2, 'COMMA')} %|">50,00 %</dd>
+                    <dt>Puntaje máximo</dt>
+                    <dd th:text="${#numbers.formatDecimal(pauta.puntajeMaximo(), 1, 'POINT', 2, 'COMMA')}">20,00</dd>
+                </dl>
             </div>
+
+            <nav class="ev-nav" aria-label="Dimensiones de la pauta">
+                <div class="ev-nav__cab-titulo">
+                    <h3 class="ev-nav__titulo">Dimensiones</h3>
+                    <div class="ev-nav__acciones">
+                        <button type="button" class="ev-nav__boton" id="ev-nav-expandir" aria-label="Expandir todas las dimensiones de la lista">Expandir</button>
+                        <button type="button" class="ev-nav__boton" id="ev-nav-plegar" aria-label="Plegar todas las dimensiones de la lista">Plegar</button>
+                    </div>
+                </div>
+                <p class="ev-nav__vacio" th:if="${#lists.isEmpty(pauta.dimensiones())}">Esta pauta aún no tiene dimensiones.</p>
+                <ul class="ev-nav__lista" id="ev-nav-lista">
+                    <li class="ev-nav__dim" th:each="dimension, d : ${pauta.dimensiones()}">
+                        <details class="ev-nav__detalle" th:open="${d.first}">
+                            <summary class="ev-nav__cab">
+                                <span class="ev-nav__num" th:text="${d.count}">1</span>
+                                <span class="ev-nav__nombre" th:text="${dimension.nombre()}">Preparación</span>
+                                <span class="ev-nav__avance" th:text="${dimension.cantidadCriterios()}">2</span>
+                            </summary>
+                            <ul class="ev-nav__criterios">
+                                <li th:each="criterio, c : ${dimension.criterios()}">
+                                    <button type="button" class="ev-nav__criterio"
+                                            th:attr="data-ir=|${d.index}-${c.index}|, title=${criterio.descripcion()}">
+                                        <span class="ev-nav__texto" th:text="|${d.count}.${c.count} ${criterio.descripcion()}|">1.1 Define objetivos</span>
+                                    </button>
+                                </li>
+                            </ul>
+                        </details>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <section class="editor__principal" aria-labelledby="titulo-dimensiones">
+            <div class="editor__cab ev-cab">
+                <h2 id="titulo-dimensiones">Dimensiones y criterios</h2>
+                <div class="ev-cab__acciones">
+                    <button type="button" class="btn btn-ghost" id="ev-expandir">Expandir todo</button>
+                    <button type="button" class="btn btn-ghost" id="ev-plegar">Plegar todo</button>
+                </div>
+            </div>
+
+            <p class="vacio" th:if="${#lists.isEmpty(pauta.dimensiones())}">Esta pauta aún no tiene dimensiones ni criterios.</p>
+
+            <ol class="dimensiones" id="ev-dimensiones">
+                <li class="ev-dim" th:each="dimension, d : ${pauta.dimensiones()}" th:id="|dim-${d.index}|">
+                    <details class="dimension__detalle" th:open="${d.first}">
+                        <summary class="dimension__cab">
+                            <span class="dimension__numero" th:text="${d.count}">1</span>
+                            <span class="dimension__titulo" th:text="${dimension.nombre()}">Preparación</span>
+                            <span class="dimension__meta" th:with="cantidad=${dimension.cantidadCriterios()}"
+                                  th:text="|${cantidad} ${cantidad == 1 ? 'criterio' : 'criterios'}, ${#numbers.formatDecimal(dimension.puntajeMaximo(), 1, 'POINT', 2, 'COMMA')} pts|">2 criterios, 7,50 pts</span>
+                        </summary>
+                        <div class="dimension__cuerpo">
+                            <ul class="ev-criterios">
+                                <li class="ev-criterio" th:each="criterio, c : ${dimension.criterios()}"
+                                    th:id="|criterio-${d.index}-${c.index}|">
+                                    <div class="ev-criterio__texto">
+                                        <span class="ev-criterio__num" th:text="|${d.count}.${c.count}|">1.1</span>
+                                        <p th:text="${criterio.descripcion()}">Descripción del criterio</p>
+                                    </div>
+                                    <div class="ev-criterio__max">
+                                        <span class="ev-criterio__max-etiqueta">Puntaje máximo</span>
+                                        <strong th:text="${#numbers.formatDecimal(criterio.puntajeMax(), 1, 'POINT', 2, 'COMMA')}">4,00</strong>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </details>
+                </li>
+            </ol>
         </section>
-    </article>
+    </div>
 </main>
 </body>
 </html>

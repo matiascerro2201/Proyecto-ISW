@@ -46,7 +46,7 @@
 .sugerencia__nombre { font-weight: 600; color: var(--ink-900); }
 .sugerencia__nombre mark { padding: 0 1px; border-radius: 2px; background: var(--brand-200); color: inherit; }
 .sugerencia__periodo { font-size: 13px; color: var(--ink-500); }
-.filtros input[type=search] {
+.filtros input[type=search], .filtros input[type=date] {
     width: 100%;
     padding: 10px 14px;
     border: 1px solid var(--border-strong);
@@ -56,7 +56,7 @@
     font-size: 15px;
     color: var(--ink-900);
 }
-.filtros input[type=search]:focus { outline: none; border-color: var(--brand-500); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 18%, transparent); }
+.filtros input[type=search]:focus, .filtros input[type=date]:focus { outline: none; border-color: var(--brand-500); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 18%, transparent); }
 .filtros input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--brand-500); }
 
 .asignaturas__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
@@ -77,6 +77,8 @@
     cursor: pointer;
     transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
 }
+a.asignatura__fila { text-decoration: none; }
+.asignatura__ver { font-size: 13px; font-weight: 600; white-space: nowrap; color: var(--brand-700); }
 .asignatura__fila:hover { border-color: var(--brand-500); box-shadow: var(--shadow-sm); }
 .asignatura__nombre { display: block; font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--ink-900); }
 .asignatura__periodo { display: block; font-size: 13px; color: var(--ink-500); }
@@ -126,3 +128,5 @@
 .linea-bloque { margin: 0 0 var(--space-5); }
 .linea-bloque__cab { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-2); }
 .linea-bloque h3 { margin: 0; font-size: 17px; line-height: 24px; }
+
+.filtros__aviso { margin: calc(-1 * var(--space-3)) 0 var(--space-4); padding: 0 var(--space-4); font-size: 13px; color: var(--status-pending-fg); }
