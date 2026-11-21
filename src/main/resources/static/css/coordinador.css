@@ -1,0 +1,57 @@
+/* Vistas del coordinador de prácticas. Usa las variables de tema.css cuando existen y valores por defecto si no. */
+.coord-lista { list-style: none; margin: 1rem 0; padding: 0; display: grid; gap: .5rem; }
+.coord-fila, .coord-actividad__resumen {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.25rem;
+    padding: .85rem 1rem; border: 1px solid var(--borde, #d9dee7); border-radius: .6rem;
+    background: var(--superficie, #fff); color: inherit; text-decoration: none;
+}
+a.coord-fila:hover, a.coord-fila:focus-visible, .coord-actividad__resumen:hover { border-color: var(--primario, #1f4e9c); }
+.coord-fila__principal { display: flex; flex-direction: column; flex: 1 1 14rem; min-width: 0; }
+.coord-fila__titulo { font-weight: 600; }
+.coord-fila__sub, .coord-sub { color: var(--texto-suave, #5b6475); font-size: .9rem; }
+.coord-fila__dato { font-size: .9rem; white-space: nowrap; }
+.coord-contador { color: var(--texto-suave, #5b6475); margin: .75rem 0 0; }
+
+.coord-filtros { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; margin: 1rem 0; }
+.coord-filtros label, .coord-formulario label { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; }
+.coord-filtros__buscar { flex: 1 1 16rem; }
+.coord-filtros input, .coord-filtros select, .coord-formulario input, .coord-formulario select {
+    padding: .5rem .6rem; border: 1px solid var(--borde, #c3cad6); border-radius: .4rem; font: inherit;
+}
+
+.coord-ficha dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .75rem 1.5rem; margin: 1rem 0; }
+.coord-ficha dt { font-size: .8rem; color: var(--texto-suave, #5b6475); }
+.coord-ficha dd { margin: 0; font-weight: 500; }
+
+.coord-tabla { width: 100%; border-collapse: collapse; margin: .5rem 0 1rem; font-size: .92rem; }
+.coord-tabla th, .coord-tabla td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--borde, #e2e6ee); vertical-align: middle; }
+.coord-tabla th { font-weight: 600; font-size: .82rem; color: var(--texto-suave, #5b6475); }
+.coord-acciones { display: flex; gap: .4rem; flex-wrap: wrap; }
+.coord-acciones form { margin: 0; }
+
+.coord-estado { display: inline-block; padding: .1rem .55rem; border-radius: 999px; font-size: .8rem; background: #eef1f6; }
+.coord-estado--ok, .coord-estado--revisada, .coord-estado--retroalimentada { background: #dff3e4; color: #1b5e30; }
+.coord-estado--pendiente { background: #fdeccd; color: #7a4b00; }
+.coord-estado--enviada { background: #dbe8fb; color: #1f4e9c; }
+
+.coord-acordeon { display: grid; gap: .5rem; margin: 1rem 0; }
+.coord-actividad { border: 1px solid var(--borde, #d9dee7); border-radius: .6rem; background: var(--superficie, #fff); }
+.coord-actividad__resumen { border: 0; cursor: pointer; list-style: none; }
+.coord-actividad__resumen::-webkit-details-marker { display: none; }
+.coord-actividad[open] > .coord-actividad__resumen { border-bottom: 1px solid var(--borde, #e2e6ee); border-radius: .6rem .6rem 0 0; }
+.coord-actividad__cuerpo { padding: .75rem 1rem 1rem; }
+.coord-actividad__cuerpo h4 { margin: 1rem 0 .25rem; }
+
+.coord-mensaje, .coord-error { padding: .6rem .9rem; border-radius: .5rem; margin: .75rem 0; }
+.coord-mensaje { background: #dff3e4; color: #1b5e30; }
+.coord-error { background: #fde0e0; color: #8a1c1c; }
+
+.coord-formulario { display: grid; gap: .9rem; max-width: 32rem; margin: 1rem 0; }
+.coord-formulario__acciones { display: flex; gap: .6rem; }
+.coord-formulario [hidden] { display: none; }
+
+.coord-dialogo { width: min(60rem, 94vw); max-height: 90vh; border: 0; border-radius: .8rem; padding: 0; box-shadow: 0 10px 40px rgba(0, 0, 0, .3); }
+.coord-dialogo::backdrop { background: rgba(10, 20, 40, .5); }
+.coord-dialogo__barra { display: flex; justify-content: space-between; align-items: center; padding: .75rem 1rem; border-bottom: 1px solid var(--borde, #e2e6ee); position: sticky; top: 0; background: inherit; }
+.coord-dialogo__barra h2 { margin: 0; font-size: 1.1rem; }
+.coord-dialogo__contenido { padding: 1rem; }

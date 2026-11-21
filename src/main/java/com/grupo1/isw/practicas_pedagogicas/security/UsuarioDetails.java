@@ -14,6 +14,7 @@ public class UsuarioDetails implements UserDetails {
     private final String email;
     private final String passwordHash;
     private final String rol;
+    private final boolean activo;
 
     public UsuarioDetails(Usuario usuario) {
         this.idUsuario = usuario.getIdUsuario();
@@ -21,6 +22,7 @@ public class UsuarioDetails implements UserDetails {
         this.email = usuario.getEmail();
         this.passwordHash = usuario.getPasswordHash();
         this.rol = usuario.getRol().name();
+        this.activo = usuario.isActivo();
     }
 
     public Long getIdUsuario() {
@@ -65,8 +67,9 @@ public class UsuarioDetails implements UserDetails {
         return true;
     }
 
+    /** HU-36: Spring Security rechaza el inicio de sesión de una cuenta desactivada. */
     @Override
     public boolean isEnabled() {
-        return true;
+        return activo;
     }
 }
