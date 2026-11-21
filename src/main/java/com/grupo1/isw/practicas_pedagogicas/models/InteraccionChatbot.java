@@ -27,6 +27,11 @@ public class InteraccionChatbot {
     @Column(name = "fecha", nullable = false)
     private LocalDateTime fecha;
 
+    /** Revisión general o pregunta. Lo que existía antes de HU-30 quedó como pregunta. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", nullable = false)
+    private TipoInteraccion tipo = TipoInteraccion.PREGUNTA;
+
     /** Lo que el asistente valoró al responder; se guarda junto con la interacción. */
     @OneToMany(mappedBy = "interaccion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HallazgoChatbot> hallazgos = new ArrayList<>();
@@ -34,11 +39,18 @@ public class InteraccionChatbot {
     public InteraccionChatbot() {
     }
 
+    /** Una pregunta: el caso corriente. */
     public InteraccionChatbot(Planificacion planificacion, String mensajeEstudiante, String respuestaBot, LocalDateTime fecha) {
+        this(planificacion, mensajeEstudiante, respuestaBot, fecha, TipoInteraccion.PREGUNTA);
+    }
+
+    public InteraccionChatbot(Planificacion planificacion, String mensajeEstudiante, String respuestaBot,
+                              LocalDateTime fecha, TipoInteraccion tipo) {
         this.planificacion = planificacion;
         this.mensajeEstudiante = mensajeEstudiante;
         this.respuestaBot = respuestaBot;
         this.fecha = fecha;
+        this.tipo = tipo;
     }
 
     public Long getIdInteraccion() {
@@ -79,6 +91,14 @@ public class InteraccionChatbot {
 
     public void setFecha(LocalDateTime fecha) {
         this.fecha = fecha;
+    }
+
+    public TipoInteraccion getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(TipoInteraccion tipo) {
+        this.tipo = tipo;
     }
 
     public List<HallazgoChatbot> getHallazgos() {

@@ -56,6 +56,27 @@ public class ChatbotEstudianteController {
     }
 
     /**
+     * HU-30: botón "Pedir revisión completa". Gasta una de las revisiones de la planificación; si no se puede
+     * (sin revisiones, límite diario, asistente caído), vuelve al chat con el motivo y sin gastar nada.
+     */
+    @PostMapping("/revision")
+    public String pedirRevision(@PathVariable Long id,
+                                @AuthenticationPrincipal UsuarioDetails usuario,
+                                Model model,
+                                RedirectAttributes redirectAttributes) {
+        Long idEstudiante = usuario.getIdUsuario();
+        try {
+            chatbotService.pedirRevision(idEstudiante, id);
+        } catch (IllegalStateException e) {
+            return mostrarChat(model, redirectAttributes, idEstudiante, id, "", e.getMessage());
+        } catch (ChatbotNoDisponibleException e) {
+            return mostrarChat(model, redirectAttributes, idEstudiante, id, "",
+                    e.getCausa().getMensajeParaElEstudiante());
+        }
+        return "redirect:" + BASE + "/" + id + "/chat#escribir";
+    }
+
+    /**
      * Muestra el chat, con lo que el estudiante había escrito si hubo un error para que no lo pierda.
      * Si la planificación ya no admite chat (por ejemplo, ya se envió), vuelve a la lista con el motivo.
      */

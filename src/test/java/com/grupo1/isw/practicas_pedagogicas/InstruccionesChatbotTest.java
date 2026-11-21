@@ -1,11 +1,13 @@
 package com.grupo1.isw.practicas_pedagogicas;
 
 import com.grupo1.isw.practicas_pedagogicas.models.CategoriaPlanificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.TipoInteraccion;
 import com.grupo1.isw.practicas_pedagogicas.services.chatbot.InstruccionesChatbot;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -128,5 +130,74 @@ class InstruccionesChatbotTest {
     @ValueSource(strings = {"   ", "\n\t "})
     void planificacionVacia_lanzaIllegalArgument(String vacia) {
         assertThrows(IllegalArgumentException.class, () -> instrucciones.armar(CATEGORIAS, vacia, null));
+    }
+
+    // ------------------------------------------------ HU-30: revisión y pregunta
+
+    private String armar(TipoInteraccion tipo) {
+        return instrucciones.armar(tipo, CATEGORIAS, "Mi planificación", "Faltan objetivos.");
+    }
+
+    @Test
+    @DisplayName("HU-30. La revisión completa lleva sus instrucciones y no las de pregunta")
+    void revision_llevaSusInstrucciones() {
+        String texto = armar(TipoInteraccion.REVISION);
+
+        assertTrue(texto.contains("TIPO DE CONSULTA: REVISIÓN COMPLETA"));
+        assertFalse(texto.contains("TIPO DE CONSULTA: PREGUNTA"));
+    }
+
+    @Test
+    @DisplayName("HU-30. La pregunta lleva sus instrucciones, que remiten al botón de revisión completa")
+    void pregunta_llevaSusInstrucciones() {
+        String texto = armar(TipoInteraccion.PREGUNTA);
+
+        assertTrue(texto.contains("TIPO DE CONSULTA: PREGUNTA"));
+        assertFalse(texto.contains("TIPO DE CONSULTA: REVISIÓN COMPLETA"));
+        assertTrue(texto.contains("Pedir revisión completa"));
+    }
+
+    @ParameterizedTest(name = "HU-30. {0}: conserva reglas, aspectos, formato, planificación y retroalimentación")
+    @EnumSource(TipoInteraccion.class)
+    void ambasVariantes_conservanLoComun(TipoInteraccion tipo) {
+        String texto = armar(tipo);
+
+        assertTrue(texto.contains("CÓMO DEBES AYUDAR"));
+        assertTrue(texto.contains("- OBJETIVOS (Objetivos de aprendizaje): Los objetivos son claros."));
+        assertTrue(texto.contains("FORMATO DE LA RESPUESTA"));
+        assertTrue(texto.contains("exactamente un elemento por cada aspecto"));
+        assertTrue(texto.contains("<<<PLANIFICACION\nMi planificación\nPLANIFICACION>>>"));
+        assertTrue(texto.contains("<<<RETROALIMENTACION\nFaltan objetivos.\nRETROALIMENTACION>>>"));
+    }
+
+    @ParameterizedTest(name = "HU-30. {0}: el tipo de consulta va después de las reglas y antes de los aspectos")
+    @EnumSource(TipoInteraccion.class)
+    void ambasVariantes_ordenDeLasSecciones(TipoInteraccion tipo) {
+        String texto = armar(tipo);
+
+        int reglas = texto.indexOf("CÓMO DEBES AYUDAR");
+        int tipoDeConsulta = texto.indexOf("TIPO DE CONSULTA");
+        int aspectos = texto.indexOf("ASPECTOS QUE DEBES REVISAR");
+        assertTrue(reglas >= 0 && reglas < tipoDeConsulta, "el tipo va después de las reglas");
+        assertTrue(tipoDeConsulta < aspectos, "el tipo va antes de los aspectos");
+    }
+
+    @Test
+    @DisplayName("HU-30. Sin indicar tipo, las instrucciones son las de una pregunta")
+    void sinTipo_equivaleAUnaPregunta() {
+        assertEquals(armar(TipoInteraccion.PREGUNTA), armar("Mi planificación", "Faltan objetivos."));
+    }
+
+    @Test
+    @DisplayName("HU-30. Un tipo nulo lanza IllegalArgument")
+    void tipoNulo_lanzaIllegalArgument() {
+        assertThrows(IllegalArgumentException.class, () -> instrucciones.armar(null, CATEGORIAS, "Plan", null));
+    }
+
+    @ParameterizedTest(name = "HU-30. {0}: sin aspectos o con planificación vacía lanza IllegalArgument")
+    @EnumSource(TipoInteraccion.class)
+    void ambasVariantes_validanLosDatos(TipoInteraccion tipo) {
+        assertThrows(IllegalArgumentException.class, () -> instrucciones.armar(tipo, List.of(), "Plan", null));
+        assertThrows(IllegalArgumentException.class, () -> instrucciones.armar(tipo, CATEGORIAS, "  ", null));
     }
 }

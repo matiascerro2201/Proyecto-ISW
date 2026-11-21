@@ -6,6 +6,7 @@ import com.grupo1.isw.practicas_pedagogicas.models.HallazgoChatbot;
 import com.grupo1.isw.practicas_pedagogicas.models.InteraccionChatbot;
 import com.grupo1.isw.practicas_pedagogicas.models.NivelHallazgo;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.TipoInteraccion;
 import com.grupo1.isw.practicas_pedagogicas.repositories.CategoriaPlanificacionRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.InteraccionChatbotRepository;
 import com.grupo1.isw.practicas_pedagogicas.services.ChatbotService;
@@ -48,14 +49,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * HU-26: servicio del chat. Se prueba con límites pequeños (3 mensajes por día, 50 caracteres,
- * 2 intercambios de historial) para poder recorrer los bordes con pocos datos.
+ * HU-26 y HU-30: servicio del chat. Se prueba con límites pequeños (3 mensajes por día, 50 caracteres,
+ * 2 intercambios de historial, 2 revisiones por planificación) para poder recorrer los bordes con pocos datos.
  */
 @ExtendWith(MockitoExtension.class)
 class ChatbotServiceTest {
@@ -65,6 +67,7 @@ class ChatbotServiceTest {
     private static final int MAX_POR_DIA = 3;
     private static final int MAX_CARACTERES = 50;
     private static final int MAX_HISTORIAL = 2;
+    private static final int MAX_REVISIONES = 2;
 
     private static final CategoriaPlanificacion OBJETIVOS =
             new CategoriaPlanificacion("OBJETIVOS", "Objetivos", "Descripción de objetivos", 1);
@@ -87,8 +90,12 @@ class ChatbotServiceTest {
 
     @BeforeEach
     void crearServicio() {
-        service = new ChatbotService(planificacionService, interaccionRepository, categoriaRepository,
-                new InstruccionesChatbot(), chatbotClient, MAX_POR_DIA, MAX_CARACTERES, MAX_HISTORIAL);
+        service = servicioCon(MAX_REVISIONES);
+    }
+
+    private ChatbotService servicioCon(int maxRevisiones) {
+        return new ChatbotService(planificacionService, interaccionRepository, categoriaRepository,
+                new InstruccionesChatbot(), chatbotClient, MAX_POR_DIA, MAX_CARACTERES, MAX_HISTORIAL, maxRevisiones);
     }
 
     // ------------------------------------------------------------------ ayudas
@@ -133,6 +140,10 @@ class ChatbotServiceTest {
 
     private InteraccionChatbot previa(String mensaje, String respuesta) {
         return new InteraccionChatbot(null, mensaje, respuesta, LocalDateTime.of(2026, 10, 2, 10, 0));
+    }
+
+    private InteraccionChatbot previa(String mensaje, String respuesta, TipoInteraccion tipo) {
+        return new InteraccionChatbot(null, mensaje, respuesta, LocalDateTime.of(2026, 10, 2, 10, 0), tipo);
     }
 
     private void dadoQueLaPlanificacionEs(Planificacion planificacion) {
@@ -614,5 +625,305 @@ class ChatbotServiceTest {
                 () -> service.obtenerConversacion(ID_ESTUDIANTE, ID_PLANIFICACION));
 
         verifyNoInteractions(interaccionRepository);
+    }
+
+    // ------------------------------------------------ HU-30: revisiones y preguntas
+
+    private void dadoQueSeUsaronRevisiones(long revisiones) {
+        when(interaccionRepository.countByPlanificacion_IdPlanificacionAndTipo(ID_PLANIFICACION,
+                TipoInteraccion.REVISION)).thenReturn(revisiones);
+    }
+
+    private void pedirRevision() {
+        service.pedirRevision(ID_ESTUDIANTE, ID_PLANIFICACION);
+    }
+
+    /** Escenario normal de una revisión: borrador con PDF, aspectos, ninguna revisión usada y un asistente que responde. */
+    private void dadoUnEscenarioDeRevision(Respuesta respuesta) {
+        dadoUnEscenarioNormal(respuesta);
+        dadoQueSeUsaronRevisiones(0);
+    }
+
+    @Test
+    @DisplayName("HU-30. Un mensaje escrito se guarda como PREGUNTA y usa las instrucciones de pregunta")
+    void enviarMensaje_seGuardaComoPregunta() {
+        dadoUnEscenarioNormal(new Respuesta("Consejo", List.of()));
+
+        enviar("¿Cómo redacto un objetivo medible?");
+
+        assertEquals(TipoInteraccion.PREGUNTA, interaccionGuardada().getTipo());
+        String instruccionesEnviadas = solicitudEnviada().instrucciones();
+        assertTrue(instruccionesEnviadas.contains("TIPO DE CONSULTA: PREGUNTA"));
+        assertFalse(instruccionesEnviadas.contains("TIPO DE CONSULTA: REVISIÓN COMPLETA"));
+    }
+
+    @Test
+    @DisplayName("HU-30. Las preguntas no consultan ni gastan revisiones: con el tope usado se siguen aceptando")
+    void enviarMensaje_conRevisionesAgotadas_sigueAceptandoPreguntas() {
+        dadoUnEscenarioNormal(new Respuesta("Consejo", List.of()));
+        lenient().when(interaccionRepository.countByPlanificacion_IdPlanificacionAndTipo(ID_PLANIFICACION,
+                TipoInteraccion.REVISION)).thenReturn((long) MAX_REVISIONES);
+
+        enviar("Una duda más");
+
+        assertEquals(TipoInteraccion.PREGUNTA, interaccionGuardada().getTipo());
+        verify(interaccionRepository, never()).countByPlanificacion_IdPlanificacionAndTipo(any(), any());
+    }
+
+    @Test
+    @DisplayName("HU-30. Una revisión se guarda como REVISION, con el mensaje fijo, la respuesta y los hallazgos")
+    void pedirRevision_guardaLaInteraccionComoRevision() {
+        dadoUnEscenarioDeRevision(new Respuesta("  Revisión del asistente  ", List.of(
+                new Hallazgo("OBJETIVOS", NivelHallazgo.DEBIL, "No son medibles"),
+                new Hallazgo("EVALUACION", NivelHallazgo.ADECUADO, "Bien planteada"))));
+
+        pedirRevision();
+
+        InteraccionChatbot guardada = interaccionGuardada();
+        assertEquals(TipoInteraccion.REVISION, guardada.getTipo());
+        assertEquals(ChatbotService.MENSAJE_REVISION, guardada.getMensajeEstudiante());
+        assertEquals("Revisión del asistente", guardada.getRespuestaBot());
+        assertEquals(2, guardada.getHallazgos().size());
+        assertSame(OBJETIVOS, guardada.getHallazgos().get(0).getCategoria());
+    }
+
+    @Test
+    @DisplayName("HU-30. La solicitud de una revisión lleva el mensaje fijo y las instrucciones de revisión completa")
+    void pedirRevision_armaLaSolicitud() {
+        dadoUnEscenarioDeRevision(new Respuesta("Revisión", List.of()));
+
+        pedirRevision();
+
+        Solicitud solicitud = solicitudEnviada();
+        assertEquals(ChatbotService.MENSAJE_REVISION, solicitud.mensaje());
+        assertEquals(List.of("OBJETIVOS", "EVALUACION"), solicitud.categorias());
+        assertTrue(solicitud.instrucciones().contains("TIPO DE CONSULTA: REVISIÓN COMPLETA"));
+        assertFalse(solicitud.instrucciones().contains("TIPO DE CONSULTA: PREGUNTA"));
+        assertTrue(solicitud.instrucciones().contains("Texto del borrador"));
+    }
+
+    @Test
+    @DisplayName("HU-30. Una revisión de una planificación rechazada considera lo conversado desde el rechazo y el comentario")
+    void pedirRevision_rechazada_desdeElRechazo() {
+        LocalDateTime rechazo = LocalDateTime.of(2026, 10, 3, 12, 0);
+        dadoQueLaPlanificacionEs(rechazada("Faltan objetivos medibles.", rechazo));
+        dadoQueHayAspectos();
+        dadoQueSeUsaronRevisiones(0);
+        dadoQueElAsistenteResponde(new Respuesta("Revisión", List.of()));
+
+        pedirRevision();
+
+        assertEquals(rechazo, fechaConsultadaDelHistorial());
+        assertTrue(solicitudEnviada().instrucciones().contains("Faltan objetivos medibles."));
+    }
+
+    @Test
+    @DisplayName("HU-30. Con una revisión menos que el tope todavía se puede pedir otra")
+    void pedirRevision_aunHayCupo() {
+        dadoUnEscenarioNormal(new Respuesta("Revisión", List.of()));
+        dadoQueSeUsaronRevisiones(MAX_REVISIONES - 1);
+
+        pedirRevision();
+
+        assertEquals(TipoInteraccion.REVISION, interaccionGuardada().getTipo());
+    }
+
+    @Test
+    @DisplayName("HU-30. Al llegar al tope de revisiones lanza IllegalState, invita a consultar y no llama al asistente")
+    void pedirRevision_topeAlcanzado_lanzaIllegalState() {
+        dadoQueLaPlanificacionEs(borrador());
+        dadoQueSeUsaronRevisiones(MAX_REVISIONES);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, this::pedirRevision);
+
+        assertTrue(ex.getMessage().contains("las " + MAX_REVISIONES + " revisiones completas"), ex.getMessage());
+        assertTrue(ex.getMessage().contains("profesor, tutor o colaborador"), ex.getMessage());
+        verificarQueNoSeLlamoAlAsistenteNiSeGuardo();
+    }
+
+    @Test
+    @DisplayName("HU-30. Con un tope de una sola revisión el mensaje queda en singular")
+    void pedirRevision_topeDeUna_mensajeEnSingular() {
+        service = servicioCon(1);
+        dadoQueLaPlanificacionEs(borrador());
+        dadoQueSeUsaronRevisiones(1);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, this::pedirRevision);
+
+        assertTrue(ex.getMessage().contains("la revisión completa"), ex.getMessage());
+        assertFalse(ex.getMessage().contains("1 revisiones"), ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("HU-30. Si se agotaron las revisiones y el límite diario, el aviso es el de las revisiones")
+    void pedirRevision_topeYLimiteDiario_avisaDeLasRevisiones() {
+        dadoQueLaPlanificacionEs(borrador());
+        dadoQueSeUsaronRevisiones(MAX_REVISIONES);
+        lenient().when(interaccionRepository
+                .countByPlanificacion_Linea_Inscripcion_Estudiante_IdUsuarioAndFechaGreaterThanEqual(
+                        eq(ID_ESTUDIANTE), any(LocalDateTime.class)))
+                .thenReturn((long) MAX_POR_DIA);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, this::pedirRevision);
+
+        assertTrue(ex.getMessage().contains("revisiones completas"), ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("HU-30. Una revisión también cuenta para el límite diario: con cupo se acepta")
+    void pedirRevision_limiteDiario_aunHayCupo() {
+        dadoUnEscenarioDeRevision(new Respuesta("Revisión", List.of()));
+        dadoQueSeUsaronHoy(MAX_POR_DIA - 1);
+
+        pedirRevision();
+
+        verify(interaccionRepository).save(any(InteraccionChatbot.class));
+    }
+
+    @Test
+    @DisplayName("HU-30. Al llegar al máximo diario no se puede pedir una revisión, aunque queden revisiones")
+    void pedirRevision_limiteDiarioAlcanzado_lanzaIllegalState() {
+        dadoQueLaPlanificacionEs(borrador());
+        dadoQueSeUsaronRevisiones(0);
+        dadoQueSeUsaronHoy(MAX_POR_DIA);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, this::pedirRevision);
+
+        assertTrue(ex.getMessage().contains(MAX_POR_DIA + " mensajes por día"), ex.getMessage());
+        verificarQueNoSeLlamoAlAsistenteNiSeGuardo();
+    }
+
+    @ParameterizedTest(name = "HU-30. Si el asistente falla por {0}, la revisión no se guarda ni se gasta")
+    @EnumSource(Causa.class)
+    void pedirRevision_falloDelAsistente_noGuardaNada(Causa causa) {
+        dadoQueLaPlanificacionEs(borrador());
+        dadoQueHayAspectos();
+        dadoQueSeUsaronRevisiones(0);
+        when(chatbotClient.responder(any(Solicitud.class))).thenThrow(new ChatbotNoDisponibleException(causa, "x"));
+
+        ChatbotNoDisponibleException ex = assertThrows(ChatbotNoDisponibleException.class, this::pedirRevision);
+
+        assertEquals(causa, ex.getCausa());
+        verify(interaccionRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("HU-30. Una respuesta en blanco no se guarda como revisión")
+    void pedirRevision_respuestaEnBlanco_noSeGuarda() {
+        dadoUnEscenarioDeRevision(new Respuesta("   ", List.of()));
+
+        assertThrows(ChatbotNoDisponibleException.class, this::pedirRevision);
+
+        verify(interaccionRepository, never()).save(any());
+    }
+
+    @ParameterizedTest(name = "HU-30. No se puede pedir una revisión de una planificación {0}")
+    @EnumSource(value = EstadoPlanificacion.class, names = {"ENVIADA", "APROBADA"})
+    void pedirRevision_estadoNoPermitido_lanzaIllegalState(EstadoPlanificacion estado) {
+        dadoQueLaPlanificacionEs(enEstado(estado));
+
+        assertThrows(IllegalStateException.class, this::pedirRevision);
+
+        verifyNoInteractions(chatbotClient, interaccionRepository);
+    }
+
+    @Test
+    @DisplayName("HU-30. Sin PDF subido no se puede pedir una revisión")
+    void pedirRevision_sinArchivo_lanzaIllegalState() {
+        Planificacion sinArchivo = Planificacion.borrador(null, "Plan antiguo solo con texto");
+        sinArchivo.setIdPlanificacion(ID_PLANIFICACION);
+        dadoQueLaPlanificacionEs(sinArchivo);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, this::pedirRevision);
+
+        assertTrue(ex.getMessage().contains("PDF"), ex.getMessage());
+        verifyNoInteractions(chatbotClient, interaccionRepository);
+    }
+
+    @ParameterizedTest(name = "HU-30. Revisión de una planificación ajena o inexistente: {0}")
+    @EnumSource(value = HttpStatus.class, names = {"FORBIDDEN", "NOT_FOUND"})
+    void pedirRevision_planificacionAjenaOInexistente_sePropaga(HttpStatus estado) {
+        when(planificacionService.obtenerPlanificacionDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION))
+                .thenThrow(new ResponseStatusException(estado));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, this::pedirRevision);
+
+        assertEquals(estado.value(), ex.getStatusCode().value());
+        verificarQueNoSeLlamoAlAsistenteNiSeGuardo();
+    }
+
+    @ParameterizedTest(name = "HU-30. El tope de revisiones por planificación debe ser al menos 1: {0}")
+    @ValueSource(ints = {0, -1})
+    void constructor_topeDeRevisionesInvalido_lanzaIllegalArgument(int invalido) {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> servicioCon(invalido));
+
+        assertTrue(ex.getMessage().contains("max-revisiones-por-planificacion"), ex.getMessage());
+    }
+
+    // ----------------------------------------- HU-30: pantalla (contadores y tipos)
+
+    @Test
+    @DisplayName("HU-30. La pantalla informa las revisiones que quedan y el tope")
+    void obtenerConversacion_revisionesRestantes() {
+        when(planificacionService.obtenerVistaDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION))
+                .thenReturn(vistaConArchivo("L", EstadoPlanificacion.BORRADOR, null, null, null));
+        dadoQueSeUsaronRevisiones(1);
+
+        VistaChat vista = service.obtenerConversacion(ID_ESTUDIANTE, ID_PLANIFICACION);
+
+        assertEquals(MAX_REVISIONES - 1, vista.revisionesRestantes());
+        assertEquals(MAX_REVISIONES, vista.maxRevisiones());
+    }
+
+    @Test
+    @DisplayName("HU-30. Sin revisiones usadas quedan todas")
+    void obtenerConversacion_sinRevisionesUsadas() {
+        when(planificacionService.obtenerVistaDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION))
+                .thenReturn(vistaConArchivo("L", EstadoPlanificacion.BORRADOR, null, null, null));
+
+        assertEquals(MAX_REVISIONES,
+                service.obtenerConversacion(ID_ESTUDIANTE, ID_PLANIFICACION).revisionesRestantes());
+    }
+
+    @Test
+    @DisplayName("HU-30. Pasado el tope las revisiones restantes son 0, nunca negativas")
+    void obtenerConversacion_revisionesRestantesNoSonNegativas() {
+        when(planificacionService.obtenerVistaDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION))
+                .thenReturn(vistaConArchivo("L", EstadoPlanificacion.BORRADOR, null, null, null));
+        dadoQueSeUsaronRevisiones(MAX_REVISIONES + 3);
+
+        assertEquals(0, service.obtenerConversacion(ID_ESTUDIANTE, ID_PLANIFICACION).revisionesRestantes());
+    }
+
+    @Test
+    @DisplayName("HU-30. En una rechazada las revisiones de antes del rechazo siguen contando")
+    void obtenerConversacion_rechazada_lasRevisionesNoSeReinician() {
+        LocalDateTime rechazo = LocalDateTime.of(2026, 10, 3, 12, 0);
+        when(planificacionService.obtenerVistaDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION))
+                .thenReturn(vistaConArchivo("L", EstadoPlanificacion.RECHAZADA,
+                        "Falta la evaluación", rechazo.minusDays(1), rechazo));
+        dadoQueSeUsaronRevisiones(MAX_REVISIONES);
+
+        VistaChat vista = service.obtenerConversacion(ID_ESTUDIANTE, ID_PLANIFICACION);
+
+        assertTrue(vista.turnos().isEmpty(), "la conversación nueva empieza vacía");
+        assertEquals(0, vista.revisionesRestantes());
+    }
+
+    @Test
+    @DisplayName("HU-30. Cada turno de la pantalla lleva su tipo; lo anterior a HU-30 queda como pregunta")
+    void obtenerConversacion_turnosConSuTipo() {
+        when(planificacionService.obtenerVistaDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION))
+                .thenReturn(vistaConArchivo("L", EstadoPlanificacion.BORRADOR, null, null, null));
+        dadoQueElHistorialEs(
+                previa(ChatbotService.MENSAJE_REVISION, "r1", TipoInteraccion.REVISION),
+                previa("¿Y el cierre?", "r2", TipoInteraccion.PREGUNTA),
+                previa("de antes de HU-30", "r3"));
+
+        VistaChat vista = service.obtenerConversacion(ID_ESTUDIANTE, ID_PLANIFICACION);
+
+        assertEquals(TipoInteraccion.REVISION, vista.turnos().get(0).tipo());
+        assertEquals(TipoInteraccion.PREGUNTA, vista.turnos().get(1).tipo());
+        assertEquals(TipoInteraccion.PREGUNTA, vista.turnos().get(2).tipo());
     }
 }
