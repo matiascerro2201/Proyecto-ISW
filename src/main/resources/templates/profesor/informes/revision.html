@@ -9,10 +9,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
 </head>
 <body>
-<img class="brand-logo" th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
-<main style="max-width:38rem;">
+<th:block th:replace="~{fragments/barra :: barra('/profesor/informes')}"></th:block>
+<main>
     <a class="back-link" th:href="@{/profesor/informes}">Volver a informes finales</a>
 
     <h1>Revisar informe final</h1>
@@ -82,13 +83,13 @@
                                        : ''))}">
             <span class="hint">Escala de 1,0 a 7,0 con un decimal. Puedes usar coma o punto.</span>
         </div>
-        <button type="submit" class="btn btn-secondary">Guardar calificación</button>
+        <button type="submit" class="btn btn-secondary btn-grande">Guardar calificación</button>
     </form>
 
     <!-- Paso 2: publicar, solo cuando la nota ya fue guardada -->
-    <form th:if="${informe.puedePublicar()}" style="margin-top:var(--space-6);"
+    <form class="barra-accion" th:if="${informe.puedePublicar()}"
           th:action="@{/profesor/informes/{id}/publicar(id=${informe.idInforme()})}" method="post">
-        <button type="submit" class="btn btn-primary"
+        <button type="submit" class="btn btn-primary btn-grande"
                 onclick="return confirm('¿Publicar el informe? El estudiante podrá verlo y ya no podrás modificar la calificación.');">
             Publicar informe
         </button>

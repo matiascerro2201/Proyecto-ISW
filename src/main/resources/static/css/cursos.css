@@ -1,0 +1,109 @@
+.dialogo {
+    width: min(36rem, calc(100vw - 2rem));
+    max-height: min(42rem, calc(100vh - 2rem));
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    color: var(--ink-900);
+    box-shadow: var(--shadow-md);
+}
+.dialogo[open] { display: flex; flex-direction: column; }
+.dialogo::backdrop { background: rgba(43, 18, 16, 0.45); }
+
+.dialogo__cab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--border);
+}
+.dialogo__cab h2 { margin: 0; font-size: 20px; line-height: 28px; }
+.dialogo__cerrar {
+    appearance: none;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    background: var(--surface-raised);
+    color: var(--ink-700);
+    cursor: pointer;
+    transition: background-color 100ms ease-out, color 100ms ease-out;
+}
+.dialogo__cerrar:hover { background: var(--brand-100); color: var(--brand-700); }
+.dialogo__cuerpo { padding: var(--space-4) var(--space-6) var(--space-6); overflow-y: auto; }
+
+.curso-periodo { margin: 0 0 var(--space-4); font-size: 13px; color: var(--ink-500); }
+.vacio { margin: 0; color: var(--ink-500); }
+
+.estudiantes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.estudiante {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+    transition: border-color 150ms ease-out;
+}
+details.estudiante[open] { border-color: var(--brand-500); }
+
+.estudiante > summary,
+.estudiante--simple {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+}
+.estudiante > summary { list-style: none; cursor: pointer; }
+.estudiante > summary::-webkit-details-marker { display: none; }
+.estudiante > summary:hover .estudiante__nombre { color: var(--brand-700); }
+
+.estudiante > summary::after {
+    content: "";
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--ink-500);
+    border-bottom: 2px solid var(--ink-500);
+    transform: rotate(45deg);
+    transition: transform 150ms ease-out;
+}
+details.estudiante[open] > summary::after { transform: rotate(-135deg); }
+
+.estudiante__nombre { flex: 1; font-weight: 600; color: var(--ink-900); min-width: 0; overflow-wrap: anywhere; }
+
+.acciones {
+    list-style: none;
+    margin: 0;
+    padding: 0 var(--space-4) var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+.accion {
+    display: block;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--brand-700);
+    text-decoration: none;
+}
+.accion:hover { background: var(--brand-100); }
+
+@media (max-width: 35rem) {
+    .dialogo__cab, .dialogo__cuerpo { padding-left: var(--space-4); padding-right: var(--space-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .estudiante, .estudiante > summary::after, .dialogo__cerrar { transition-duration: 1ms !important; }
+}
+
+.estudiante__cuerpo { padding: 0 var(--space-4) var(--space-4); }
+.estudiante__datos { margin: 0 0 var(--space-3); font-size: 14px; }
+.motivos { margin: 0 0 var(--space-3); padding-left: 1.1rem; font-size: 13px; color: var(--ink-700); }
+.acciones form { margin: 0; }
+button.accion { width: 100%; border: 0; font-family: var(--font-body); text-align: left; cursor: pointer; }

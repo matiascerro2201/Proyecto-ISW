@@ -2,10 +2,15 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- HU-10: desglose de la calificación, usado por la vista del profesor y la del estudiante.
+<!-- Fragmentos: calculo (explicación), criterios (evaluaciones y entregas) y desglose (ambos).
      Parámetros: d (DesgloseInforme) y esProfesor (true muestra avisos de configuración). -->
 <section class="desglose" th:fragment="desglose(d, esProfesor)">
     <h2>Cómo se calculó la calificación</h2>
+    <th:block th:replace="~{fragments/desglose-informe :: calculo(${d}, ${esProfesor})}"></th:block>
+    <th:block th:replace="~{fragments/desglose-informe :: criterios(${d})}"></th:block>
+</section>
+
+<th:block th:fragment="calculo(d, esProfesor)">
     <p>
         Cada evaluación y cada entrega recibe una nota de 1,0 a 7,0; la nota 4,0 corresponde a un
         <span th:text="${#numbers.formatDecimal(d.exigencia, 1, 'POINT', 0, 'COMMA')}">60</span> % de logro.
@@ -15,7 +20,9 @@
        th:text="|Las ponderaciones de esta asignatura suman ${#numbers.formatDecimal(d.sumaPonderaciones, 1, 'POINT', 2, 'COMMA')} % y no 100 %: la calificación se calculó dividiendo por esa suma.|">
         Las ponderaciones suman 200 %.
     </p>
+</th:block>
 
+<div class="desglose" th:fragment="criterios(d)">
     <h3>Evaluaciones de desempeño</h3>
     <p th:if="${#lists.isEmpty(d.evaluaciones)}">La asignatura no tiene pautas de evaluación registradas.</p>
 
@@ -91,7 +98,7 @@
             </tbody>
         </table>
     </div>
-</section>
+</div>
 
 </body>
 </html>

@@ -5,6 +5,7 @@ import com.grupo1.isw.practicas_pedagogicas.security.UsuarioDetails;
 import com.grupo1.isw.practicas_pedagogicas.services.EvaluacionInvalidaException;
 import com.grupo1.isw.practicas_pedagogicas.services.EvaluacionService;
 import com.grupo1.isw.practicas_pedagogicas.services.LineaConsultaService;
+import com.grupo1.isw.practicas_pedagogicas.services.MisEstudiantesService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -32,16 +33,19 @@ public class EvaluacionViewController {
 
     private final LineaConsultaService lineaConsultaService;
     private final EvaluacionService evaluacionService;
+    private final MisEstudiantesService misEstudiantesService;
 
     public EvaluacionViewController(LineaConsultaService lineaConsultaService,
-                                    EvaluacionService evaluacionService) {
+                                    EvaluacionService evaluacionService,
+                                    MisEstudiantesService misEstudiantesService) {
         this.lineaConsultaService = lineaConsultaService;
         this.evaluacionService = evaluacionService;
+        this.misEstudiantesService = misEstudiantesService;
     }
 
     @GetMapping
     public String listar(@AuthenticationPrincipal UsuarioDetails usuario, Model model) {
-        model.addAttribute("lineas", lineaConsultaService.listarLineasDelColaborador(usuario.getIdUsuario()));
+        model.addAttribute("estudiantes", misEstudiantesService.delColaborador(usuario.getIdUsuario()));
         return "colaborador/lineas";
     }
 

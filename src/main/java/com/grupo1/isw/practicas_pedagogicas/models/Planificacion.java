@@ -19,7 +19,7 @@ public class Planificacion {
     @JoinColumn(name = "id_linea", nullable = false)
     private LineaPractica linea;
 
-    @Column(name = "contenido", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "contenido", columnDefinition = "TEXT")
     private String contenido;
 
     // ENVIADA por defecto (igual que en la base de datos): el constructor con fecha de envío crea una
@@ -37,6 +37,21 @@ public class Planificacion {
 
     @Column(name = "fecha_retro")
     private LocalDateTime fechaRetro;
+
+    @Column(name = "archivo_nombre", length = 100)
+    private String archivoNombre;
+
+    @Column(name = "archivo_original", length = 255)
+    private String archivoOriginal;
+
+    @Column(name = "archivo_tamano")
+    private Long archivoTamano;
+
+    @Column(name = "archivo_fecha")
+    private LocalDateTime archivoFecha;
+
+    @Column(name = "texto_extraido", columnDefinition = "MEDIUMTEXT")
+    private String textoExtraido;
 
     @OneToMany(mappedBy = "planificacion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<InteraccionChatbot> interacciones = new ArrayList<>();
@@ -64,10 +79,25 @@ public class Planificacion {
         return borrador;
     }
 
-    /**
-     * Anota una decisión del colaborador en el historial. Al guardar la planificación se guarda también la
-     * evaluación (cascada). El historial conserva lo que el estado y la retroalimentación pierden al reenviar.
-     */
+    public void adjuntarArchivo(String nombre, String original, long tamano, String textoExtraido,LocalDateTime fecha) {
+        this.archivoNombre = nombre;
+        this.archivoOriginal = original;
+        this.archivoTamano = tamano;
+        this.textoExtraido = textoExtraido;
+        this.archivoFecha = fecha;
+    }
+
+    public boolean tieneArchivo() {
+        return archivoNombre != null;
+    }
+
+    public String getArchivoNombre() { return archivoNombre; }
+    public String getArchivoOriginal() { return archivoOriginal; }
+    public Long getArchivoTamano() { return archivoTamano; }
+    public LocalDateTime getArchivoFecha() { return archivoFecha; }
+    public String getTextoExtraido() { return textoExtraido; }
+
+
     public void registrarEvaluacion(EstadoPlanificacion decision, String retroalimentacion, LocalDateTime fecha) {
         evaluaciones.add(new EvaluacionPlanificacion(this, decision, retroalimentacion, fecha));
     }

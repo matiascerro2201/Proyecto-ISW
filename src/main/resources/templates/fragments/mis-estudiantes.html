@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- lista(base, conPlanificaciones): base es la ruta de las líneas del rol, por ejemplo /tutor/lineas -->
+<main th:fragment="lista(base, conPlanificaciones)">
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Mis estudiantes</h1>
+    <p th:text="${conPlanificaciones}
+                ? 'Elige un estudiante para completar sus pautas de evaluación y evaluar sus planificaciones.'
+                : 'Elige un estudiante para ver sus pautas de evaluación y completarlas.'">Elige un estudiante para ver sus pautas de evaluación y completarlas.</p>
+
+    <section class="asignaturas" aria-labelledby="titulo-estudiantes">
+        <div class="asignaturas__cab">
+            <h2 id="titulo-estudiantes">Estudiantes</h2>
+            <span class="asignaturas__contador" id="contador" aria-live="polite"
+                  th:text="|${#lists.size(estudiantes)} ${#lists.size(estudiantes) == 1 ? 'estudiante' : 'estudiantes'}|">3 estudiantes</span>
+        </div>
+
+        <p class="vacio" th:if="${#lists.isEmpty(estudiantes)}">
+            Aún no tienes estudiantes asignados. Cuando se te asigne una línea de práctica, aparecerá en esta lista.
+        </p>
+
+        <th:block th:unless="${#lists.isEmpty(estudiantes)}">
+            <div class="filtros" role="search">
+                <div class="filtros__buscar">
+                    <label for="buscar">Buscar</label>
+                    <div class="sugerencias">
+                        <input type="search" id="buscar" placeholder="Estudiante o asignatura" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                        <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias de estudiantes" hidden></ul>
+                    </div>
+                </div>
+                <label>
+                    Período
+                    <select id="filtro-periodo">
+                        <option value="">Todos</option>
+                    </select>
+                </label>
+                <label>
+                    Evaluación
+                    <select id="filtro-estado">
+                        <option value="">Todas</option>
+                        <option value="PENDIENTE" th:text="${conPlanificaciones} ? 'Con pautas o planificaciones por evaluar' : 'Con pautas por evaluar'">Con pautas por evaluar</option>
+                        <option value="AL_DIA">Todo evaluado</option>
+                        <option value="SIN_PAUTAS">Sin pautas</option>
+                    </select>
+                </label>
+                <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+            </div>
+
+            <ul class="asignaturas__lista" id="lista-asignaturas"
+                th:style="${conPlanificaciones} ? '--datos: 3;' : '--datos: 2;'"
+                data-hash="estudiante" data-singular="estudiante" data-plural="estudiantes">
+                <li class="asignatura" th:each="e : ${estudiantes}"
+                    th:attr="data-estado=${e.estado()}, data-pendientes=${e.pendientes()}, data-periodo=${e.periodo()}, data-orden=${e.anio() * 10 + e.semestre()}, data-busqueda=${e.asignatura()}">
+                    <button type="button" class="asignatura__fila" aria-haspopup="dialog"
+                            th:attr="data-id=${e.id()}, data-ids=${e.idsDeLineas()}">
+                        <span class="asignatura__principal">
+                            <span class="asignatura__nombre" th:text="${e.nombre()}">Camila Soto</span>
+                            <span class="asignatura__periodo" th:text="|${e.asignatura()}, ${e.periodo()}|">Práctica Pedagógica, Semestre 2 de 2026</span>
+                        </span>
+                        <span class="asignatura__dato" th:text="${e.tipos()}">Especialidad</span>
+                        <span class="asignatura__dato"
+                              th:text="${e.totalPautas() == 0
+                                         ? 'Sin pautas'
+                                         : e.evaluadas() + ' de ' + e.totalPautas() + (e.totalPautas() == 1 ? ' pauta evaluada' : ' pautas evaluadas')}">1 de 2 pautas evaluadas</span>
+                        <span class="asignatura__dato" th:if="${conPlanificaciones}"
+                              th:text="${#lists.isEmpty(e.planificaciones())
+                                         ? 'Sin planificaciones por evaluar'
+                                         : e.planificaciones().size() + (e.planificaciones().size() == 1 ? ' planificación por evaluar' : ' planificaciones por evaluar')}">Sin planificaciones por evaluar</span>
+                        <span th:switch="${e.estado()}">
+                            <span class="badge pendiente" th:case="'PENDIENTE'" th:text="|${e.pendientes()} por evaluar|">1 por evaluar</span>
+                            <span class="badge aprobada" th:case="'AL_DIA'">Todo evaluado</span>
+                            <span class="badge borrador" th:case="*">Sin pautas</span>
+                        </span>
+                    </button>
+                </li>
+            </ul>
+            <p class="vacio" id="sin-resultados" hidden>Ningún estudiante coincide con la búsqueda.</p>
+
+            <template th:each="e : ${estudiantes}" th:id="|plantilla-${e.id()}|">
+                <p class="curso-periodo" th:text="|${e.asignatura()}, ${e.periodo()}|">Práctica Pedagógica, Semestre 2 de 2026</p>
+
+                <section class="linea-bloque" th:if="${!#lists.isEmpty(e.planificaciones())}">
+                    <div class="linea-bloque__cab">
+                        <h3>Planificaciones por evaluar</h3>
+                    </div>
+                    <div class="tabla-scroll">
+                        <table>
+                            <caption class="sr-only">Planificaciones enviadas que faltan por evaluar</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Enviada</th>
+                                    <th scope="col"><span class="sr-only">Acción</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="planificacion : ${e.planificaciones()}">
+                                    <td th:text="${planificacion.fechaEnvio() != null ? #temporals.format(planificacion.fechaEnvio(), 'dd/MM/yyyy HH:mm') : 'Sin fecha'}">14/09/2026 10:30</td>
+                                    <td>
+                                        <a class="btn btn-primary"
+                                           th:href="@{/planificaciones/{id}/evaluar(id=${planificacion.idPlanificacion()})}">Evaluar</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="linea-bloque" th:each="linea : ${e.lineas()}">
+                    <div class="linea-bloque__cab">
+                        <h3 th:text="${linea.tipo()}">Especialidad</h3>
+                        <a class="btn btn-ghost" th:href="@{${base + '/' + linea.idLinea()}}">Ver detalle de la línea</a>
+                    </div>
+
+                    <p class="vacio" th:if="${#lists.isEmpty(linea.pautas())}">Aún no hay pautas registradas para esta línea.</p>
+
+                    <div class="tabla-scroll" th:unless="${#lists.isEmpty(linea.pautas())}">
+                        <table>
+                            <caption class="sr-only" th:text="|Pautas de la línea ${linea.tipo()}|">Pautas de la línea</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Aplicación</th>
+                                    <th scope="col">Ponderación</th>
+                                    <th scope="col">Estado</th>
+                                    <th scope="col"><span class="sr-only">Acción</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="pauta : ${linea.pautas()}">
+                                    <td th:text="${pauta.numeroAplicacion()}">1</td>
+                                    <td th:text="|${#numbers.formatDecimal(pauta.ponderacion(), 1, 'POINT', 2, 'COMMA')} %|">50,00 %</td>
+                                    <td>
+                                        <span class="badge pendiente" th:unless="${pauta.evaluada()}">Sin evaluar</span>
+                                        <span class="badge aprobada" th:if="${pauta.evaluada()}"
+                                              th:text="${pauta.puntaje() != null
+                                                         ? 'Evaluada: ' + #numbers.formatDecimal(pauta.puntaje(), 1, 'POINT', 2, 'COMMA') + ' pts el ' + #temporals.format(pauta.fecha(), 'dd/MM/yyyy')
+                                                         : 'Evaluada'}">Evaluada</span>
+                                    </td>
+                                    <td>
+                                        <a class="btn" th:classappend="${pauta.evaluada() ? 'btn-ghost' : 'btn-primary'}"
+                                           th:href="@{${base + '/' + linea.idLinea() + '/pautas/' + pauta.idPauta()}}"
+                                           th:text="${pauta.evaluada() ? 'Editar' : 'Evaluar'}">Evaluar</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </template>
+        </th:block>
+    </section>
+    <noscript><p class="alerta">Esta página necesita JavaScript para mostrar las pautas de cada estudiante.</p></noscript>
+</main>
+
+<dialog class="dialogo dialogo--pautas" id="dialogo-lista" aria-labelledby="dialogo-lista-titulo" th:fragment="ventana">
+    <div class="dialogo__cab">
+        <h2 id="dialogo-lista-titulo">Estudiante</h2>
+        <button type="button" class="dialogo__cerrar" id="dialogo-lista-cerrar" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="dialogo__cuerpo" id="dialogo-lista-cuerpo"></div>
+</dialog>
+
+</body>
+</html>

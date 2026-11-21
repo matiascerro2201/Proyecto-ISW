@@ -72,7 +72,7 @@ public class PautaDefinicionController {
             try {
                 pautaDefinicionService.crear(idProfesor, asignatura, formulario);
                 redirectAttributes.addFlashAttribute("mensaje", "Pauta creada.");
-                return "redirect:" + BASE;
+                return "redirect:" + rutaAsignatura(asignatura);
             } catch (PautaInvalidaException e) {
                 model.addAttribute("errores", e.getErrores());
             }
@@ -105,7 +105,7 @@ public class PautaDefinicionController {
             try {
                 pautaDefinicionService.actualizar(idProfesor, idPauta, formulario);
                 redirectAttributes.addFlashAttribute("mensaje", "Pauta guardada.");
-                return "redirect:" + BASE;
+                return "redirect:" + rutaAsignatura(actual.idAsignatura());
             } catch (PautaInvalidaException e) {
                 model.addAttribute("errores", e.getErrores());
             } catch (IllegalStateException e) {
@@ -120,14 +120,16 @@ public class PautaDefinicionController {
     public String eliminar(@PathVariable Long idPauta,
                            @AuthenticationPrincipal UsuarioDetails usuario,
                            RedirectAttributes redirectAttributes) {
+        Long idProfesor = usuario.getIdUsuario();
+        Long idAsignatura = pautaDefinicionService.obtenerParaEditar(idProfesor, idPauta).idAsignatura();
         try {
-            pautaDefinicionService.eliminar(usuario.getIdUsuario(), idPauta);
+            pautaDefinicionService.eliminar(idProfesor, idPauta);
         } catch (IllegalStateException e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:" + BASE + "/" + idPauta + "/editar";
         }
         redirectAttributes.addFlashAttribute("mensaje", "Pauta eliminada.");
-        return "redirect:" + BASE;
+        return "redirect:" + rutaAsignatura(idAsignatura);
     }
 
     private void mostrarFormulario(Model model, String nombreAsignatura, Long idAsignatura,
@@ -137,5 +139,9 @@ public class PautaDefinicionController {
         model.addAttribute("idPauta", idPauta);
         model.addAttribute("soloLectura", soloLectura);
         model.addAttribute("tiposLinea", TipoLinea.values());
+    }
+
+    private static String rutaAsignatura(Long idAsignatura) {
+        return BASE + "#asignatura-" + idAsignatura;
     }
 }
