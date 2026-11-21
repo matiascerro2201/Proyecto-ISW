@@ -29,6 +29,10 @@ public class Usuario {
     @Column(name = "creado_en", insertable = false, updatable = false)
     private LocalDateTime creadoEn;
 
+    /** HU-36: una cuenta inactiva conserva su historial pero no puede iniciar sesión. */
+    @Column(name = "activo", nullable = false)
+    private boolean activo = true;
+
     public Usuario() {
     }
 
@@ -81,5 +85,13 @@ public class Usuario {
 
     public LocalDateTime getCreadoEn() {
         return creadoEn;
+    }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
     }
 }

@@ -111,6 +111,17 @@ class PlanificacionBorradorServiceTest {
         return guardada;
     }
 
+    /** HU-31/32: la planificación tiene su PDF subido (lo que exige el envío). */
+    private Planificacion conArchivo(Planificacion planificacion) {
+        planificacion.adjuntarArchivo("archivo.pdf", "plan.pdf", 1234L, "Texto extraído del PDF",
+                LocalDateTime.of(2026, 10, 1, 9, 0));
+        return planificacion;
+    }
+
+    private Planificacion borradorConArchivo() {
+        return conArchivo(planificacion(EstadoPlanificacion.BORRADOR));
+    }
+
     private void dadoQueExiste(Planificacion planificacion) {
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(planificacion));
     }
@@ -124,177 +135,19 @@ class PlanificacionBorradorServiceTest {
         verificarQueNoSeNotifico();
     }
 
-    // ------------------------------------------------------------ crearBorrador
-
-    @Test
-    @DisplayName("HU-26. Guardar un borrador lo crea sin fecha de envío, sin notificar, y devuelve su id")
-    void crearBorrador_guardaBorradorSinFechaYSinNotificar() {
-        when(lineaPracticaRepository.findById(ID_LINEA))
-                .thenReturn(Optional.of(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
-        when(planificacionRepository.save(any(Planificacion.class)))
-                .thenAnswer(invocacion -> conIdNuevo(invocacion.getArgument(0)));
-
-        Long id = service.crearBorrador(ID_ESTUDIANTE, ID_LINEA, "  Plan de clase  ");
-
-        assertEquals(ID_PLANIFICACION_NUEVA, id);
-        ArgumentCaptor<Planificacion> guardada = ArgumentCaptor.forClass(Planificacion.class);
-        verify(planificacionRepository).save(guardada.capture());
-        assertEquals(EstadoPlanificacion.BORRADOR, guardada.getValue().getEstado());
-        assertNull(guardada.getValue().getFechaEnvio());
-        assertEquals("Plan de clase", guardada.getValue().getContenido());
-        verificarQueNoSeNotifico();
-    }
-
-    @Test
-    @DisplayName("HU-26. Un borrador sin línea de práctica seleccionada lanza IllegalArgument")
-    void crearBorrador_sinLinea_lanzaIllegalArgument() {
-        assertThrows(IllegalArgumentException.class,
-                () -> service.crearBorrador(ID_ESTUDIANTE, null, "Plan de clase"));
-
-        verificarQueNoSeGuardoNiSeNotifico();
-    }
-
-    @Test
-    @DisplayName("HU-26. Un borrador en una línea que no existe lanza 404")
-    void crearBorrador_lineaInexistente_lanza404() {
-        when(lineaPracticaRepository.findById(ID_LINEA)).thenReturn(Optional.empty());
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.crearBorrador(ID_ESTUDIANTE, ID_LINEA, "Plan de clase"));
-
-        assertEquals(404, ex.getStatusCode().value());
-        verificarQueNoSeGuardoNiSeNotifico();
-    }
-
-    @Test
-    @DisplayName("HU-26. Un borrador en la línea de otro estudiante lanza 403 y no se guarda")
-    void crearBorrador_lineaAjena_lanza403() {
-        when(lineaPracticaRepository.findById(ID_LINEA))
-                .thenReturn(Optional.of(lineaDe(ID_OTRO_ESTUDIANTE, ID_COLABORADOR)));
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.crearBorrador(ID_ESTUDIANTE, ID_LINEA, "Plan de clase"));
-
-        assertEquals(403, ex.getStatusCode().value());
-        verificarQueNoSeGuardoNiSeNotifico();
-    }
-
-    @ParameterizedTest(name = "HU-26. Borrador con contenido vacío: [{0}]")
-    @NullAndEmptySource
-    @ValueSource(strings = {"   ", "\n\t "})
-    void crearBorrador_contenidoVacio_lanzaIllegalArgument(String contenidoVacio) {
-        when(lineaPracticaRepository.findById(ID_LINEA))
-                .thenReturn(Optional.of(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
-
-        assertThrows(IllegalArgumentException.class,
-                () -> service.crearBorrador(ID_ESTUDIANTE, ID_LINEA, contenidoVacio));
-
-        verificarQueNoSeGuardoNiSeNotifico();
-    }
-
-    // ----------------------------------------------------------- guardarCambios
-
-    @Test
-    @DisplayName("HU-26. Guardar cambios en un borrador actualiza el texto y no cambia el estado ni notifica")
-    void guardarCambios_borrador_actualizaTexto() {
-        Planificacion borrador = planificacion(EstadoPlanificacion.BORRADOR);
-        dadoQueExiste(borrador);
-
-        service.guardarCambios(ID_ESTUDIANTE, ID_PLANIFICACION, "  Texto nuevo  ");
-
-        assertEquals("Texto nuevo", borrador.getContenido());
-        assertEquals(EstadoPlanificacion.BORRADOR, borrador.getEstado());
-        assertNull(borrador.getFechaEnvio());
-        verify(planificacionRepository).save(borrador);
-        verificarQueNoSeNotifico();
-    }
-
-    @Test
-    @DisplayName("HU-26. Guardar cambios en una rechazada conserva el estado, la retroalimentación y las fechas")
-    void guardarCambios_rechazada_conservaEstadoYRetroalimentacion() {
-        Planificacion rechazada = planificacion(EstadoPlanificacion.RECHAZADA);
-        LocalDateTime fechaRetro = LocalDateTime.of(2026, 10, 2, 12, 0);
-        rechazada.setRetroalimentacion("Faltan los objetivos de aprendizaje.");
-        rechazada.setFechaRetro(fechaRetro);
-        dadoQueExiste(rechazada);
-
-        service.guardarCambios(ID_ESTUDIANTE, ID_PLANIFICACION, "Texto mejorado");
-
-        assertEquals("Texto mejorado", rechazada.getContenido());
-        assertEquals(EstadoPlanificacion.RECHAZADA, rechazada.getEstado());
-        assertEquals("Faltan los objetivos de aprendizaje.", rechazada.getRetroalimentacion());
-        assertEquals(fechaRetro, rechazada.getFechaRetro());
-        assertEquals(FECHA_ENVIO_ORIGINAL, rechazada.getFechaEnvio());
-        verify(planificacionRepository).save(rechazada);
-        verificarQueNoSeNotifico();
-    }
-
-    @ParameterizedTest(name = "HU-26. No se puede editar una planificación {0}")
-    @EnumSource(value = EstadoPlanificacion.class, names = {"ENVIADA", "APROBADA"})
-    void guardarCambios_noEditable_lanzaIllegalState(EstadoPlanificacion estado) {
-        Planificacion planificacion = planificacion(estado);
-        dadoQueExiste(planificacion);
-
-        assertThrows(IllegalStateException.class,
-                () -> service.guardarCambios(ID_ESTUDIANTE, ID_PLANIFICACION, "Texto nuevo"));
-
-        assertEquals("Plan de clase", planificacion.getContenido());
-        verificarQueNoSeGuardoNiSeNotifico();
-    }
-
-    @Test
-    @DisplayName("HU-26. Guardar cambios en la planificación de otro estudiante lanza 403")
-    void guardarCambios_ajena_lanza403() {
-        Planificacion ajena = planificacion(EstadoPlanificacion.BORRADOR, ID_OTRO_ESTUDIANTE, ID_COLABORADOR);
-        dadoQueExiste(ajena);
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.guardarCambios(ID_ESTUDIANTE, ID_PLANIFICACION, "Texto nuevo"));
-
-        assertEquals(403, ex.getStatusCode().value());
-        assertEquals("Plan de clase", ajena.getContenido());
-        verificarQueNoSeGuardoNiSeNotifico();
-    }
-
-    @Test
-    @DisplayName("HU-26. Guardar cambios en una planificación que no existe lanza 404")
-    void guardarCambios_noExiste_lanza404() {
-        when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.empty());
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.guardarCambios(ID_ESTUDIANTE, ID_PLANIFICACION, "Texto nuevo"));
-
-        assertEquals(404, ex.getStatusCode().value());
-        verificarQueNoSeGuardoNiSeNotifico();
-    }
-
-    @ParameterizedTest(name = "HU-26. Guardar cambios con texto vacío: [{0}]")
-    @NullAndEmptySource
-    @ValueSource(strings = {"   ", "\n\t "})
-    void guardarCambios_contenidoVacio_lanzaIllegalArgument(String contenidoVacio) {
-        Planificacion borrador = planificacion(EstadoPlanificacion.BORRADOR);
-        dadoQueExiste(borrador);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> service.guardarCambios(ID_ESTUDIANTE, ID_PLANIFICACION, contenidoVacio));
-
-        assertEquals("Plan de clase", borrador.getContenido());
-        verificarQueNoSeGuardoNiSeNotifico();
-    }
-
     // ----------------------------------------------------------- enviarBorrador
 
     @Test
-    @DisplayName("HU-26. Enviar un borrador lo pasa a ENVIADA con fecha, guarda el texto y notifica al colaborador")
+    @DisplayName("HU-31/32. Enviar un borrador con PDF lo pasa a ENVIADA con fecha y notifica al colaborador")
     void enviarBorrador_pasaAEnviadaYNotifica() {
-        Planificacion borrador = planificacion(EstadoPlanificacion.BORRADOR);
+        Planificacion borrador = borradorConArchivo();
         dadoQueExiste(borrador);
         LocalDateTime antes = LocalDateTime.now();
 
-        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, "  Texto final  ");
+        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION);
 
         assertEquals(EstadoPlanificacion.ENVIADA, borrador.getEstado());
-        assertEquals("Texto final", borrador.getContenido());
+        assertTrue(borrador.tieneArchivo(), "el PDF debe seguir adjunto");
         assertFalse(borrador.getFechaEnvio().isBefore(antes), "la fecha de envío debe ser la del momento del envío");
 
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
@@ -308,14 +161,29 @@ class PlanificacionBorradorServiceTest {
         orden.verify(notificacionService).crear(any(), any(), any(), any());
     }
 
+    @Test
+    @DisplayName("HU-31/32. Enviar un borrador sin PDF lanza IllegalArgument: sigue siendo borrador y no se notifica")
+    void enviarBorrador_sinArchivo_sigueSiendoBorrador() {
+        Planificacion borrador = planificacion(EstadoPlanificacion.BORRADOR);
+        dadoQueExiste(borrador);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
+
+        assertTrue(ex.getMessage().contains("PDF"), ex.getMessage());
+        assertEquals(EstadoPlanificacion.BORRADOR, borrador.getEstado());
+        assertNull(borrador.getFechaEnvio());
+        verificarQueNoSeGuardoNiSeNotifico();
+    }
+
     @ParameterizedTest(name = "HU-26. Solo se envía un borrador: no se puede enviar una {0}")
     @EnumSource(value = EstadoPlanificacion.class, names = {"ENVIADA", "APROBADA", "RECHAZADA"})
     void enviarBorrador_noEsBorrador_lanzaIllegalState(EstadoPlanificacion estado) {
-        Planificacion planificacion = planificacion(estado);
+        Planificacion planificacion = conArchivo(planificacion(estado));
         dadoQueExiste(planificacion);
 
         assertThrows(IllegalStateException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, "Texto final"));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
 
         assertEquals(estado, planificacion.getEstado());
         verificarQueNoSeGuardoNiSeNotifico();
@@ -324,11 +192,12 @@ class PlanificacionBorradorServiceTest {
     @Test
     @DisplayName("HU-26. Enviar el borrador de otro estudiante lanza 403 y no notifica")
     void enviarBorrador_ajeno_lanza403() {
-        Planificacion ajeno = planificacion(EstadoPlanificacion.BORRADOR, ID_OTRO_ESTUDIANTE, ID_COLABORADOR);
+        Planificacion ajeno = conArchivo(
+                planificacion(EstadoPlanificacion.BORRADOR, ID_OTRO_ESTUDIANTE, ID_COLABORADOR));
         dadoQueExiste(ajeno);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, "Texto final"));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
 
         assertEquals(403, ex.getStatusCode().value());
         assertEquals(EstadoPlanificacion.BORRADOR, ajeno.getEstado());
@@ -336,28 +205,26 @@ class PlanificacionBorradorServiceTest {
     }
 
     @Test
-    @DisplayName("HU-26. Enviar con texto vacío lanza IllegalArgument: sigue siendo borrador y no se notifica")
-    void enviarBorrador_contenidoVacio_sigueSiendoBorrador() {
-        Planificacion borrador = planificacion(EstadoPlanificacion.BORRADOR);
-        dadoQueExiste(borrador);
+    @DisplayName("HU-26. Enviar una planificación que no existe lanza 404")
+    void enviarBorrador_noExiste_lanza404() {
+        when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, "   "));
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
 
-        assertEquals(EstadoPlanificacion.BORRADOR, borrador.getEstado());
-        assertNull(borrador.getFechaEnvio());
+        assertEquals(404, ex.getStatusCode().value());
         verificarQueNoSeGuardoNiSeNotifico();
     }
 
     @Test
     @DisplayName("HU-26. Si falla el guardado al enviar no se notifica al colaborador")
     void enviarBorrador_falloAlGuardar_noNotifica() {
-        dadoQueExiste(planificacion(EstadoPlanificacion.BORRADOR));
+        dadoQueExiste(borradorConArchivo());
         when(planificacionRepository.save(any(Planificacion.class)))
                 .thenThrow(new RuntimeException("Falla de base de datos"));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, "Texto final"));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
 
         assertEquals("Falla de base de datos", ex.getMessage());
         verificarQueNoSeNotifico();
@@ -366,11 +233,11 @@ class PlanificacionBorradorServiceTest {
     @Test
     @DisplayName("HU-26. Enviar dos veces (dos pestañas) deja una sola notificación")
     void enviarBorrador_dosVeces_notificaUnaSolaVez() {
-        dadoQueExiste(planificacion(EstadoPlanificacion.BORRADOR));
+        dadoQueExiste(borradorConArchivo());
 
-        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, "Texto final");
+        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION);
         assertThrows(IllegalStateException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, "Texto final"));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
 
         verify(notificacionService, times(1)).crear(any(), any(), any(), any());
     }
@@ -496,7 +363,58 @@ class PlanificacionBorradorServiceTest {
         assertEquals(editable, PlanificacionService.esEditable(estado));
     }
 
+    @Test
+    @DisplayName("HU-31/32. La vista informa si la planificación tiene PDF y sus datos")
+    void vista_conArchivo() {
+        LocalDateTime fecha = LocalDateTime.of(2026, 10, 1, 9, 0);
+        Planificacion conArchivo = conArchivo(planificacion(EstadoPlanificacion.BORRADOR));
+        when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(conArchivo));
+
+        PlanificacionVista vista = service.obtenerVistaDelEstudiante(ID_ESTUDIANTE, ID_PLANIFICACION);
+
+        assertTrue(vista.tieneArchivo());
+        assertEquals("plan.pdf", vista.archivoOriginal());
+        assertEquals(1234L, vista.archivoTamano());
+        assertEquals(fecha, vista.archivoFecha());
+    }
+
+    @Test
+    @DisplayName("HU-31/32. Una planificación antigua, solo con texto, no tiene PDF")
+    void vista_sinArchivo() {
+        PlanificacionVista vista = new PlanificacionVista(1L, "Línea", "Texto", EstadoPlanificacion.BORRADOR,
+                null, null, null);
+
+        assertFalse(vista.tieneArchivo());
+    }
+
     // ------------------------------------------------------------- entidad
+
+    @Test
+    @DisplayName("HU-31/32. Un borrador puede crearse solo con el PDF, sin texto")
+    void entidad_borradorSoloConArchivo() {
+        Planificacion borrador = Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), null);
+        assertFalse(borrador.tieneArchivo());
+
+        borrador.adjuntarArchivo("uuid.pdf", "plan.pdf", 500L, "Texto del PDF", LocalDateTime.of(2026, 10, 1, 9, 0));
+
+        assertTrue(borrador.tieneArchivo());
+        assertNull(borrador.getContenido());
+        assertEquals("uuid.pdf", borrador.getArchivoNombre());
+        assertEquals("plan.pdf", borrador.getArchivoOriginal());
+        assertEquals("Texto del PDF", borrador.getTextoExtraido());
+    }
+
+    @Test
+    @DisplayName("HU-31/32. Adjuntar otro PDF reemplaza al anterior en la misma planificación")
+    void entidad_adjuntarReemplazaElArchivoAnterior() {
+        Planificacion borrador = conArchivo(planificacion(EstadoPlanificacion.BORRADOR));
+
+        borrador.adjuntarArchivo("nuevo.pdf", "version2.pdf", 900L, "Texto nuevo", LocalDateTime.of(2026, 10, 5, 9, 0));
+
+        assertEquals("nuevo.pdf", borrador.getArchivoNombre());
+        assertEquals("version2.pdf", borrador.getArchivoOriginal());
+        assertEquals("Texto nuevo", borrador.getTextoExtraido());
+    }
 
     @Test
     @DisplayName("HU-26. Planificacion.borrador crea un BORRADOR sin fecha de envío")

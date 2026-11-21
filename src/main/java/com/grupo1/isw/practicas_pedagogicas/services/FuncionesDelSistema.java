@@ -40,7 +40,18 @@ public final class FuncionesDelSistema {
                     "Crea y edita las pautas de evaluación de tus asignaturas.", "/profesor/pautas"),
             de("PROFESOR_ASIGNATURA", "Informe del asistente de planificaciones", "Informe del asistente",
                     "Mira qué aspectos de las planificaciones les cuestan más a tus estudiantes.",
-                    "/profesor/asistente")
+                    "/profesor/asistente"),
+
+            // Coordinador de prácticas (HU-36 a HU-39). El orden es el de la barra superior.
+            de("COORDINADOR", "Cursos", "Cursos",
+                    "Recorre los cursos de cada semestre: sus pautas, sus estudiantes y cómo va cada uno.",
+                    "/coordinador/cursos"),
+            de("COORDINADOR", "Estudiantes", "Estudiantes",
+                    "Busca a cualquier estudiante y revisa en qué cursos está y el estado de sus actividades.",
+                    "/coordinador/estudiantes"),
+            de("COORDINADOR", "Usuarios y roles", "Usuarios",
+                    "Crea, edita y desactiva cuentas, y asigna el rol de cada usuario.",
+                    "/coordinador/usuarios")
     );
 
     private FuncionesDelSistema() {

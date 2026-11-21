@@ -4,6 +4,7 @@ import com.grupo1.isw.practicas_pedagogicas.models.CategoriaPlanificacion;
 import com.grupo1.isw.practicas_pedagogicas.models.EstadoPlanificacion;
 import com.grupo1.isw.practicas_pedagogicas.models.InteraccionChatbot;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.TipoInteraccion;
 import com.grupo1.isw.practicas_pedagogicas.repositories.CategoriaPlanificacionRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.InteraccionChatbotRepository;
 import com.grupo1.isw.practicas_pedagogicas.services.PlanificacionService.PlanificacionVista;
@@ -38,6 +39,10 @@ import java.util.stream.Collectors;
  * <p>Solo se puede conversar mientras la planificación se puede editar (BORRADOR o RECHAZADA).
  * Una consulta que no obtiene respuesta del asistente no se guarda, de modo que el estudiante puede
  * reintentarla sin perder lo que escribió.
+ *
+ * <p>HU-30: hay dos tipos de interacción. La <b>revisión completa</b> (botón aparte) está limitada por
+ * planificación; las <b>preguntas</b> (mensajes escritos) no tienen tope propio. Ambas comparten el límite
+ * diario de mensajes del estudiante.
  */
 @Service
 public class ChatbotService {
@@ -49,6 +54,8 @@ public class ChatbotService {
     public static final int MAX_CARACTERES_OBSERVACION = 300;
     /** Tope de seguridad para lo que se guarda de la respuesta del asistente. */
     public static final int MAX_CARACTERES_RESPUESTA = 10_000;
+    /** Lo que queda registrado como mensaje del estudiante cuando pide una revisión completa con el botón. */
+    public static final String MENSAJE_REVISION = "Revisión completa de mi planificación";
 
     private final PlanificacionService planificacionService;
     private final InteraccionChatbotRepository interaccionRepository;
@@ -58,6 +65,7 @@ public class ChatbotService {
     private final int maxMensajesPorDia;
     private final int maxCaracteresMensaje;
     private final int maxIntercambiosHistorial;
+    private final int maxRevisionesPorPlanificacion;
 
     public ChatbotService(PlanificacionService planificacionService,
                           InteraccionChatbotRepository interaccionRepository,
@@ -68,7 +76,13 @@ public class ChatbotService {
                           // 50 estudiantes aunque todos lleguen al máximo. Se puede subir si el curso es más chico.
                           @Value("${chatbot.max-mensajes-por-dia:10}") int maxMensajesPorDia,
                           @Value("${chatbot.max-caracteres-mensaje:1500}") int maxCaracteresMensaje,
-                          @Value("${chatbot.max-intercambios-historial:6}") int maxIntercambiosHistorial) {
+                          @Value("${chatbot.max-intercambios-historial:6}") int maxIntercambiosHistorial,
+                          @Value("${chatbot.max-revisiones-por-planificacion:2}") int maxRevisionesPorPlanificacion) {
+        if (maxRevisionesPorPlanificacion < 1) {
+            throw new IllegalArgumentException(
+                    "chatbot.max-revisiones-por-planificacion debe ser al menos 1 (valor recibido: "
+                            + maxRevisionesPorPlanificacion + ")");
+        }
         this.planificacionService = planificacionService;
         this.interaccionRepository = interaccionRepository;
         this.categoriaRepository = categoriaRepository;
@@ -77,28 +91,36 @@ public class ChatbotService {
         this.maxMensajesPorDia = maxMensajesPorDia;
         this.maxCaracteresMensaje = maxCaracteresMensaje;
         this.maxIntercambiosHistorial = maxIntercambiosHistorial;
+        this.maxRevisionesPorPlanificacion = maxRevisionesPorPlanificacion;
 
         // Deja a la vista, al arrancar, cuál es el asistente activo (el de prueba o uno real).
         log.info("Asistente activo: {}", chatbotClient.getClass().getSimpleName());
     }
 
-    /** Un intercambio de la conversación: lo que escribió el estudiante y lo que respondió el asistente. */
-    public record Turno(String mensajeEstudiante, String respuestaBot, LocalDateTime fecha) {
+    /**
+     * Un intercambio de la conversación: lo que escribió el estudiante y lo que respondió el asistente.
+     * El tipo distingue una revisión completa (botón) de una pregunta (mensaje escrito).
+     */
+    public record Turno(String mensajeEstudiante, String respuestaBot, LocalDateTime fecha, TipoInteraccion tipo) {
     }
 
     /** Lo que necesita la pantalla del chat. */
     public record VistaChat(Long idPlanificacion,
                             String etiquetaLinea,
-                            String contenido,
+                            String archivoOriginal,
+                            LocalDateTime archivoFecha,
                             String retroalimentacion,
                             boolean rechazada,
                             List<Turno> turnos,
                             int mensajesRestantesHoy,
-                            int maxCaracteresMensaje) {
+                            int maxCaracteresMensaje,
+                            int revisionesRestantes,
+                            int maxRevisiones) {
     }
 
     /**
-     * Envía un mensaje al asistente y guarda el intercambio con lo que el asistente valoró.
+     * Envía una pregunta (mensaje escrito) al asistente y guarda el intercambio con lo que el asistente valoró.
+     * No gasta revisiones completas, pero sí cuenta para el límite diario.
      *
      * <p>No es transaccional a propósito: la llamada al asistente puede tardar, y una transacción abierta
      * retendría una conexión de la base de datos todo ese tiempo. Lo único que se guarda de una vez
@@ -112,9 +134,36 @@ public class ChatbotService {
     public void enviarMensaje(Long idEstudiante, Long idPlanificacion, String mensaje) {
         Planificacion planificacion = planificacionService.obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
         validarQueSePuedeConversar(planificacion.getEstado());
+        validarQueTieneArchivo(planificacion.tieneArchivo());
         String texto = validarMensaje(mensaje);
         validarLimiteDiario(idEstudiante);
 
+        conversar(planificacion, idPlanificacion, texto, TipoInteraccion.PREGUNTA);
+    }
+
+    /**
+     * HU-30: pide al asistente una revisión completa de la planificación (botón "Pedir revisión completa").
+     * Cada pedido gasta una de las revisiones de la planificación, que no se recuperan al subir otro PDF ni
+     * al ser rechazada, y cuenta además como un mensaje del límite diario. Si el asistente no responde,
+     * no se guarda nada y la revisión no se gasta.
+     *
+     * @throws org.springframework.web.server.ResponseStatusException 404 si no existe, 403 si no es suya
+     * @throws IllegalStateException    la planificación no admite chat, ya se usaron todas las revisiones
+     *                                  o se alcanzó el límite diario
+     * @throws ChatbotNoDisponibleException el asistente no pudo responder; no se guarda nada
+     */
+    public void pedirRevision(Long idEstudiante, Long idPlanificacion) {
+        Planificacion planificacion = planificacionService.obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
+        validarQueSePuedeConversar(planificacion.getEstado());
+        validarQueTieneArchivo(planificacion.tieneArchivo());
+        validarRevisionesDisponibles(idPlanificacion);
+        validarLimiteDiario(idEstudiante);
+
+        conversar(planificacion, idPlanificacion, MENSAJE_REVISION, TipoInteraccion.REVISION);
+    }
+
+    /** Parte común de una revisión y de una pregunta: arma la solicitud, consulta y guarda el intercambio. */
+    private void conversar(Planificacion planificacion, Long idPlanificacion, String texto, TipoInteraccion tipo) {
         List<CategoriaPlanificacion> categorias = categoriaRepository.findByActivaTrueOrderByOrdenAsc();
         if (categorias.isEmpty()) {
             throw new ChatbotNoDisponibleException(Causa.ERROR, "No hay aspectos de revisión configurados");
@@ -124,14 +173,14 @@ public class ChatbotService {
         List<Mensaje> historial = historialParaElAsistente(interaccionRepository
                 .findByPlanificacion_IdPlanificacionAndFechaGreaterThanEqualOrderByFechaAscIdInteraccionAsc(
                         idPlanificacion, desde));
-        String reglas = instrucciones.armar(categorias, planificacion.getContenido(),
+        String reglas = instrucciones.armar(tipo, categorias, planificacion.getTextoExtraido(),
                 planificacion.getRetroalimentacion());
         List<String> codigos = categorias.stream().map(CategoriaPlanificacion::getCodigo).toList();
 
         Respuesta respuesta = consultarAlAsistente(new Solicitud(reglas, codigos, historial, texto), idPlanificacion);
 
         InteraccionChatbot interaccion = new InteraccionChatbot(planificacion, texto,
-                recortar(respuesta.texto().strip(), MAX_CARACTERES_RESPUESTA), LocalDateTime.now());
+                recortar(respuesta.texto().strip(), MAX_CARACTERES_RESPUESTA), LocalDateTime.now(), tipo);
         agregarHallazgos(interaccion, respuesta.hallazgos(), categorias);
         interaccionRepository.save(interaccion);
     }
@@ -145,26 +194,37 @@ public class ChatbotService {
     public VistaChat obtenerConversacion(Long idEstudiante, Long idPlanificacion) {
         PlanificacionVista planificacion = planificacionService.obtenerVistaDelEstudiante(idEstudiante, idPlanificacion);
         validarQueSePuedeConversar(planificacion.estado());
+        validarQueTieneArchivo(planificacion.tieneArchivo());
 
         List<Turno> turnos = interaccionRepository
                 .findByPlanificacion_IdPlanificacionAndFechaGreaterThanEqualOrderByFechaAscIdInteraccionAsc(
                         idPlanificacion, desde(planificacion.estado(), planificacion.fechaRetro()))
                 .stream()
-                .map(i -> new Turno(i.getMensajeEstudiante(), i.getRespuestaBot(), i.getFecha()))
+                .map(i -> new Turno(i.getMensajeEstudiante(), i.getRespuestaBot(), i.getFecha(), i.getTipo()))
                 .toList();
 
         long enviadosHoy = mensajesEnviadosHoy(idEstudiante);
         int restantes = (int) Math.max(0L, maxMensajesPorDia - enviadosHoy);
+        int revisionesRestantes = (int) Math.max(0L, maxRevisionesPorPlanificacion - revisionesUsadas(idPlanificacion));
 
         return new VistaChat(planificacion.idPlanificacion(), planificacion.etiquetaLinea(),
-                planificacion.contenido(), planificacion.retroalimentacion(),
-                planificacion.estado() == EstadoPlanificacion.RECHAZADA, turnos, restantes, maxCaracteresMensaje);
+                planificacion.archivoOriginal(), planificacion.archivoFecha(), planificacion.retroalimentacion(),
+                planificacion.estado() == EstadoPlanificacion.RECHAZADA, turnos, restantes, maxCaracteresMensaje,
+                revisionesRestantes, maxRevisionesPorPlanificacion);
     }
 
     private void validarQueSePuedeConversar(EstadoPlanificacion estado) {
         if (!PlanificacionService.esEditable(estado)) {
             throw new IllegalStateException(
                     "Solo se puede conversar con el asistente sobre una planificación en borrador o rechazada");
+        }
+    }
+
+    /** El asistente lee el texto del PDF subido; las planificaciones antiguas, solo con texto, no tienen chat. */
+    private void validarQueTieneArchivo(boolean tieneArchivo) {
+        if (!tieneArchivo) {
+            throw new IllegalStateException(
+                    "Sube el PDF de tu planificación (formato estándar) para conversar con el asistente");
         }
     }
 
@@ -187,6 +247,22 @@ public class ChatbotService {
             throw new IllegalStateException("Llegaste al límite de " + maxMensajesPorDia
                     + " mensajes por día con el asistente. Podrás seguir mañana.");
         }
+    }
+
+    /** Las revisiones se cuentan en toda la vida de la planificación: no se reinician con un rechazo ni con un PDF nuevo. */
+    private void validarRevisionesDisponibles(Long idPlanificacion) {
+        if (revisionesUsadas(idPlanificacion) >= maxRevisionesPorPlanificacion) {
+            String usadas = maxRevisionesPorPlanificacion == 1
+                    ? "la revisión completa"
+                    : "las " + maxRevisionesPorPlanificacion + " revisiones completas";
+            throw new IllegalStateException("Ya usaste " + usadas + " de esta planificación. Puedes seguir "
+                    + "haciendo preguntas al asistente o consultar a tu profesor, tutor o colaborador.");
+        }
+    }
+
+    private long revisionesUsadas(Long idPlanificacion) {
+        return interaccionRepository.countByPlanificacion_IdPlanificacionAndTipo(idPlanificacion,
+                TipoInteraccion.REVISION);
     }
 
     private long mensajesEnviadosHoy(Long idEstudiante) {

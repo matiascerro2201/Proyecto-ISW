@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="'Usuarios y roles · Coordinación'">Usuarios</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/usuarios')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+    <h1>Usuarios y roles</h1>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+
+    <form class="coord-filtros" method="get" role="search" th:action="@{/coordinador/usuarios}">
+        <label class="coord-filtros__buscar">
+            Buscar
+            <input type="search" name="q" th:value="${q}" placeholder="Nombre o correo" autocomplete="off">
+        </label>
+        <label>
+            Rol
+            <select name="rol">
+                <option value="">Todos</option>
+                <option th:each="r : ${roles}" th:value="${r.valor()}" th:selected="${rol == r.valor()}" th:text="${r.etiqueta()}">Rol</option>
+            </select>
+        </label>
+        <label>
+            Estado
+            <select name="estado">
+                <option value="" th:selected="${estado == ''}">Todos</option>
+                <option value="ACTIVOS" th:selected="${estado == 'ACTIVOS'}">Activos</option>
+                <option value="INACTIVOS" th:selected="${estado == 'INACTIVOS'}">Inactivos</option>
+            </select>
+        </label>
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+        <a class="btn btn-ghost" th:href="@{/coordinador/usuarios}">Limpiar</a>
+        <a class="btn btn-primary" th:href="@{/coordinador/usuarios/nuevo}">Nueva cuenta</a>
+    </form>
+
+    <p class="coord-contador" aria-live="polite"
+       th:text="|${#lists.size(usuarios)} ${#lists.size(usuarios) == 1 ? 'usuario' : 'usuarios'}|">3 usuarios</p>
+    <p class="vacio" th:if="${#lists.isEmpty(usuarios)}">No hay usuarios que coincidan.</p>
+
+    <table class="coord-tabla" th:unless="${#lists.isEmpty(usuarios)}">
+        <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+        <tr th:each="u : ${usuarios}">
+            <td th:text="${u.nombre()}">Nombre</td>
+            <td th:text="${u.email()}">correo</td>
+            <td th:text="${u.rolEtiqueta()}">Rol</td>
+            <td><span class="coord-estado" th:classappend="${u.activo()} ? 'coord-estado--ok' : 'coord-estado--pendiente'"
+                      th:text="${u.activo()} ? 'Activa' : 'Inactiva'"></span></td>
+            <td class="coord-acciones">
+                <a class="btn btn-ghost" th:href="@{/coordinador/usuarios/{id}/editar(id=${u.id()})}">Editar</a>
+                <form method="post" th:if="${u.activo() and u.id() != idActual}"
+                      th:action="@{/coordinador/usuarios/{id}/desactivar(id=${u.id()})}"
+                      data-confirmar="¿Desactivar esta cuenta? Ya no podrá iniciar sesión.">
+                    <button type="submit" class="btn btn-ghost">Desactivar</button>
+                </form>
+                <form method="post" th:unless="${u.activo()}"
+                      th:action="@{/coordinador/usuarios/{id}/activar(id=${u.id()})}">
+                    <button type="submit" class="btn btn-ghost">Activar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

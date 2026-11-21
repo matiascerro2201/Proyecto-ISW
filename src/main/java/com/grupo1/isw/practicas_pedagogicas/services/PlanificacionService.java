@@ -110,7 +110,22 @@ public class PlanificacionService {
                                      EstadoPlanificacion estado,
                                      String retroalimentacion,
                                      LocalDateTime fechaEnvio,
-                                     LocalDateTime fechaRetro) {
+                                     LocalDateTime fechaRetro,
+                                     String archivoOriginal,
+                                     Long archivoTamano,
+                                     LocalDateTime archivoFecha) {
+        /** Planificación sin PDF (las anteriores a HU-31/32, que solo tienen texto). */
+        public PlanificacionVista(Long idPlanificacion, String etiquetaLinea, String contenido,
+                                  EstadoPlanificacion estado, String retroalimentacion,
+                                  LocalDateTime fechaEnvio, LocalDateTime fechaRetro) {
+            this(idPlanificacion, etiquetaLinea, contenido, estado, retroalimentacion,
+                    fechaEnvio, fechaRetro, null, null, null);
+        }
+
+        public boolean tieneArchivo() {
+            return archivoOriginal != null;
+        }
+
         public boolean puedeReenviar() {
             return estado == EstadoPlanificacion.RECHAZADA;
         }
@@ -151,51 +166,19 @@ public class PlanificacionService {
         return aVista(obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion));
     }
 
-    /** Crea la planificación y la envía de una vez al colaborador. */
-    @Transactional
-    public void crearPlanificacion(Long idEstudiante, Long idLinea, String contenido) {
-        LineaPractica linea = lineaDelEstudiante(idEstudiante, idLinea);
-        String texto = contenidoObligatorio(contenido);
-
-        Planificacion guardada = planificacionRepository.save(new Planificacion(linea, texto, LocalDateTime.now()));
-        notificarAlColaborador(guardada, "envió");
-    }
-
-    /** Guarda un borrador: no se envía ni se avisa a nadie. Devuelve su id para seguir trabajándolo. */
-    @Transactional
-    public Long crearBorrador(Long idEstudiante, Long idLinea, String contenido) {
-        LineaPractica linea = lineaDelEstudiante(idEstudiante, idLinea);
-        String texto = contenidoObligatorio(contenido);
-
-        return planificacionRepository.save(Planificacion.borrador(linea, texto)).getIdPlanificacion();
-    }
-
-    /** Guarda el texto de una planificación editable (BORRADOR o RECHAZADA) sin cambiarle el estado. */
-    @Transactional
-    public void guardarCambios(Long idEstudiante, Long idPlanificacion, String contenido) {
-        Planificacion planificacion = obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
-
-        if (!esEditable(planificacion.getEstado())) {
-            throw new IllegalStateException("Solo se puede editar una planificación en borrador o rechazada");
-        }
-
-        planificacion.setContenido(contenidoObligatorio(contenido));
-        planificacionRepository.save(planificacion);
-    }
-
     /**
-     * Envía un borrador al colaborador (BORRADOR -> ENVIADA). Guarda también el texto recibido, para no
-     * perder lo que el estudiante escribió desde el último guardado. No depende del asistente.
+     * Envía un borrador al colaborador (BORRADOR -> ENVIADA). Exige que ya tenga su PDF subido
+     * (la subida está en PlanificacionArchivoService). No depende del asistente.
      */
     @Transactional
-    public void enviarBorrador(Long idEstudiante, Long idPlanificacion, String contenido) {
+    public void enviarBorrador(Long idEstudiante, Long idPlanificacion) {
         Planificacion planificacion = obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
 
         if (planificacion.getEstado() != EstadoPlanificacion.BORRADOR) {
             throw new IllegalStateException("Solo se puede enviar una planificación en borrador");
         }
+        exigirArchivo(planificacion);
 
-        planificacion.setContenido(contenidoObligatorio(contenido));
         planificacion.setEstado(EstadoPlanificacion.ENVIADA);
         planificacion.setFechaEnvio(LocalDateTime.now());
 
@@ -203,20 +186,16 @@ public class PlanificacionService {
         notificarAlColaborador(planificacion, "envió");
     }
 
+    /** Reenvía una planificación RECHAZADA. Exige un PDF (el mismo o uno nuevo que haya subido). */
     @Transactional
-    public void reenviarPlanificacion(Long idEstudiante, Long idPlanificacion, String contenido) {
+    public void reenviarPlanificacion(Long idEstudiante, Long idPlanificacion) {
         Planificacion planificacion = obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
 
         if (planificacion.getEstado() != EstadoPlanificacion.RECHAZADA) {
             throw new IllegalStateException("Solo se puede editar y reenviar una planificación RECHAZADA");
         }
+        exigirArchivo(planificacion);
 
-        String texto = limpiar(contenido);
-        if (texto == null) {
-            throw new IllegalArgumentException("El contenido de la planificación no puede estar vacío");
-        }
-
-        planificacion.setContenido(texto);
         planificacion.setEstado(EstadoPlanificacion.ENVIADA);
         planificacion.setFechaEnvio(LocalDateTime.now());
         planificacion.setRetroalimentacion(null);
@@ -224,6 +203,12 @@ public class PlanificacionService {
 
         planificacionRepository.save(planificacion);
         notificarAlColaborador(planificacion, "reenvió");
+    }
+
+    private void exigirArchivo(Planificacion planificacion) {
+        if (!planificacion.tieneArchivo()) {
+            throw new IllegalArgumentException("Debes subir el PDF de la planificación antes de enviarla");
+        }
     }
 
     /** HU-23: avisa al estudiante de la decisión sin copiar la retroalimentación; corre tras guardar. */
@@ -247,28 +232,6 @@ public class PlanificacionService {
                 mensaje, "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar");
     }
 
-    private LineaPractica lineaDelEstudiante(Long idEstudiante, Long idLinea) {
-        if (idLinea == null) {
-            throw new IllegalArgumentException("Debe seleccionar una línea de práctica");
-        }
-
-        LineaPractica linea = lineaPracticaRepository.findById(idLinea)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Línea de práctica no encontrada"));
-
-        if (!lineaPerteneceAlEstudiante(linea, idEstudiante)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para planificar en esta línea");
-        }
-        return linea;
-    }
-
-    private String contenidoObligatorio(String contenido) {
-        String texto = limpiar(contenido);
-        if (texto == null) {
-            throw new IllegalArgumentException("El contenido de la planificación no puede estar vacío");
-        }
-        return texto;
-    }
-
     /** La planificación de un estudiante: 404 si no existe y 403 si es de otro. Lo usa también el chat. */
     public Planificacion obtenerPlanificacionDelEstudiante(Long idEstudiante, Long idPlanificacion) {
         Planificacion planificacion = obtenerPlanificacion(idPlanificacion);
@@ -290,15 +253,14 @@ public class PlanificacionService {
                 p.getEstado(),
                 p.getRetroalimentacion(),
                 p.getFechaEnvio(),
-                p.getFechaRetro());
+                p.getFechaRetro(),
+                p.getArchivoOriginal(),
+                p.getArchivoTamano(),
+                p.getArchivoFecha());
     }
 
     private String etiquetaDe(LineaPractica linea) {
         String asignatura = linea.getInscripcion().getSeccion().getAsignatura().getNombre();
         return asignatura + " (" + linea.getTipo() + ")";
-    }
-
-    private String limpiar(String texto) {
-        return (texto == null || texto.isBlank()) ? null : texto.trim();
     }
 }

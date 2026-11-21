@@ -20,6 +20,7 @@ public class SecurityConfig {
                 .requestMatchers("/login", "/error", "/css/**", "/js/**", "/images/**").permitAll()
                 .anyRequest().authenticated()
             )
+            .headers(h->h.frameOptions(f->f.sameOrigin()))
             .formLogin(form -> form
                 .loginPage("/login")
                 // true: siempre al inicio, no a la última página pedida

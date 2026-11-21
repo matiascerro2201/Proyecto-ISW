@@ -87,7 +87,7 @@
                             th:attr="data-id=${p.idPlanificacion()}, data-titulo=|${asignatura}, ${lineaTexto}|">
                         <span class="asignatura__principal">
                             <span class="asignatura__nombre" th:text="${asignatura}">Práctica Pedagógica</span>
-                            <span class="asignatura__periodo" th:text="${#strings.abbreviate(p.contenido(), 80)}">Planificación de la clase de fracciones</span>
+                            <span class="asignatura__periodo" th:text="${p.tieneArchivo() ? p.archivoOriginal() : (p.contenido() != null ? #strings.abbreviate(p.contenido(), 80) : 'Sin PDF')}">Planificación de la clase de fracciones</span>
                         </span>
                         <span class="asignatura__dato" th:text="${lineaTexto}">Especialidad</span>
                         <span class="asignatura__dato"
@@ -114,7 +114,13 @@
                           th:text="|Enviada el ${#temporals.format(p.fechaEnvio(), 'dd/MM/yyyy HH:mm')}|">Enviada el 01/01/2026 10:00</span>
                 </p>
 
-                <p class="card__content" th:text="${p.contenido()}">Contenido de la planificación</p>
+                <p class="card__content" th:if="${p.tieneArchivo()}">
+                    <strong th:text="${p.archivoOriginal()}">planificacion.pdf</strong><br>
+                    Subido el <span th:text="${#temporals.format(p.archivoFecha(), 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span><br>
+                    <a th:href="@{/estudiante/planificaciones/{id}/archivo(id=${p.idPlanificacion()})}"
+                       target="_blank" rel="noopener">Ver PDF</a>
+                </p>
+                <p class="card__content" th:unless="${p.tieneArchivo()}" th:text="${p.contenido()}">Contenido de la planificación</p>
 
                 <div class="card__retro" th:if="${p.retroalimentacion() != null}">
                     <strong>Retroalimentación del colaborador</strong>
@@ -126,7 +132,8 @@
                 <div class="card__footer" th:if="${p.puedeEditar()}">
                     <a class="btn btn-secondary" th:href="@{/estudiante/planificaciones/{id}/editar(id=${p.idPlanificacion()})}"
                        th:text="${p.esBorrador()} ? 'Continuar editando' : 'Editar y reenviar'">Editar y reenviar</a>
-                    <a class="btn btn-primary" th:href="@{/estudiante/planificaciones/{id}/chat(id=${p.idPlanificacion()})}">Conversar con el asistente</a>
+                    <a class="btn btn-primary" th:if="${p.tieneArchivo()}"
+                       th:href="@{/estudiante/planificaciones/{id}/chat(id=${p.idPlanificacion()})}">Conversar con el asistente</a>
                 </div>
             </template>
         </th:block>

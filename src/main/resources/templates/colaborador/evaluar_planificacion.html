@@ -27,8 +27,26 @@
     </p>
     <p><strong>Fecha de envío original:</strong> <span th:text="${planificacion.fechaEnvio != null ? #temporals.format(planificacion.fechaEnvio, 'dd/MM/yyyy HH:mm') : ''}"></span></p>
 
-    <h2 style="font-size:16px;">Contenido de la planificación</h2>
-    <p class="card__content" th:text="${planificacion.contenido}"></p>
+    <h2 style="font-size:16px;">Planificación</h2>
+
+    <!-- Planificación con PDF (formato estándar): vista previa y descarga -->
+    <div th:if="${planificacion.tieneArchivo()}">
+        <p style="display:flex;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap;">
+            <span><strong th:text="${planificacion.archivoOriginal}">planificacion.pdf</strong>
+                · <span th:text="${#numbers.formatDecimal(planificacion.archivoTamano / 1024.0, 1, 0)} + ' KB'">120 KB</span></span>
+            <span>Subido el <span th:text="${#temporals.format(planificacion.archivoFecha, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span></span>
+        </p>
+        <iframe th:src="@{/planificaciones/{id}/archivo(id=${planificacion.idPlanificacion})}"
+                title="Vista previa de la planificación"
+                style="width:100%;height:560px;border:1px solid #ccc;border-radius:6px;"></iframe>
+        <p>
+            <a class="btn btn-secondary" target="_blank" rel="noopener"
+               th:href="@{/planificaciones/{id}/archivo(id=${planificacion.idPlanificacion})}">Abrir en otra pestaña</a>
+        </p>
+    </div>
+
+    <!-- Planificaciones anteriores a HU-31/32: solo tienen texto -->
+    <p class="card__content" th:unless="${planificacion.tieneArchivo()}" th:text="${planificacion.contenido}"></p>
 
     <!-- El formulario solo aparece si el estado es ENVIADA -->
     <form th:action="@{/planificaciones/{id}/evaluar(id=${planificacion.idPlanificacion})}" method="post" th:if="${planificacion.estado.name() == 'ENVIADA'}">

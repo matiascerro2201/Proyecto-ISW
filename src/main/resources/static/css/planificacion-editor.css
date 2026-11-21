@@ -1,0 +1,222 @@
+/* Pantallas de planificación del estudiante: nueva planificación y borrador / rechazada.
+   Reutilizan el diseño de dos columnas de .editor (pauta-editor.css): panel con información a la
+   izquierda y el PDF a la derecha. Aquí van solo las piezas propias de estas pantallas. */
+
+/* Las dos columnas ocupan el alto de la ventana, de modo que el PDF se ve sin bajar la página */
+main.pl-pagina {
+    --pl-alto: max(30rem, calc(100vh - 9.5rem));
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-6);
+}
+.pl-pagina .back-link { margin-bottom: var(--space-3); }
+.pl-editor { margin-top: var(--space-2); }
+.pl-lateral, .pl-visor { height: var(--pl-alto); max-height: none; }
+
+/* ---------- Bloque izquierdo ---------- */
+
+.pl-lateral { overflow-y: auto; }
+.pl-lateral .pl-datos { flex: 1 0 auto; padding: var(--space-5) var(--space-6) var(--space-4); }
+.pl-lateral .editor__acciones { position: sticky; bottom: 0; }
+.pl-lateral h1 { word-break: break-word; }
+
+.pl-meta { margin: var(--space-3) 0; gap: var(--space-1) var(--space-4); font-size: 14px; }
+.pl-meta dt { color: var(--ink-500); }
+.pl-meta dd { font-weight: 600; color: var(--ink-900); }
+.pl-meta dd .hint { margin-top: 0; font-weight: 400; }
+.pl-archivo__nombre { display: block; line-height: 22px; overflow-wrap: anywhere; }
+.pl-lateral .hint { line-height: 20px; }
+
+.pl-ayuda { margin: var(--space-3) 0; }
+.pl-ayuda summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-700); }
+.pl-ayuda .hint { margin-top: var(--space-2); line-height: 20px; }
+.pl-lateral .texto-antiguo { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 20px; }
+
+/* Subida del PDF (las clases subida__* las usa planificacion-pdf.js) */
+.pl-subida { margin-top: var(--space-4); }
+.pl-subida .subida__fila { display: flex; flex-direction: column; align-items: stretch; gap: var(--space-3); }
+.pl-subida input[type=file] { padding: 8px; font-size: 13px; }
+.pl-subida input[type=file]::file-selector-button {
+    margin-right: var(--space-3);
+    padding: 6px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand-700);
+    cursor: pointer;
+}
+.pl-subida .subida__progreso { width: 100%; height: 12px; margin-top: var(--space-2); accent-color: var(--brand-500); }
+.pl-subida .subida__progreso[hidden] { display: none; }
+.pl-subida .subida__estado { margin: var(--space-2) 0 0; font-size: 13px; }
+.pl-subida .subida__estado.msg { margin-bottom: 0; }
+
+/* Avisos del PDF: aparecen solo cuando el servidor encontró algo que revisar */
+.pl-avisos {
+    margin: 0 0 var(--space-4);
+    padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 1.1rem);
+    border: 1px solid #F1D8A6;
+    border-radius: var(--radius-md);
+    background: var(--status-pending-bg);
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--status-pending-fg);
+}
+.pl-avisos::before {
+    content: "Revisa tu PDF";
+    display: block;
+    margin-left: -1.1rem;
+    font-weight: 700;
+}
+.pl-avisos li + li { margin-top: 2px; }
+
+/* ---------- Bloque derecho: visor del PDF ---------- */
+
+.pl-visor {
+    position: sticky;
+    top: calc(64px + var(--space-4));
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    background: var(--surface-raised);
+    box-shadow: var(--sombra-suave);
+    overflow: hidden;
+}
+.pl-visor__cab {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-6);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.pl-visor__nombre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--ink-700); }
+.pl-visor__cab a { flex: none; font-weight: 600; }
+.pl-visor__marco { flex: 1 1 auto; width: 100%; min-height: 0; border: 0; background: var(--surface); }
+
+.pl-visor--vacio { justify-content: center; align-items: center; border-style: dashed; border-color: var(--border-strong); box-shadow: none; background: transparent; }
+.pl-vacio { max-width: 26rem; padding: var(--space-6); text-align: center; color: var(--ink-500); }
+.pl-vacio svg { color: var(--ink-300); }
+.pl-vacio h2 { margin: var(--space-3) 0 var(--space-2); font-size: 20px; line-height: 28px; color: var(--ink-700); }
+.pl-vacio p { margin: 0; font-size: 14px; line-height: 22px; }
+
+/* ---------- Burbuja del asistente ---------- */
+
+.asistente {
+    position: fixed;
+    right: var(--space-6);
+    bottom: var(--space-6);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-3);
+}
+.asistente__fila { display: flex; align-items: center; gap: var(--space-3); }
+
+.asistente__saludo {
+    appearance: none;
+    padding: 10px var(--space-4);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-md);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    color: var(--ink-900);
+    cursor: pointer;
+}
+.asistente__saludo:hover { background: var(--brand-100); }
+.asistente__saludo[hidden] { display: none; }
+
+.asistente__burbuja {
+    appearance: none;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--brand-700);
+    color: #fff;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    transition: transform 120ms ease-out, background-color 120ms ease-out;
+}
+.asistente__burbuja:hover { background: #8E2F22; transform: scale(1.06); }
+.asistente__burbuja[aria-expanded="true"] { background: var(--ink-700); }
+
+.asistente__panel {
+    display: flex;
+    flex-direction: column;
+    width: min(26rem, calc(100vw - 2rem));
+    height: min(38rem, calc(100vh - 14rem));
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-raised);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    animation: asistente-entrada 160ms ease-out;
+}
+.asistente__panel[hidden] { display: none; }
+.asistente__cab {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    background: var(--brand-500);
+    color: var(--brand-ink);
+    font-size: 13px;
+}
+.asistente__cab strong { flex: 1; font-family: var(--font-display); font-size: 15px; }
+.asistente__cab a { color: var(--brand-ink); font-weight: 600; }
+.asistente__cerrar {
+    appearance: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--brand-ink);
+    cursor: pointer;
+}
+.asistente__cerrar:hover { background: rgba(43, 18, 16, 0.12); }
+.asistente__marco { flex: 1 1 auto; width: 100%; min-height: 0; border: 0; }
+
+@keyframes asistente-entrada {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Pantallas angostas: el panel pasa arriba y las acciones quedan fijas abajo ---------- */
+
+@media (max-width: 56rem) {
+    main.pl-pagina { --pl-alto: auto; padding-bottom: 8rem; }
+    .pl-lateral { height: auto; overflow-y: visible; }
+    .pl-lateral .pl-datos { padding: var(--space-4) var(--space-5); }
+    .pl-lateral .editor__acciones { position: fixed; }
+    .pl-visor { position: static; height: 70vh; min-height: 24rem; margin-bottom: var(--space-4); border-radius: var(--radius-lg); }
+    .pl-visor--vacio { height: auto; min-height: 12rem; }
+    .asistente { right: var(--space-4); bottom: 6rem; }
+    .asistente__panel { height: min(36rem, calc(100vh - 16rem)); }
+}
+@media (max-width: 30rem) {
+    .asistente__saludo { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .asistente__panel { animation: none; }
+    .asistente__burbuja { transition-duration: 1ms !important; }
+}
