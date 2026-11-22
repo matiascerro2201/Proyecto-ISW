@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Informe de desempeño</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/profesor/desempeno')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/profesor/desempeno/{id}(id=${detalle.inscripcion().idSeccion()})}">Volver a los estudiantes</a>
+    <h1 th:text="${detalle.inscripcion().estudiante()}">Estudiante</h1>
+    <p class="coord-sub" th:text="|${detalle.inscripcion().asignatura()} · ${detalle.inscripcion().periodo()}|">Asignatura · Semestre</p>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <div class="coord-error" role="alert" th:if="${errores}">
+        <p th:each="e : ${errores}" th:text="${e}">Error</p>
+    </div>
+
+    <p class="coord-error" role="alert" th:unless="${detalle.ponderacionesSuman100()}"
+       th:text="|Las ponderaciones del semestre suman ${detalle.sumaPonderaciones().stripTrailingZeros().toPlainString()} % y no 100 %: la nota se calcula dividiendo por esa suma.|">Suman distinto de 100</p>
+
+    <table class="coord-tabla">
+        <thead><tr><th>Evaluación</th><th>Tipo</th><th>Ponderación</th><th>Nota</th><th>Estado</th></tr></thead>
+        <tbody>
+        <tr th:each="c : ${detalle.componentes()}">
+            <td th:text="${c.nombre()}">Evaluación</td>
+            <td th:text="${c.detalle()}">Entrega</td>
+            <td th:text="|${c.ponderacion().stripTrailingZeros().toPlainString()} %|">20 %</td>
+            <td th:text="${c.nota() != null} ? ${c.nota().toPlainString().replace('.', ',')} : '—'">—</td>
+            <td th:switch="${c.estado()}">
+                <span th:case="'CALIFICADA'">Calificada</span>
+                <span th:case="'APLICADA'">Aplicada</span>
+                <span th:case="'SIN_CALIFICAR'">Entregada, sin calificar</span>
+                <span th:case="'SIN_APLICAR'">Sin aplicar</span>
+                <span th:case="'SIN_NOTA'">Sin nota</span>
+                <span th:case="*">Aún no entrega</span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p class="coord-contador" th:if="${detalle.sugerida() != null}"
+       th:text="|Nota sugerida: ${detalle.sugerida().toPlainString().replace('.', ',')}|">Nota sugerida: 5,5</p>
+    <div th:if="${detalle.sugerida() == null}">
+        <p class="coord-sub">Todavía no se puede calcular la nota sugerida. Falta:</p>
+        <ul><li th:each="p : ${detalle.pendientes()}" th:text="${p}">Falta algo</li></ul>
+    </div>
+    <p class="coord-sub" th:if="${detalle.desactualizado()}">Ojo: desde que generaste el informe cambió alguna nota. Vuelve a generarlo para actualizar la sugerida.</p>
+
+    <form method="post" th:if="${detalle.puedeGenerar()}"
+          th:action="@{/profesor/desempeno/{s}/{i}/generar(s=${detalle.inscripcion().idSeccion()},i=${detalle.inscripcion().idInscripcion()})}">
+        <button type="submit" class="btn btn-primary"
+                th:text="${detalle.informe() != null} ? 'Volver a generar el informe' : 'Generar informe'">Generar informe</button>
+    </form>
+    <p class="coord-sub" th:if="${detalle.cerrado()}">La nota final ya fue fijada: el informe no se puede volver a generar.</p>
+
+    <form class="coord-formulario" method="post" th:if="${detalle.puedeFijarNota()}"
+          th:action="@{/profesor/desempeno/{s}/{i}/nota-final(s=${detalle.inscripcion().idSeccion()},i=${detalle.inscripcion().idInscripcion()})}">
+        <label>Nota final (1,0 a 7,0)
+            <input type="text" name="nota" inputmode="decimal" required
+                   th:value="${detalle.informe().finalNota() != null} ? ${detalle.informe().finalNota().toPlainString().replace('.', ',')} : (${detalle.sugerida() != null} ? ${detalle.sugerida().toPlainString().replace('.', ',')} : '')">
+        </label>
+        <div class="coord-formulario__acciones">
+            <button type="submit" class="btn btn-secondary">Guardar nota final</button>
+        </div>
+    </form>
+
+    <form method="post" th:if="${detalle.puedePublicar()}"
+          th:action="@{/profesor/desempeno/{s}/{i}/publicar(s=${detalle.inscripcion().idSeccion()},i=${detalle.inscripcion().idInscripcion()})}"
+          data-confirmar="¿Publicar el informe? El estudiante verá su nota final y no podrás cambiarla.">
+        <button type="submit" class="btn btn-accent">Publicar informe al estudiante</button>
+    </form>
+    <p class="coord-sub" th:if="${detalle.informe() != null and detalle.informe().publicado() != null}">Informe publicado: el estudiante ya ve su nota final.</p>
+</main>
+</body>
+</html>

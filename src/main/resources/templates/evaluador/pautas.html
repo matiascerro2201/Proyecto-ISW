@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mis pautas por aplicar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/evaluador/pautas')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+    <h1>Mis pautas por aplicar</h1>
+    <p class="coord-sub">Las fechas límite son una guía: una pauta atrasada se puede aplicar igual. Recibirás avisos cuando un plazo esté cerca o haya vencido.</p>
+
+    <p class="vacio" th:if="${#lists.isEmpty(estudiantes)}">Todavía no tienes pautas: aparecen cuando el semestre de tus estudiantes se inicia.</p>
+
+    <article class="card" th:each="e : ${estudiantes}">
+        <h3 th:text="${e.estudiante()}">Estudiante</h3>
+        <p class="card__meta" th:text="|${e.asignatura()} · ${e.periodo()} · ${e.tipoLinea()}|">Asignatura · Semestre · Línea</p>
+        <p class="card__meta" th:text="${e.pendientes() == 0} ? 'Todas las pautas aplicadas' : |${e.pendientes()} pauta(s) por aplicar|">Pendientes</p>
+
+        <table class="coord-tabla">
+            <thead><tr><th>Pauta</th><th>Aplicación</th><th>Fecha límite</th><th>Estado</th><th>Acción</th></tr></thead>
+            <tbody>
+            <tr th:each="p : ${e.pautas()}">
+                <td th:text="${p.datos().pauta()}">Pauta</td>
+                <td th:text="${p.datos().etiquetaAplicacion()}">A</td>
+                <td th:text="${p.datos().fechaLimite() != null} ? ${#temporals.format(p.datos().fechaLimite(), 'dd/MM/yyyy')} : 'Sin fecha'">Sin fecha</td>
+                <td th:switch="${p.estado()}">
+                    <span class="badge aprobada" th:case="'APLICADA'">Aplicada</span>
+                    <span class="badge pendiente" th:case="'ATRASADA'" th:text="|Atrasada (${-p.diasRestantes()} día(s))|">Atrasada</span>
+                    <span class="badge borrador" th:case="*"
+                          th:text="${p.diasRestantes() != null} ? (${p.diasRestantes() == 0} ? 'Vence hoy' : |Vence en ${p.diasRestantes()} día(s)|) : 'Pendiente'">Pendiente</span>
+                </td>
+                <td class="coord-acciones">
+                    <a class="btn btn-ghost" th:href="@{${p.enlace()}}"
+                       th:text="${p.aplicada()} ? 'Ver o corregir' : 'Aplicar pauta'">Aplicar pauta</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </article>
+</main>
+</body>
+</html>

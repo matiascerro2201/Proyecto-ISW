@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Detalle de la pauta</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/profesor/pautas')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/profesor/pautas/{id}(id=${detalle.seccion().id()})}">Volver a las pautas</a>
+    <h1 th:text="${detalle.datos().pauta()}">Pauta</h1>
+    <p class="coord-sub" th:text="|${detalle.datos().estudiante()} · ${detalle.datos().etiquetaEvaluador()}: ${detalle.datos().nombreEvaluador()} · ${detalle.datos().etiquetaLinea()}|">Estudiante</p>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <div class="coord-error" role="alert" th:if="${errores}">
+        <p th:each="e : ${errores}" th:text="${e}">Error</p>
+    </div>
+
+    <p class="coord-contador"
+       th:text="|Puntaje ${detalle.datos().puntaje().toPlainString().replace('.', ',')} de ${detalle.datos().puntajeMaximo().toPlainString().replace('.', ',')} · Nota ${detalle.nota() != null ? detalle.nota().toPlainString().replace('.', ',') : '—'}|">Puntaje</p>
+    <p class="coord-sub" th:if="${detalle.datos().publicada()}">Publicada: el estudiante ve esta nota y el detalle.</p>
+    <p class="coord-sub" th:unless="${detalle.datos().publicada()}">Sin publicar: el estudiante todavía no la ve.</p>
+
+    <div class="coord-acciones">
+        <form method="post" th:unless="${detalle.datos().publicada()}"
+              th:action="@{/profesor/pautas/{s}/{e}/publicar(s=${detalle.seccion().id()},e=${detalle.evaluacion().idEvaluacion()})}"
+              data-confirmar="¿Publicar esta pauta? El estudiante verá la nota y el detalle y recibirá un aviso.">
+            <button type="submit" class="btn btn-accent">Publicar al estudiante</button>
+        </form>
+        <form method="post" th:if="${detalle.datos().publicada()}"
+              th:action="@{/profesor/pautas/{s}/{e}/retirar(s=${detalle.seccion().id()},e=${detalle.evaluacion().idEvaluacion()})}"
+              data-confirmar="¿Retirar la publicación? El estudiante dejará de ver esta pauta.">
+            <button type="submit" class="btn btn-ghost">Retirar publicación</button>
+        </form>
+    </div>
+
+    <table class="coord-tabla">
+        <thead><tr><th>Dimensión</th><th>Criterio</th><th>Puntaje</th><th>Comentario del evaluador</th></tr></thead>
+        <tbody>
+        <tr th:each="c : ${detalle.criterios()}">
+            <td th:text="${c.dimension()}">Dimensión</td>
+            <td th:text="${c.criterio()}">Criterio</td>
+            <td th:text="|${c.obtenido() != null ? c.obtenido().toPlainString().replace('.', ',') : '—'} de ${c.maximo().toPlainString().replace('.', ',')}|">3 de 5</td>
+            <td th:text="${c.comentario() != null} ? ${c.comentario()} : '—'">—</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

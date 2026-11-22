@@ -25,6 +25,8 @@
     <div class="coord-filtros">
         <a class="btn btn-ghost" th:href="@{/semestre/{id}/fechas(id=${seccion.id()})}">Fechas límite</a>
         <a class="btn btn-ghost" th:href="@{/profesor/estructura/{id}(id=${seccion.id()})}">Estructura</a>
+        <a class="btn btn-ghost" th:href="@{/profesor/pautas-semestre/{id}(id=${seccion.id()})}">Pautas de colaboradores y tutores</a>
+        <a class="btn btn-ghost" th:href="@{/profesor/desempeno/{id}(id=${seccion.id()})}">Informes de desempeño</a>
     </div>
 
     <p class="vacio" th:if="${#lists.isEmpty(entregas)}">Este semestre no tiene entregas habilitadas.</p>
