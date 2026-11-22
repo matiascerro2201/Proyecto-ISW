@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Entrega del semestre · Coordinación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/secciones')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/coordinador/semestre/{id}(id=${seccion.id()})}">Volver a la estructura</a>
+    <h1 th:text="${editando} ? 'Editar entrega' : 'Nueva entrega'">Nueva entrega</h1>
+    <p class="coord-sub" th:text="${seccion.titulo()}">Asignatura · Semestre</p>
+
+    <div class="coord-error" role="alert" th:if="${errores}">
+        <p th:each="e : ${errores}" th:text="${e}">Error</p>
+    </div>
+
+    <form class="coord-formulario" method="post" th:object="${formulario}"
+          th:action="${editando} ? @{/coordinador/semestre/{s}/entregas/{e}(s=${seccion.id()},e=${idEntrega})} : @{/coordinador/semestre/{s}/entregas(s=${seccion.id()})}">
+        <label>Nombre de la entrega
+            <input type="text" th:field="*{nombre}" maxlength="150" required placeholder="Ej.: Informe de práctica 1">
+        </label>
+        <label>Ponderación (%)
+            <input type="text" inputmode="decimal" th:field="*{ponderacion}" required placeholder="Ej.: 20">
+        </label>
+        <p class="coord-sub">Es el peso de esta entrega en la nota final. Entre todas las evaluaciones habilitadas deben sumar 100 %.</p>
+        <div class="coord-formulario__acciones">
+            <button type="submit" class="btn btn-primary" th:text="${editando} ? 'Guardar cambios' : 'Crear entrega'">Guardar</button>
+            <a class="btn btn-ghost" th:href="@{/coordinador/semestre/{id}(id=${seccion.id()})}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

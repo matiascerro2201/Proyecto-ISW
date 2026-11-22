@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Estructura del semestre · Coordinación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/secciones')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/coordinador/secciones}">Volver a secciones</a>
+    <h1>Estructura del semestre</h1>
+    <p class="coord-sub" th:text="|${estructura.seccion().titulo()} · Profesor: ${estructura.seccion().profesor()}|">Asignatura · Semestre</p>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <div class="coord-error" role="alert" th:if="${errores}">
+        <p th:each="e : ${errores}" th:text="${e}">Error</p>
+    </div>
+
+    <div class="coord-filtros">
+        <a class="btn btn-ghost" th:href="@{/coordinador/semestre/{id}/inscripciones(id=${estructura.seccion().id()})}">Inscripciones</a>
+    </div>
+
+    <p class="coord-mensaje" th:if="${!estructura.editable()}"
+       th:text="|Semestre iniciado el ${#temporals.format(estructura.seccion().fechaInicio(), 'dd/MM/yyyy HH:mm')}. La estructura está congelada.|">
+        Semestre iniciado.
+    </p>
+
+    <!-- N-05: suma de las evaluaciones habilitadas -->
+    <p th:class="${estructura.suma100()} ? 'coord-mensaje' : 'coord-error'" role="status">
+        Las evaluaciones habilitadas suman
+        <strong th:text="|${estructura.suma().stripTrailingZeros().toPlainString()} %|">100 %</strong>.
+        <span th:if="${estructura.suma100()}">Listo para iniciar el semestre.</span>
+        <span th:unless="${estructura.suma100()}"
+              th:text="${estructura.diferencia().signum() > 0}
+                       ? |Faltan ${estructura.diferencia().stripTrailingZeros().toPlainString()} % para llegar a 100 %.|
+                       : |Sobran ${estructura.diferencia().negate().stripTrailingZeros().toPlainString()} % sobre 100 %.|">Faltan 10 %.</span>
+    </p>
+
+    <h2>Entregas</h2>
+    <div class="coord-filtros" th:if="${estructura.editable()}">
+        <a class="btn btn-primary" th:href="@{/coordinador/semestre/{id}/entregas/nueva(id=${estructura.seccion().id()})}">Nueva entrega</a>
+    </div>
+    <p class="vacio" th:if="${#lists.isEmpty(estructura.entregas())}">Este semestre todavía no tiene entregas.</p>
+    <table class="coord-tabla" th:unless="${#lists.isEmpty(estructura.entregas())}">
+        <thead><tr><th>Entrega</th><th>Ponderación</th><th>Fecha límite</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+        <tr th:each="e : ${estructura.entregas()}">
+            <td th:text="${e.nombre()}">Entrega 1</td>
+            <td th:text="|${e.ponderacion().stripTrailingZeros().toPlainString()} %|">20 %</td>
+            <td th:text="${e.fechaLimite() != null} ? ${#temporals.format(e.fechaLimite(), 'dd/MM/yyyy')} : 'Sin definir'">Sin definir</td>
+            <td th:text="${e.habilitada()} ? 'Habilitada' : 'Deshabilitada'">Habilitada</td>
+            <td class="coord-acciones" th:if="${estructura.editable()}">
+                <a class="btn btn-ghost"
+                   th:href="@{/coordinador/semestre/{s}/entregas/{e}/editar(s=${estructura.seccion().id()},e=${e.id()})}">Editar</a>
+                <form method="post" th:action="@{/coordinador/semestre/{s}/entregas/{e}/habilitada(s=${estructura.seccion().id()},e=${e.id()})}">
+                    <input type="hidden" name="habilitada" th:value="${!e.habilitada()}">
+                    <button type="submit" class="btn btn-ghost" th:text="${e.habilitada()} ? 'Deshabilitar' : 'Habilitar'">Deshabilitar</button>
+                </form>
+                <form method="post" th:action="@{/coordinador/semestre/{s}/entregas/{e}/eliminar(s=${estructura.seccion().id()},e=${e.id()})}"
+                      data-confirmar="¿Eliminar esta entrega?">
+                    <button type="submit" class="btn btn-ghost">Eliminar</button>
+                </form>
+            </td>
+            <td class="coord-sub" th:unless="${estructura.editable()}">Congelada</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Pautas de colaborador y tutor</h2>
+    <div class="coord-filtros" th:if="${estructura.editable()}">
+        <a class="btn btn-primary" th:href="@{/coordinador/semestre/{id}/pautas/nueva(id=${estructura.seccion().id()})}">Nueva pauta</a>
+    </div>
+    <p class="vacio" th:if="${#lists.isEmpty(estructura.pautas())}">Este semestre todavía no tiene pautas.</p>
+    <table class="coord-tabla" th:unless="${#lists.isEmpty(estructura.pautas())}">
+        <thead><tr><th>Pauta</th><th>Aplica</th><th>Línea</th><th>Aplicación</th><th>Ponderación</th><th>Criterios</th><th>Fecha límite</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+        <tr th:each="p : ${estructura.pautas()}">
+            <td th:text="${p.nombre()}">Pauta</td>
+            <td th:text="${p.etiquetaEvaluador()}">Profesor colaborador</td>
+            <td th:text="${p.etiquetaLinea()}">Especialidad</td>
+            <td th:text="${p.etiquetaAplicacion()}">A</td>
+            <td th:text="|${p.ponderacion().stripTrailingZeros().toPlainString()} %|">20 %</td>
+            <td th:text="${p.criterios()}">5</td>
+            <td th:text="${p.fechaLimite() != null} ? ${#temporals.format(p.fechaLimite(), 'dd/MM/yyyy')} : 'Sin definir'">Sin definir</td>
+            <td th:text="${p.habilitada()} ? 'Habilitada' : 'Deshabilitada'">Habilitada</td>
+            <td class="coord-acciones">
+                <a class="btn btn-ghost"
+                   th:href="@{/coordinador/semestre/{s}/pautas/{p}(s=${estructura.seccion().id()},p=${p.id()})}"
+                   th:text="${estructura.editable()} ? 'Editar' : 'Ver'">Editar</a>
+                <th:block th:if="${estructura.editable()}">
+                    <form method="post" th:action="@{/coordinador/semestre/{s}/pautas/{p}/habilitada(s=${estructura.seccion().id()},p=${p.id()})}">
+                        <input type="hidden" name="habilitada" th:value="${!p.habilitada()}">
+                        <button type="submit" class="btn btn-ghost" th:text="${p.habilitada()} ? 'Deshabilitar' : 'Habilitar'">Deshabilitar</button>
+                    </form>
+                    <form method="post" th:action="@{/coordinador/semestre/{s}/pautas/{p}/eliminar(s=${estructura.seccion().id()},p=${p.id()})}"
+                          data-confirmar="¿Eliminar esta pauta con todo su contenido?">
+                        <button type="submit" class="btn btn-ghost">Eliminar</button>
+                    </form>
+                </th:block>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- N-07: copiar la estructura de otro semestre -->
+    <section th:if="${estructura.editable() and !#lists.isEmpty(origenes)}">
+        <h2>Copiar la estructura de otro semestre</h2>
+        <p class="coord-sub">Copia entregas y pautas con sus ponderaciones. Las fechas límite no se copian. Solo sirve si este semestre aún no tiene estructura.</p>
+        <form class="coord-formulario" method="post" th:action="@{/coordinador/semestre/{id}/copiar(id=${estructura.seccion().id()})}"
+              data-confirmar="¿Copiar la estructura del semestre elegido?">
+            <label>Semestre de origen
+                <select name="idOrigen" required>
+                    <option value="">Elige un semestre</option>
+                    <option th:each="o : ${origenes}" th:value="${o.id()}" th:text="${o.titulo()}">Semestre</option>
+                </select>
+            </label>
+            <div class="coord-formulario__acciones">
+                <button type="submit" class="btn btn-secondary">Copiar estructura</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- N-06: iniciar el semestre -->
+    <section th:if="${estructura.editable()}">
+        <h2>Iniciar el semestre</h2>
+        <p class="coord-sub">Al iniciar, la estructura queda congelada: no se podrán agregar, cambiar ni eliminar entregas y pautas.
+            Se exige que lo habilitado sume exactamente 100 %.</p>
+        <form method="post" th:action="@{/coordinador/semestre/{id}/iniciar(id=${estructura.seccion().id()})}"
+              data-confirmar="¿Iniciar el semestre? La estructura quedará congelada y no se podrá deshacer.">
+            <button type="submit" class="btn btn-accent">Iniciar semestre</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

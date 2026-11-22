@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${editando} ? 'Editar sección' : 'Nueva sección'">Sección</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/secciones')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/coordinador/secciones}">Volver a secciones</a>
+    <h1 th:text="${editando} ? 'Editar sección' : 'Nueva sección'">Nueva sección</h1>
+
+    <div class="coord-error" role="alert" th:if="${errores}">
+        <p th:each="e : ${errores}" th:text="${e}">Error</p>
+    </div>
+
+    <form class="coord-formulario" method="post"
+          th:action="${editando} ? @{/coordinador/secciones/{id}(id=${idSeccion})} : @{/coordinador/secciones}"
+          th:object="${formulario}">
+        <label>Asignatura
+            <select th:field="*{idAsignatura}" required th:disabled="${periodoBloqueado}">
+                <option value="">Elige una asignatura</option>
+                <option th:each="a : ${asignaturas}" th:value="${a.id()}" th:text="${a.nombre()}">Asignatura</option>
+            </select>
+        </label>
+        <input type="hidden" name="idAsignatura" th:if="${periodoBloqueado}" th:value="*{idAsignatura}">
+
+        <label>Año
+            <input type="number" th:field="*{anio}" th:min="${anioMinimo}" th:max="${anioMaximo}" required
+                   th:disabled="${periodoBloqueado}">
+        </label>
+        <input type="hidden" name="anio" th:if="${periodoBloqueado}" th:value="*{anio}">
+        <p class="coord-sub" th:unless="${periodoBloqueado}"
+           th:text="|Entre ${anioMinimo} y ${anioMaximo}.|">Entre 2021 y 2031.</p>
+
+        <label>Semestre
+            <select th:field="*{semestre}" required th:disabled="${periodoBloqueado}">
+                <option value="">Elige un semestre</option>
+                <option th:value="1" th:text="'Semestre 1'">1</option>
+                <option th:value="2" th:text="'Semestre 2'">2</option>
+            </select>
+        </label>
+        <input type="hidden" name="semestre" th:if="${periodoBloqueado}" th:value="*{semestre}">
+        <p class="coord-sub" th:if="${periodoBloqueado}">
+            La asignatura, el año y el semestre no se pueden cambiar porque ya hay estudiantes inscritos.
+        </p>
+
+        <label>Profesor de la asignatura
+            <select th:field="*{idProfesor}" required>
+                <option value="">Elige un profesor</option>
+                <option th:each="p : ${profesores}" th:value="${p.id()}"
+                        th:text="|${p.nombre()} (${p.email()})|">Profesor</option>
+            </select>
+        </label>
+
+        <div class="coord-formulario__acciones">
+            <button type="submit" class="btn btn-primary" th:text="${editando} ? 'Guardar cambios' : 'Crear sección'">Guardar</button>
+            <a class="btn btn-ghost" th:href="@{/coordinador/secciones}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

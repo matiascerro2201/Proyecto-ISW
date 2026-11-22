@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pauta del semestre · Coordinación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/secciones')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/coordinador/semestre/{id}(id=${seccion.id()})}">Volver a la estructura</a>
+    <h1 th:text="${editando} ? 'Pauta del semestre' : 'Nueva pauta'">Nueva pauta</h1>
+    <p class="coord-sub" th:text="${seccion.titulo()}">Asignatura · Semestre</p>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <div class="coord-error" role="alert" th:if="${errores}">
+        <p th:each="e : ${errores}" th:text="${e}">Error</p>
+    </div>
+
+    <p class="coord-mensaje" th:if="${editando and seccion.iniciada()}">El semestre está iniciado: la pauta no se puede modificar.</p>
+
+    <form class="coord-formulario" method="post" th:object="${formulario}"
+          th:action="${editando} ? @{/coordinador/semestre/{s}/pautas/{p}(s=${seccion.id()},p=${detalle.pauta().id()})} : @{/coordinador/semestre/{s}/pautas(s=${seccion.id()})}">
+        <label>Nombre de la pauta
+            <input type="text" th:field="*{nombre}" maxlength="150" required placeholder="Ej.: Desempeño en aula (colaborador)">
+        </label>
+        <label>Quién aplica la pauta
+            <select th:field="*{evaluador}" required>
+                <option value="">Elige un evaluador</option>
+                <option value="COLABORADOR">Profesor colaborador</option>
+                <option value="TUTOR">Tutor</option>
+            </select>
+        </label>
+        <label>Línea de práctica
+            <select th:field="*{tipoLinea}" required>
+                <option value="">Elige una línea</option>
+                <option th:each="l : ${lineas}" th:value="${l}"
+                        th:text="${l == 'ESPECIALIDAD'} ? 'Especialidad' : (${l == 'ORIENTACION'} ? 'Orientación' : 'Línea única')">Línea</option>
+            </select>
+        </label>
+        <label>Aplicación
+            <select th:field="*{aplicacion}" required>
+                <option value="1">A</option>
+                <option value="2">B</option>
+            </select>
+        </label>
+        <label>Ponderación (%)
+            <input type="text" inputmode="decimal" th:field="*{ponderacion}" required placeholder="Ej.: 15">
+        </label>
+        <div class="coord-formulario__acciones" th:unless="${editando and seccion.iniciada()}">
+            <button type="submit" class="btn btn-primary" th:text="${editando} ? 'Guardar cambios' : 'Crear pauta'">Guardar</button>
+            <a class="btn btn-ghost" th:href="@{/coordinador/semestre/{id}(id=${seccion.id()})}">Cancelar</a>
+        </div>
+    </form>
+
+    <!-- Contenido: dimensiones y criterios -->
+    <section th:if="${editando}">
+        <h2>Dimensiones y criterios</h2>
+        <p class="vacio" th:if="${#lists.isEmpty(detalle.dimensiones())}">La pauta todavía no tiene dimensiones.</p>
+
+        <div class="card" th:each="d : ${detalle.dimensiones()}">
+            <h3 th:text="${d.nombre()}">Dimensión</h3>
+            <p class="coord-sub" th:if="${#lists.isEmpty(d.criterios())}">Sin criterios.</p>
+            <table class="coord-tabla" th:unless="${#lists.isEmpty(d.criterios())}">
+                <thead><tr><th>Criterio</th><th>Puntaje máximo</th><th th:unless="${seccion.iniciada()}">Acciones</th></tr></thead>
+                <tbody>
+                <tr th:each="c : ${d.criterios()}">
+                    <td th:text="${c.descripcion()}">Criterio</td>
+                    <td th:text="${c.puntajeMaximo().stripTrailingZeros().toPlainString()}">10</td>
+                    <td class="coord-acciones" th:unless="${seccion.iniciada()}">
+                        <form method="post"
+                              th:action="@{/coordinador/semestre/{s}/pautas/{p}/dimensiones/{d}/criterios/{c}/eliminar(s=${seccion.id()},p=${detalle.pauta().id()},d=${d.id()},c=${c.id()})}"
+                              data-confirmar="¿Eliminar este criterio?">
+                            <button type="submit" class="btn btn-ghost">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <th:block th:unless="${seccion.iniciada()}">
+                <form class="coord-formulario" method="post"
+                      th:action="@{/coordinador/semestre/{s}/pautas/{p}/dimensiones/{d}/criterios(s=${seccion.id()},p=${detalle.pauta().id()},d=${d.id()})}">
+                    <label>Nuevo criterio
+                        <input type="text" name="descripcion" maxlength="500" required placeholder="Descripción del criterio">
+                    </label>
+                    <label>Puntaje máximo
+                        <input type="text" inputmode="decimal" name="puntajeMaximo" required placeholder="Ej.: 10">
+                    </label>
+                    <div class="coord-formulario__acciones">
+                        <button type="submit" class="btn btn-secondary">Agregar criterio</button>
+                    </div>
+                </form>
+                <form method="post"
+                      th:action="@{/coordinador/semestre/{s}/pautas/{p}/dimensiones/{d}/eliminar(s=${seccion.id()},p=${detalle.pauta().id()},d=${d.id()})}"
+                      data-confirmar="¿Eliminar esta dimensión con todos sus criterios?">
+                    <button type="submit" class="btn btn-ghost">Eliminar dimensión</button>
+                </form>
+            </th:block>
+        </div>
+
+        <form class="coord-formulario" method="post" th:unless="${seccion.iniciada()}"
+              th:action="@{/coordinador/semestre/{s}/pautas/{p}/dimensiones(s=${seccion.id()},p=${detalle.pauta().id()})}">
+            <label>Nueva dimensión
+                <input type="text" name="nombre" maxlength="200" required placeholder="Ej.: Manejo de grupo">
+            </label>
+            <div class="coord-formulario__acciones">
+                <button type="submit" class="btn btn-secondary">Agregar dimensión</button>
+            </div>
+        </form>
+        <p class="coord-sub">Puntaje máximo total de la pauta:
+            <strong th:text="${detalle.pauta().puntajeMaximo().stripTrailingZeros().toPlainString()}">0</strong></p>
+    </section>
+</main>
+</body>
+</html>

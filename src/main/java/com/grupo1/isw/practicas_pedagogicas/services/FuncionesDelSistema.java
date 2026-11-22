@@ -1,8 +1,8 @@
 package com.grupo1.isw.practicas_pedagogicas.services;
 
-import com.grupo1.isw.practicas_pedagogicas.dto.inicio.FuncionInicio;
-
 import java.util.List;
+
+import com.grupo1.isw.practicas_pedagogicas.dto.inicio.FuncionInicio;
 
 /** Funciones de cada rol. La barra y el inicio leen esta lista. */
 public final class FuncionesDelSistema {
@@ -51,7 +51,13 @@ public final class FuncionesDelSistema {
                     "/coordinador/estudiantes"),
             de("COORDINADOR", "Usuarios y roles", "Usuarios",
                     "Crea, edita y desactiva cuentas, y asigna el rol de cada usuario.",
-                    "/coordinador/usuarios")
+                    "/coordinador/usuarios"),
+            de("COORDINADOR", "Asignaturas", "Asignaturas",
+                    "Crea y edita las asignaturas del programa de prácticas.",
+                    "/coordinador/asignaturas"),
+            de("COORDINADOR", "Secciones", "Secciones",
+                    "Abre las secciones de cada semestre y asigna su profesor.",
+                    "/coordinador/secciones")
     );
 
     private FuncionesDelSistema() {

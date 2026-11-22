@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Estructura del semestre</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/profesor/estructura')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/profesor/estructura}">Volver a mis semestres</a>
+    <h1>Estructura del semestre</h1>
+    <p class="coord-sub" th:text="${estructura.seccion().titulo()}">Asignatura · Semestre</p>
+    <p class="coord-sub" th:text="${estructura.seccion().iniciada()} ? 'El semestre está iniciado.' : 'El semestre todavía está en preparación: la estructura puede cambiar.'">Estado</p>
+
+    <p th:class="${estructura.suma100()} ? 'coord-mensaje' : 'coord-error'" role="status">
+        Las evaluaciones suman
+        <strong th:text="|${estructura.suma().stripTrailingZeros().toPlainString()} %|">100 %</strong>.
+    </p>
+
+    <h2>Entregas</h2>
+    <p class="vacio" th:if="${#lists.isEmpty(estructura.entregas())}">No hay entregas definidas.</p>
+    <table class="coord-tabla" th:unless="${#lists.isEmpty(estructura.entregas())}">
+        <thead><tr><th>Entrega</th><th>Ponderación</th><th>Fecha límite</th></tr></thead>
+        <tbody>
+        <tr th:each="e : ${estructura.entregas()}">
+            <td th:text="${e.nombre()}">Entrega</td>
+            <td th:text="|${e.ponderacion().stripTrailingZeros().toPlainString()} %|">20 %</td>
+            <td th:text="${e.fechaLimite() != null} ? ${#temporals.format(e.fechaLimite(), 'dd/MM/yyyy')} : 'Sin definir'">Sin definir</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <h2>Pautas de colaborador y tutor</h2>
+    <p class="vacio" th:if="${#lists.isEmpty(estructura.pautas())}">No hay pautas definidas.</p>
+    <table class="coord-tabla" th:unless="${#lists.isEmpty(estructura.pautas())}">
+        <thead><tr><th>Pauta</th><th>Aplica</th><th>Línea</th><th>Aplicación</th><th>Ponderación</th><th>Fecha límite</th></tr></thead>
+        <tbody>
+        <tr th:each="p : ${estructura.pautas()}">
+            <td th:text="${p.nombre()}">Pauta</td>
+            <td th:text="${p.etiquetaEvaluador()}">Profesor colaborador</td>
+            <td th:text="${p.etiquetaLinea()}">Especialidad</td>
+            <td th:text="${p.etiquetaAplicacion()}">A</td>
+            <td th:text="|${p.ponderacion().stripTrailingZeros().toPlainString()} %|">20 %</td>
+            <td th:text="${p.fechaLimite() != null} ? ${#temporals.format(p.fechaLimite(), 'dd/MM/yyyy')} : 'Sin definir'">Sin definir</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>
