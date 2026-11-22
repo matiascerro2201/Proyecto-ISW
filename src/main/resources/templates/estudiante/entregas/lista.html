@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mis entregas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/estudiante/entregas')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+    <h1>Mis entregas</h1>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+
+    <p class="vacio" th:if="${#lists.isEmpty(grupos)}">Todavía no tienes entregas: aparecen cuando el semestre de tu asignatura se inicia.</p>
+
+    <section th:each="g : ${grupos}">
+        <h2 th:text="|${g.asignatura()} · ${g.periodo()}|">Asignatura · Semestre</h2>
+        <article class="card" th:each="e : ${g.entregas()}">
+            <h3 th:text="${e.datos().nombre()}">Entrega</h3>
+            <span class="card__meta"
+                  th:text="|Ponderación: ${e.datos().ponderacion().stripTrailingZeros().toPlainString()} %|">Ponderación: 20 %</span>
+            <p class="card__meta" th:text="${e.datos().fechaLimite() != null} ? |Fecha límite: ${#temporals.format(e.datos().fechaLimite(), 'dd/MM/yyyy')}| : 'Sin fecha límite'">Fecha límite</p>
+            <p class="card__meta" th:switch="${e.estado()}">
+                <span th:case="'ENTREGADA'"
+                      th:text="|Entregada el ${#temporals.format(e.datos().fechaSubida(), 'dd/MM/yyyy HH:mm')}|">Entregada</span>
+                <span th:case="'NO_ENTREGADA'">No entregada: el plazo venció.</span>
+                <span th:case="*">Pendiente: aún no subes tu archivo.</span>
+            </p>
+
+            <div class="card__footer" th:if="${e.datos().tieneArchivo()}">
+                <a class="btn btn-secondary"
+                   th:href="@{/estudiante/entregas/{i}/{e}/descargar(i=${e.datos().idInscripcion()},e=${e.datos().idEntrega()})}">Descargar mi PDF</a>
+            </div>
+
+            <div class="card__retro" th:if="${e.notaVisible()}">
+                <strong>Nota: <span th:text="${e.datos().nota().toPlainString().replace('.', ',')}">5,5</span></strong>
+                <p th:if="${e.datos().comentario() != null}" th:text="${e.datos().comentario()}">Comentario del profesor</p>
+            </div>
+
+            <form class="card__footer" th:if="${e.puedeSubir()}" method="post" enctype="multipart/form-data"
+                  th:action="@{/estudiante/entregas/{i}/{e}(i=${e.datos().idInscripcion()},e=${e.datos().idEntrega()})}">
+                <div class="field">
+                    <label th:for="${'archivo-' + e.datos().idInscripcion() + '-' + e.datos().idEntrega()}">Archivo PDF (máx. 20 MB)</label>
+                    <input type="file" name="archivo" accept="application/pdf,.pdf" required="required"
+                           th:id="${'archivo-' + e.datos().idInscripcion() + '-' + e.datos().idEntrega()}">
+                </div>
+                <button type="submit" class="btn btn-accent"
+                        th:text="${e.datos().tieneArchivo()} ? 'Reemplazar entrega' : 'Subir entrega'">Subir entrega</button>
+            </form>
+            <p class="hint" th:if="${!e.puedeSubir() and e.vencida()}">El plazo terminó: ya no se pueden subir ni reemplazar archivos.</p>
+            <p class="hint" th:if="${!e.puedeSubir() and !e.vencida() and e.datos().nota() != null}">Esta entrega ya fue calificada y no se puede reemplazar.</p>
+        </article>
+    </section>
+</main>
+</body>
+</html>

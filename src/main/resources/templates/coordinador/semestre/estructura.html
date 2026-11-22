@@ -30,6 +30,7 @@
 
     <div class="coord-filtros">
         <a class="btn btn-ghost" th:href="@{/coordinador/semestre/{id}/inscripciones(id=${estructura.seccion().id()})}">Inscripciones</a>
+        <a class="btn btn-ghost" th:href="@{/semestre/{id}/fechas(id=${estructura.seccion().id()})}">Fechas límite</a>
     </div>
 
     <p class="coord-mensaje" th:if="${!estructura.editable()}"
