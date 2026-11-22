@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cursos · Coordinación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/cursos')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Cursos</h1>
+    <p>Elige un semestre para ver sus cursos.</p>
+
+    <p class="vacio" th:if="${#lists.isEmpty(semestres)}">Aún no hay cursos registrados en el sistema.</p>
+
+    <ul class="coord-lista" th:unless="${#lists.isEmpty(semestres)}">
+        <li th:each="s : ${semestres}">
+            <a class="coord-fila" th:href="@{${s.enlace()}}">
+                <span class="coord-fila__principal">
+                    <span class="coord-fila__titulo" th:text="${s.etiqueta()}">Semestre 2 de 2026</span>
+                </span>
+                <span class="coord-fila__dato"
+                      th:text="|${s.cursos()} ${s.cursos() == 1 ? 'curso' : 'cursos'}|">3 cursos</span>
+                <span class="coord-fila__dato"
+                      th:text="|${s.estudiantes()} ${s.estudiantes() == 1 ? 'inscripción' : 'inscripciones'}|">40 inscripciones</span>
+            </a>
+        </li>
+    </ul>
+</main>
+</body>
+</html>

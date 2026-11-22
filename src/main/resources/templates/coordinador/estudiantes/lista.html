@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="'Estudiantes · Coordinación'">Estudiantes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/estudiantes')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+    <h1>Estudiantes</h1>
+
+    <form class="coord-filtros" method="get" role="search" th:action="@{/coordinador/estudiantes}">
+        <label class="coord-filtros__buscar">
+            Buscar
+            <input type="search" name="q" th:value="${q}" placeholder="Nombre, correo o carrera" autocomplete="off">
+        </label>
+        <button type="submit" class="btn btn-primary">Buscar</button>
+        <a class="btn btn-ghost" th:href="@{/coordinador/estudiantes}">Limpiar</a>
+    </form>
+
+    <p class="coord-contador" aria-live="polite"
+       th:text="|${#lists.size(estudiantes)} ${#lists.size(estudiantes) == 1 ? 'estudiante' : 'estudiantes'}|">3 estudiantes</p>
+    <p class="vacio" th:if="${#lists.isEmpty(estudiantes)}">No hay estudiantes que coincidan con la búsqueda.</p>
+
+    <ul class="coord-lista" th:unless="${#lists.isEmpty(estudiantes)}">
+        <li th:each="e : ${estudiantes}">
+            <a class="coord-fila" data-estudiante-popup th:href="@{${e.enlace()}}">
+                <span class="coord-fila__principal">
+                    <span class="coord-fila__titulo" th:text="${e.nombre()}">Nombre</span>
+                    <span class="coord-fila__sub" th:text="|${e.email()} · ${e.carrera()}|">correo · carrera</span>
+                </span>
+                <span class="coord-fila__dato" th:text="|${e.cursos()} ${e.cursos() == 1 ? 'curso' : 'cursos'}|">2 cursos</span>
+                <span class="coord-fila__dato" th:unless="${e.activo()}">Cuenta inactiva</span>
+            </a>
+        </li>
+    </ul>
+</main>
+
+<dialog id="coord-dialogo" class="coord-dialogo" aria-labelledby="coord-dialogo-titulo">
+    <div class="coord-dialogo__barra">
+        <h2 id="coord-dialogo-titulo">Estudiante</h2>
+        <button type="button" class="btn btn-ghost" data-cerrar-dialogo>Cerrar</button>
+    </div>
+    <div id="coord-dialogo-contenido" class="coord-dialogo__contenido" aria-live="polite"></div>
+</dialog>
+</body>
+</html>

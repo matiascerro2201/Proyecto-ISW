@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Estado de un estudiante en un curso. conCurso=true muestra el nombre de la asignatura (vista del estudiante);
+     false muestra el nombre del estudiante (vista del curso). -->
+<details class="coord-actividad" th:fragment="inscripcion(a, conCurso)">
+    <summary class="coord-actividad__resumen">
+        <span class="coord-fila__principal">
+            <span class="coord-fila__titulo"
+                  th:text="${conCurso} ? ${a.asignatura()} : ${a.estudiante()}">Nombre</span>
+            <span class="coord-fila__sub"
+                  th:text="${conCurso} ? ${a.periodo()} : |${a.email()} · ${a.carrera()}|">2026</span>
+        </span>
+        <span class="coord-fila__dato" th:text="|Evaluaciones ${a.evaluacionesRealizadas()}/${a.evaluacionesTotales()}|">Evaluaciones 1/3</span>
+        <span class="coord-fila__dato" th:text="|Planificaciones por revisar: ${a.planificacionesPorRevisar()}|">0</span>
+        <span class="coord-fila__dato" th:text="|Entregas ${a.entregasRealizadas()}/${a.entregasTotales()}|">Entregas 1/2</span>
+        <span class="coord-fila__dato" th:text="|Informe: ${a.informeEstado()}|">Informe: Publicado</span>
+    </summary>
+
+    <div class="coord-actividad__cuerpo">
+        <p class="coord-sub">
+            <span th:text="|Inscripción: ${a.estadoInscripcion()}|">Inscripción</span>
+            <span th:if="${a.centro() != null}" th:text="| · Centro: ${a.centro()}|"></span>
+        </p>
+
+        <h4>Líneas de práctica</h4>
+        <p class="vacio" th:if="${#lists.isEmpty(a.lineas())}">Sin líneas registradas.</p>
+        <ul th:unless="${#lists.isEmpty(a.lineas())}">
+            <li th:each="l : ${a.lineas()}"
+                th:text="|${l.tipo()} · Colaborador: ${l.colaborador() ?: 'sin asignar'} · Tutor: ${l.tutor() ?: 'sin asignar'}|"></li>
+        </ul>
+
+        <h4>Evaluaciones</h4>
+        <p class="vacio" th:if="${#lists.isEmpty(a.evaluaciones())}">Sin evaluaciones esperadas.</p>
+        <table class="coord-tabla" th:unless="${#lists.isEmpty(a.evaluaciones())}">
+            <thead><tr><th>Línea</th><th>Pauta</th><th>Evaluador</th><th>Estado</th><th>Puntaje</th><th>Fecha</th></tr></thead>
+            <tbody>
+            <tr th:each="e : ${a.evaluaciones()}">
+                <td th:text="${e.linea()}"></td>
+                <td th:text="${e.pauta()}"></td>
+                <td th:text="${e.evaluador()}"></td>
+                <td><span class="coord-estado" th:classappend="${e.realizada()} ? 'coord-estado--ok' : 'coord-estado--pendiente'"
+                          th:text="${e.realizada()} ? 'Realizada' : 'Pendiente'"></span></td>
+                <td th:text="${e.puntaje() != null} ? ${#numbers.formatDecimal(e.puntaje(), 1, 1)} : '—'"></td>
+                <td th:text="${e.fecha() != null} ? ${#temporals.format(e.fecha(), 'dd/MM/yyyy')}
+                             : (${e.fechaLimite() != null} ? |Límite ${#temporals.format(e.fechaLimite(), 'dd/MM/yyyy')}| : '—')"></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h4>Planificaciones</h4>
+        <p class="vacio" th:if="${#lists.isEmpty(a.planificaciones())}">Sin planificaciones.</p>
+        <table class="coord-tabla" th:unless="${#lists.isEmpty(a.planificaciones())}">
+            <thead><tr><th>Línea</th><th>Estado</th><th>Enviada</th><th>Retroalimentada</th></tr></thead>
+            <tbody>
+            <tr th:each="p : ${a.planificaciones()}">
+                <td th:text="${p.linea()}"></td>
+                <td><span class="coord-estado" th:classappend="'coord-estado--' + ${#strings.toLowerCase(p.estadoClave())}"
+                          th:text="${p.estado()}"></span></td>
+                <td th:text="${p.fechaEnvio() != null} ? ${#temporals.format(p.fechaEnvio(), 'dd/MM/yyyy HH:mm')} : '—'"></td>
+                <td th:text="${p.fechaRetro() != null} ? ${#temporals.format(p.fechaRetro(), 'dd/MM/yyyy HH:mm')} : '—'"></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h4>Entregas</h4>
+        <p class="vacio" th:if="${#lists.isEmpty(a.entregas())}">Sin entregas definidas.</p>
+        <table class="coord-tabla" th:unless="${#lists.isEmpty(a.entregas())}">
+            <thead><tr><th>Documento</th><th>Estado</th><th>Subido</th><th>Puntaje</th></tr></thead>
+            <tbody>
+            <tr th:each="d : ${a.entregas()}">
+                <td th:text="${d.documento()}"></td>
+                <td><span class="coord-estado" th:classappend="${d.entregado()} ? 'coord-estado--ok' : 'coord-estado--pendiente'"
+                          th:text="${d.entregado()} ? 'Entregado' : 'Pendiente'"></span></td>
+                <td th:text="${d.fechaSubida() != null} ? ${#temporals.format(d.fechaSubida(), 'dd/MM/yyyy')} : '—'"></td>
+                <td th:text="${d.puntaje() != null} ? ${#numbers.formatDecimal(d.puntaje(), 1, 1)} : '—'"></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <h4>Informe final</h4>
+        <p th:if="${a.informe() == null}">Aún no se genera.</p>
+        <p th:if="${a.informe() != null}"
+           th:text="|${a.informe().estado()}
+                    ${a.informe().calificacionSugerida() != null ? ' · Sugerida: ' + #numbers.formatDecimal(a.informe().calificacionSugerida(), 1, 1) : ''}
+                    ${a.informe().calificacionFinal() != null ? ' · Final: ' + #numbers.formatDecimal(a.informe().calificacionFinal(), 1, 1) : ''}|"></p>
+    </div>
+</details>
+</body>
+</html>

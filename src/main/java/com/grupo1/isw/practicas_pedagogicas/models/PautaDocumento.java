@@ -29,6 +29,10 @@ public class PautaDocumento {
     @Column(name = "numero", nullable = false)
     private Integer numero;
 
+    /** HU-38: el coordinador decide si la entrega está vigente para la asignatura. */
+    @Column(name = "habilitada", nullable = false)
+    private boolean habilitada = true;
+
     @OneToMany(mappedBy = "pautaDocumento")
     private List<DocumentoEstudiante> documentos = new ArrayList<>();
 
@@ -80,6 +84,14 @@ public class PautaDocumento {
 
     public void setNumero(Integer numero) {
         this.numero = numero;
+    }
+
+    public boolean isHabilitada() {
+        return habilitada;
+    }
+
+    public void setHabilitada(boolean habilitada) {
+        this.habilitada = habilitada;
     }
 
     public List<DocumentoEstudiante> getDocumentos() {

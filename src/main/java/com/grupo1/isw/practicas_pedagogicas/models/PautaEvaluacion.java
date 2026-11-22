@@ -28,6 +28,10 @@ public class PautaEvaluacion {
     @Column(name = "ponderacion", nullable = false, precision = 5, scale = 2)
     private BigDecimal ponderacion;
 
+    /** HU-38: el coordinador decide si la pauta está vigente. Una pauta deshabilitada no se cuenta como pendiente. */
+    @Column(name = "habilitada", nullable = false)
+    private boolean habilitada = true;
+
     @OneToMany(mappedBy = "pautaEvaluacion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Dimension> dimensiones = new ArrayList<>();
 
@@ -82,6 +86,14 @@ public class PautaEvaluacion {
 
     public void setPonderacion(BigDecimal ponderacion) {
         this.ponderacion = ponderacion;
+    }
+
+    public boolean isHabilitada() {
+        return habilitada;
+    }
+
+    public void setHabilitada(boolean habilitada) {
+        this.habilitada = habilitada;
     }
 
     public List<Dimension> getDimensiones() {
