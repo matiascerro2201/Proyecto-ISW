@@ -1,0 +1,16 @@
+/* Lista de planificaciones pendientes del colaborador: resalta las que se acercan o pasaron su fecha de revisión. */
+.pendiente--proxima .asignatura__fila {
+    border-color: var(--status-pending-fg);
+    background: var(--status-pending-bg);
+}
+.pendiente--vencida .asignatura__fila {
+    border-color: var(--status-rejected-fg);
+    background: var(--status-rejected-bg);
+}
+.pendiente--proxima .asignatura__fila:hover,
+.pendiente--vencida .asignatura__fila:hover { box-shadow: var(--shadow-sm); }
+.asignatura__dato--urgente { font-weight: 600; }
+.pendiente--proxima .asignatura__dato--urgente { color: var(--status-pending-fg); }
+.pendiente--vencida .asignatura__dato--urgente { color: var(--status-rejected-fg); }
+.asignatura__dato small { display: block; font-size: 12.5px; color: var(--ink-500); }
+.pendientes-orden { margin: 0 0 var(--space-4); font-size: 13px; color: var(--ink-500); }

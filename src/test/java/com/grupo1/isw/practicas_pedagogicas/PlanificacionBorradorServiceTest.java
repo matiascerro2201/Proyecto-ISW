@@ -144,7 +144,7 @@ class PlanificacionBorradorServiceTest {
         dadoQueExiste(borrador);
         LocalDateTime antes = LocalDateTime.now();
 
-        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION);
+        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision());
 
         assertEquals(EstadoPlanificacion.ENVIADA, borrador.getEstado());
         assertTrue(borrador.tieneArchivo(), "el PDF debe seguir adjunto");
@@ -168,7 +168,7 @@ class PlanificacionBorradorServiceTest {
         dadoQueExiste(borrador);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision()));
 
         assertTrue(ex.getMessage().contains("PDF"), ex.getMessage());
         assertEquals(EstadoPlanificacion.BORRADOR, borrador.getEstado());
@@ -183,7 +183,7 @@ class PlanificacionBorradorServiceTest {
         dadoQueExiste(planificacion);
 
         assertThrows(IllegalStateException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision()));
 
         assertEquals(estado, planificacion.getEstado());
         verificarQueNoSeGuardoNiSeNotifico();
@@ -197,7 +197,7 @@ class PlanificacionBorradorServiceTest {
         dadoQueExiste(ajeno);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision()));
 
         assertEquals(403, ex.getStatusCode().value());
         assertEquals(EstadoPlanificacion.BORRADOR, ajeno.getEstado());
@@ -210,7 +210,7 @@ class PlanificacionBorradorServiceTest {
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision()));
 
         assertEquals(404, ex.getStatusCode().value());
         verificarQueNoSeGuardoNiSeNotifico();
@@ -224,7 +224,7 @@ class PlanificacionBorradorServiceTest {
                 .thenThrow(new RuntimeException("Falla de base de datos"));
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision()));
 
         assertEquals("Falla de base de datos", ex.getMessage());
         verificarQueNoSeNotifico();
@@ -235,9 +235,9 @@ class PlanificacionBorradorServiceTest {
     void enviarBorrador_dosVeces_notificaUnaSolaVez() {
         dadoQueExiste(borradorConArchivo());
 
-        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION);
+        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision());
         assertThrows(IllegalStateException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision()));
 
         verify(notificacionService, times(1)).crear(any(), any(), any(), any());
     }

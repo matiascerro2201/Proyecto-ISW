@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.Normalizer;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,8 +86,17 @@ public class PlanificacionArchivoService {
      * @throws IllegalStateException    la planificación ya no es editable
      * @throws ResponseStatusException  404 si algo no existe, 403 si no es del estudiante
      */
-    @Transactional
     public ResultadoSubida subirPdf(Long idEstudiante, Long idLinea, Long idPlanificacion, MultipartFile archivo) {
+        return subirPdf(idEstudiante, idLinea, idPlanificacion, archivo, null);
+    }
+
+    /**
+     * Igual que la anterior; al crear un borrador nuevo guarda además la fecha para la que el estudiante pide
+     * la revisión (opcional aquí: se vuelve a exigir al enviar). Con idPlanificacion se ignora.
+     */
+    @Transactional
+    public ResultadoSubida subirPdf(Long idEstudiante, Long idLinea, Long idPlanificacion, MultipartFile archivo,
+                                    LocalDate fechaRevision) {
         Planificacion planificacion = null;
         LineaPractica linea = null;
         if (idPlanificacion != null) {
@@ -96,6 +106,9 @@ public class PlanificacionArchivoService {
             }
         } else {
             linea = lineaDelEstudiante(idEstudiante, idLinea);
+            if (fechaRevision != null) {
+                PlanificacionService.validarFechaRevision(fechaRevision, LocalDate.now());
+            }
         }
 
         // Se valida y se lee el PDF antes de tocar disco o base de datos.
@@ -118,6 +131,7 @@ public class PlanificacionArchivoService {
         try {
             if (planificacion == null) {
                 planificacion = Planificacion.borrador(linea, null);
+                planificacion.setFechaRevisionSolicitada(fechaRevision);
             }
             planificacion.adjuntarArchivo(nombreNuevo, original, archivo.getSize(), texto, ahora);
             planificacion = planificacionRepository.saveAndFlush(planificacion);

@@ -241,7 +241,7 @@ class PlanificacionServiceTest {
         borrador.setIdPlanificacion(77L);
         when(planificacionRepository.findById(77L)).thenReturn(Optional.of(borrador));
 
-        service.enviarBorrador(ID_ESTUDIANTE, 77L);
+        service.enviarBorrador(ID_ESTUDIANTE, 77L, PlanificacionService.fechaMinimaRevision());
 
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
         verify(notificacionService).crear(eq(ID_COLABORADOR), eq(NotificacionService.TIPO_PLANIFICACION),
@@ -257,7 +257,7 @@ class PlanificacionServiceTest {
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(ajeno));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision()));
 
         assertEquals(403, ex.getStatusCode().value());
         verify(planificacionRepository, never()).save(any());
@@ -274,7 +274,7 @@ class PlanificacionServiceTest {
                 .thenThrow(new IllegalStateException("Falla de base de datos"));
 
         assertThrows(IllegalStateException.class,
-                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION));
+                () -> service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision()));
 
         verificarQueNoSeNotifico();
     }
@@ -288,7 +288,7 @@ class PlanificacionServiceTest {
         rechazada.setEstado(EstadoPlanificacion.RECHAZADA);
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(rechazada));
 
-        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION);
+        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision());
 
         assertEquals(EstadoPlanificacion.ENVIADA, rechazada.getEstado());
         verify(planificacionRepository).save(rechazada);
@@ -309,7 +309,7 @@ class PlanificacionServiceTest {
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(rechazada));
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION));
+                () -> service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision()));
 
         assertEquals(EstadoPlanificacion.RECHAZADA, rechazada.getEstado());
         assertEquals("Faltan objetivos", rechazada.getRetroalimentacion());
@@ -327,7 +327,7 @@ class PlanificacionServiceTest {
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(aprobada));
 
         assertThrows(IllegalStateException.class,
-                () -> service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION));
+                () -> service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision()));
 
         verify(planificacionRepository, never()).save(any());
         verificarQueNoSeNotifico();
@@ -404,10 +404,10 @@ class PlanificacionServiceTest {
         borrador.setIdPlanificacion(ID_PLANIFICACION_NUEVA);
         when(planificacionRepository.findById(ID_PLANIFICACION_NUEVA)).thenReturn(Optional.of(borrador));
 
-        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION_NUEVA);
+        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION_NUEVA, PlanificacionService.fechaMinimaRevision());
         service.evaluarPlanificacion(ID_PLANIFICACION_NUEVA, ID_COLABORADOR, "Faltan objetivos",
                 EstadoPlanificacion.RECHAZADA);
-        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION_NUEVA);
+        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION_NUEVA, PlanificacionService.fechaMinimaRevision());
 
         ArgumentCaptor<Long> destinatarios = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<String> enlaces = ArgumentCaptor.forClass(String.class);

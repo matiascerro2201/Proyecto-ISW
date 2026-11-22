@@ -5,10 +5,13 @@ import com.grupo1.isw.practicas_pedagogicas.services.PlanificacionService;
 import com.grupo1.isw.practicas_pedagogicas.services.PlanificacionService.PlanificacionVista;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.time.LocalDate;
 
 /**
  * Páginas de las planificaciones del estudiante. El PDF se sube aparte (PlanificacionArchivoController);
@@ -39,6 +42,8 @@ public class PlanificacionEstudianteController {
     @GetMapping("/nueva")
     public String nueva(@AuthenticationPrincipal UsuarioDetails usuario, Model model) {
         model.addAttribute("titulo", "Nueva planificación de clase");
+        model.addAttribute("fechaMinimaRevision", PlanificacionService.fechaMinimaRevision());
+        model.addAttribute("diasMinimosRevision", PlanificacionService.DIAS_MINIMOS_REVISION);
         model.addAttribute("urlSubida", BASE + "/archivo");
         model.addAttribute("lineas", planificacionService.obtenerLineasDelEstudiante(usuario.getIdUsuario()));
         return VISTA_FORMULARIO;
@@ -65,12 +70,13 @@ public class PlanificacionEstudianteController {
     /** Envía un borrador al colaborador. No depende del asistente. */
     @PostMapping("/{id}/enviar")
     public String enviar(@PathVariable Long id,
+                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaRevision,
                          @AuthenticationPrincipal UsuarioDetails usuario,
                          Model model,
                          RedirectAttributes redirectAttributes) {
         Long idEstudiante = usuario.getIdUsuario();
         try {
-            planificacionService.enviarBorrador(idEstudiante, id);
+            planificacionService.enviarBorrador(idEstudiante, id, fechaRevision);
         } catch (IllegalArgumentException e) {
             return volverAlFormulario(model, idEstudiante, id, e.getMessage());
         } catch (IllegalStateException e) {
@@ -83,12 +89,13 @@ public class PlanificacionEstudianteController {
 
     @PostMapping("/{id}/reenviar")
     public String reenviar(@PathVariable Long id,
+                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaRevision,
                            @AuthenticationPrincipal UsuarioDetails usuario,
                            Model model,
                            RedirectAttributes redirectAttributes) {
         Long idEstudiante = usuario.getIdUsuario();
         try {
-            planificacionService.reenviarPlanificacion(idEstudiante, id);
+            planificacionService.reenviarPlanificacion(idEstudiante, id, fechaRevision);
         } catch (IllegalArgumentException e) {
             return volverAlFormulario(model, idEstudiante, id, e.getMessage());
         } catch (IllegalStateException e) {
@@ -116,6 +123,8 @@ public class PlanificacionEstudianteController {
         model.addAttribute("accionEnviar", base + (borrador ? "/enviar" : "/reenviar"));
         model.addAttribute("etiquetaEnviar", borrador ? "Enviar al profesor" : "Reenviar al profesor");
         model.addAttribute("planificacion", planificacion);
+        model.addAttribute("fechaMinimaRevision", PlanificacionService.fechaMinimaRevision());
+        model.addAttribute("diasMinimosRevision", PlanificacionService.DIAS_MINIMOS_REVISION);
         model.addAttribute("error", error);
     }
 }

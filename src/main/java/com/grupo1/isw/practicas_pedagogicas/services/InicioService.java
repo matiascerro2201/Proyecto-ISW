@@ -162,10 +162,13 @@ public class InicioService {
                     : planificacionRepository.findByEstadoAndLinea_Colaborador_IdUsuarioOrderByFechaEnvioAsc(
                             EstadoPlanificacion.ENVIADA, idProfesor)) {
                 String estudiante = planificacion.getLinea().getInscripcion().getEstudiante().getNombre();
-                pendientes.add(PendienteInicio.porHacer("Evaluar la planificación de " + estudiante,
-                        nombreAsignatura(planificacion.getLinea()),
+                // La fecha que pidió el estudiante pone la planificación en el calendario del inicio.
+                LocalDate fechaRevision = planificacion.getFechaRevisionSolicitada();
+                pendientes.add(new PendienteInicio("Evaluar la planificación de " + estudiante,
+                        nombreAsignatura(planificacion.getLinea()), fechaRevision,
                         "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar",
-                        "Por evaluar", "pendiente"));
+                        "Por evaluar", "pendiente",
+                        fechaRevision != null && fechaRevision.isBefore(LocalDate.now())));
             }
         }
 

@@ -19,6 +19,7 @@
     const estado = document.getElementById('estado-subida');
     const avisos = document.getElementById('avisos-subida');
     const selectorLinea = document.getElementById('idLinea');
+    const campoFecha = document.getElementById('fechaRevision');
 
     const token = document.querySelector('meta[name="_csrf"]').content;
     const cabeceraToken = document.querySelector('meta[name="_csrf_header"]').content;
@@ -66,6 +67,9 @@
         if (selectorLinea) {
             selectorLinea.disabled = activo;
         }
+        if (campoFecha && !idPlanificacion) {
+            campoFecha.disabled = activo;
+        }
     }
 
     function subir() {
@@ -85,6 +89,10 @@
             datos.append('idPlanificacion', idPlanificacion);
         } else {
             datos.append('idLinea', selectorLinea.value);
+            // Al crear, la fecha elegida viaja con el PDF y queda guardada en el borrador.
+            if (campoFecha && campoFecha.value) {
+                datos.append('fechaRevision', campoFecha.value);
+            }
         }
 
         const xhr = new XMLHttpRequest();
@@ -167,6 +175,24 @@
         selectorLinea.addEventListener('change', actualizarBoton);
     }
     boton.addEventListener('click', subir);
+
+    // Fechas anteriores al mínimo: el calendario ya las bloquea con el atributo min; esto cubre
+    // el caso de escribir la fecha a mano o pegarla.
+    if (campoFecha && campoFecha.min) {
+        const validarFecha = function () {
+            const antes = campoFecha.value && campoFecha.value < campoFecha.min;
+            campoFecha.setCustomValidity(antes
+                    ? 'Elige una fecha desde el ' + campoFecha.min.split('-').reverse().join('/') + ' (mínimo 7 días después del envío).'
+                    : '');
+            if (antes) {
+                campoFecha.reportValidity();
+                campoFecha.value = '';
+                campoFecha.setCustomValidity('');
+            }
+        };
+        campoFecha.addEventListener('change', validarFecha);
+        campoFecha.addEventListener('blur', validarFecha);
+    }
 
     // Tras la subida la página se recarga: aquí se muestra lo que dejó el resultado anterior.
     try {

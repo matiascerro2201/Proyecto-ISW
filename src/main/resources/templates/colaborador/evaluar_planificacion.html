@@ -26,6 +26,7 @@
         <span class="badge" th:classappend="${planificacion.estado.name().toLowerCase()}" th:text="${planificacion.estado}"></span>
     </p>
     <p><strong>Fecha de envío original:</strong> <span th:text="${planificacion.fechaEnvio != null ? #temporals.format(planificacion.fechaEnvio, 'dd/MM/yyyy HH:mm') : ''}"></span></p>
+    <p th:if="${planificacion.fechaRevisionSolicitada != null}"><strong>Revisión solicitada para:</strong> <span th:text="${#temporals.format(planificacion.fechaRevisionSolicitada, 'dd/MM/yyyy')}"></span></p>
 
     <h2 style="font-size:16px;">Planificación</h2>
 

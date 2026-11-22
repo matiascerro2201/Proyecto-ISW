@@ -1,5 +1,6 @@
 package com.grupo1.isw.practicas_pedagogicas.services;
 
+import com.grupo1.isw.practicas_pedagogicas.dto.PlanificacionPendienteResponse;
 import com.grupo1.isw.practicas_pedagogicas.models.EstadoPlanificacion;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
@@ -10,13 +11,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
 @Service
 public class PlanificacionService {
+    /** Días mínimos entre el envío y la fecha para la que el estudiante pide la revisión. */
+    public static final int DIAS_MINIMOS_REVISION = 7;
+    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     private final PlanificacionRepository planificacionRepository;
     private final LineaPracticaRepository lineaPracticaRepository;
     private final NotificacionService notificacionService;
@@ -101,6 +108,19 @@ public class PlanificacionService {
                         EstadoPlanificacion.ENVIADA, idColaborador);
     }
 
+    /**
+     * Pendientes del colaborador para su lista: de la más antigua a la más reciente (por fecha de envío),
+     * cada una con su urgencia según la fecha de revisión que pidió el estudiante.
+     */
+    @Transactional(readOnly = true)
+    public List<PlanificacionPendienteResponse> listarPendientesDelColaborador(Long idColaborador, LocalDate hoy) {
+        return obtenerPendientesDelColaborador(idColaborador).stream()
+                .sorted(Comparator.comparing(Planificacion::getFechaEnvio)
+                        .thenComparing(Planificacion::getIdPlanificacion))
+                .map(p -> PlanificacionPendienteResponse.de(p, hoy))
+                .toList();
+    }
+
     public record LineaOpcion(Long idLinea, String etiqueta) {
     }
 
@@ -113,13 +133,23 @@ public class PlanificacionService {
                                      LocalDateTime fechaRetro,
                                      String archivoOriginal,
                                      Long archivoTamano,
-                                     LocalDateTime archivoFecha) {
+                                     LocalDateTime archivoFecha,
+                                     LocalDate fechaRevisionSolicitada) {
+        /** Sin fecha de revisión solicitada (borradores y planificaciones anteriores a esa función). */
+        public PlanificacionVista(Long idPlanificacion, String etiquetaLinea, String contenido,
+                                  EstadoPlanificacion estado, String retroalimentacion,
+                                  LocalDateTime fechaEnvio, LocalDateTime fechaRetro,
+                                  String archivoOriginal, Long archivoTamano, LocalDateTime archivoFecha) {
+            this(idPlanificacion, etiquetaLinea, contenido, estado, retroalimentacion,
+                    fechaEnvio, fechaRetro, archivoOriginal, archivoTamano, archivoFecha, null);
+        }
+
         /** Planificación sin PDF (las anteriores a HU-31/32, que solo tienen texto). */
         public PlanificacionVista(Long idPlanificacion, String etiquetaLinea, String contenido,
                                   EstadoPlanificacion estado, String retroalimentacion,
                                   LocalDateTime fechaEnvio, LocalDateTime fechaRetro) {
             this(idPlanificacion, etiquetaLinea, contenido, estado, retroalimentacion,
-                    fechaEnvio, fechaRetro, null, null, null);
+                    fechaEnvio, fechaRetro, null, null, null, null);
         }
 
         public boolean tieneArchivo() {
@@ -166,12 +196,33 @@ public class PlanificacionService {
         return aVista(obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion));
     }
 
+    /** Primer día que se puede pedir como fecha de revisión si se envía hoy. */
+    public static LocalDate fechaMinimaRevision() {
+        return LocalDate.now().plusDays(DIAS_MINIMOS_REVISION);
+    }
+
+    /**
+     * La fecha de revisión es obligatoria y debe ser, como mínimo, {@value #DIAS_MINIMOS_REVISION} días
+     * después del día del envío.
+     */
+    static void validarFechaRevision(LocalDate fechaRevision, LocalDate diaDeEnvio) {
+        if (fechaRevision == null) {
+            throw new IllegalArgumentException("Debes indicar la fecha para la que necesitas la revisión");
+        }
+        if (fechaRevision.isBefore(diaDeEnvio.plusDays(DIAS_MINIMOS_REVISION))) {
+            throw new IllegalArgumentException("La fecha de revisión debe ser al menos "
+                    + DIAS_MINIMOS_REVISION + " días posterior al envío (desde el "
+                    + diaDeEnvio.plusDays(DIAS_MINIMOS_REVISION) + ")");
+        }
+    }
+
     /**
      * Envía un borrador al colaborador (BORRADOR -> ENVIADA). Exige que ya tenga su PDF subido
-     * (la subida está en PlanificacionArchivoService). No depende del asistente.
+     * (la subida está en PlanificacionArchivoService) y la fecha para la que se pide la revisión.
+     * No depende del asistente.
      */
     @Transactional
-    public void enviarBorrador(Long idEstudiante, Long idPlanificacion) {
+    public void enviarBorrador(Long idEstudiante, Long idPlanificacion, LocalDate fechaRevision) {
         Planificacion planificacion = obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
 
         if (planificacion.getEstado() != EstadoPlanificacion.BORRADOR) {
@@ -179,16 +230,23 @@ public class PlanificacionService {
         }
         exigirArchivo(planificacion);
 
+        LocalDateTime ahora = LocalDateTime.now();
+        validarFechaRevision(fechaRevision, ahora.toLocalDate());
+
         planificacion.setEstado(EstadoPlanificacion.ENVIADA);
-        planificacion.setFechaEnvio(LocalDateTime.now());
+        planificacion.setFechaEnvio(ahora);
+        planificacion.setFechaRevisionSolicitada(fechaRevision);
 
         planificacionRepository.save(planificacion);
         notificarAlColaborador(planificacion, "envió");
     }
 
-    /** Reenvía una planificación RECHAZADA. Exige un PDF (el mismo o uno nuevo que haya subido). */
+    /**
+     * Reenvía una planificación RECHAZADA. Exige un PDF (el mismo o uno nuevo que haya subido) y una
+     * fecha de revisión nueva: la anterior pudo quedar vencida mientras corregía.
+     */
     @Transactional
-    public void reenviarPlanificacion(Long idEstudiante, Long idPlanificacion) {
+    public void reenviarPlanificacion(Long idEstudiante, Long idPlanificacion, LocalDate fechaRevision) {
         Planificacion planificacion = obtenerPlanificacionDelEstudiante(idEstudiante, idPlanificacion);
 
         if (planificacion.getEstado() != EstadoPlanificacion.RECHAZADA) {
@@ -196,8 +254,12 @@ public class PlanificacionService {
         }
         exigirArchivo(planificacion);
 
+        LocalDateTime ahora = LocalDateTime.now();
+        validarFechaRevision(fechaRevision, ahora.toLocalDate());
+
         planificacion.setEstado(EstadoPlanificacion.ENVIADA);
-        planificacion.setFechaEnvio(LocalDateTime.now());
+        planificacion.setFechaEnvio(ahora);
+        planificacion.setFechaRevisionSolicitada(fechaRevision);
         planificacion.setRetroalimentacion(null);
         planificacion.setFechaRetro(null);
 
@@ -227,7 +289,8 @@ public class PlanificacionService {
     private void notificarAlColaborador(Planificacion planificacion, String accion) {
         LineaPractica linea = planificacion.getLinea();
         String mensaje = linea.getInscripcion().getEstudiante().getNombre() + " " + accion
-                + " una planificación de clase (" + etiquetaDe(linea) + ") para tu revisión.";
+                + " una planificación de clase (" + etiquetaDe(linea) + ") para tu revisión. Fecha solicitada: "
+                + planificacion.getFechaRevisionSolicitada().format(FORMATO_FECHA) + ".";
         notificacionService.crear(linea.getColaborador().getIdUsuario(), NotificacionService.TIPO_PLANIFICACION,
                 mensaje, "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar");
     }
@@ -256,7 +319,8 @@ public class PlanificacionService {
                 p.getFechaRetro(),
                 p.getArchivoOriginal(),
                 p.getArchivoTamano(),
-                p.getArchivoFecha());
+                p.getArchivoFecha(),
+                p.getFechaRevisionSolicitada());
     }
 
     private String etiquetaDe(LineaPractica linea) {

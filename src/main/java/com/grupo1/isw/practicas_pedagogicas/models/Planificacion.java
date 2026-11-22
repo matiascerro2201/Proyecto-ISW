@@ -1,6 +1,7 @@
 package com.grupo1.isw.practicas_pedagogicas.models;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,6 +38,14 @@ public class Planificacion {
 
     @Column(name = "fecha_retro")
     private LocalDateTime fechaRetro;
+
+    // Día para el que el estudiante pide la revisión (mínimo 7 días después del envío). null en borradores.
+    @Column(name = "fecha_revision_solicitada")
+    private LocalDate fechaRevisionSolicitada;
+
+    // true cuando ya se avisó al colaborador que faltan 2 días (o menos) para esa fecha.
+    @Column(name = "recordatorio_revision_enviado", nullable = false)
+    private boolean recordatorioRevisionEnviado;
 
     @Column(name = "archivo_nombre", length = 100)
     private String archivoNombre;
@@ -153,6 +162,24 @@ public class Planificacion {
 
     public void setFechaEnvio(LocalDateTime fechaEnvio) {
         this.fechaEnvio = fechaEnvio;
+    }
+
+    public LocalDate getFechaRevisionSolicitada() {
+        return fechaRevisionSolicitada;
+    }
+
+    /** Al cambiar la fecha el recordatorio queda pendiente de nuevo. */
+    public void setFechaRevisionSolicitada(LocalDate fechaRevisionSolicitada) {
+        this.fechaRevisionSolicitada = fechaRevisionSolicitada;
+        this.recordatorioRevisionEnviado = false;
+    }
+
+    public boolean isRecordatorioRevisionEnviado() {
+        return recordatorioRevisionEnviado;
+    }
+
+    public void marcarRecordatorioRevisionEnviado() {
+        this.recordatorioRevisionEnviado = true;
     }
 
     public LocalDateTime getFechaRetro() {

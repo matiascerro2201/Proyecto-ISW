@@ -6,6 +6,7 @@ import com.grupo1.isw.practicas_pedagogicas.services.PlanificacionArchivoService
 import com.grupo1.isw.practicas_pedagogicas.services.PlanificacionArchivoService.ResultadoSubida;
 import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 /**
@@ -42,10 +44,12 @@ public class PlanificacionArchivoController {
     public ResponseEntity<?> subir(@RequestParam(required = false) Long idLinea,
                                    @RequestParam(required = false) Long idPlanificacion,
                                    @RequestParam(required = false) MultipartFile archivo,
+                                   @RequestParam(required = false)
+                                   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaRevision,
                                    @AuthenticationPrincipal UsuarioDetails usuario) {
         try {
             ResultadoSubida resultado =
-                    archivoService.subirPdf(usuario.getIdUsuario(), idLinea, idPlanificacion, archivo);
+                    archivoService.subirPdf(usuario.getIdUsuario(), idLinea, idPlanificacion, archivo, fechaRevision);
             return ResponseEntity.ok(resultado);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

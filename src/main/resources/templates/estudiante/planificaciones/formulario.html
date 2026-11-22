@@ -97,6 +97,19 @@
                     </div>
 
                     <div class="field">
+                        <label for="fechaRevision">¿Para qué fecha necesitas la revisión?</label>
+                        <!-- Al editar pertenece al formulario de envío (atributo form); al crear viaja con el PDF -->
+                        <input type="date" id="fechaRevision" name="fechaRevision"
+                               th:min="${fechaMinimaRevision}"
+                               th:attr="form=${planificacion != null ? 'form-envio' : null}"
+                               th:required="${planificacion != null}"
+                               th:value="${planificacion != null and planificacion.fechaRevisionSolicitada() != null and !planificacion.fechaRevisionSolicitada().isBefore(fechaMinimaRevision)} ? ${planificacion.fechaRevisionSolicitada()}">
+                        <p class="hint"
+                           th:text="|Debe ser al menos ${diasMinimosRevision} días después del envío (desde el ${#temporals.format(fechaMinimaRevision, 'dd/MM/yyyy')}). Tu profesor colaborador la verá en su calendario.|">
+                            Debe ser al menos 7 días después del envío.</p>
+                    </div>
+
+                    <div class="field">
                         <label for="archivo-pdf"
                                th:text="${planificacion != null and planificacion.tieneArchivo()} ? 'Reemplazar el PDF por otra versión' : 'Subir archivo PDF'">Subir archivo PDF</label>
                         <div class="subida__fila">
@@ -126,7 +139,7 @@
             </div>
 
             <!-- Acciones: subir el PDF ya deja guardado el borrador -->
-            <form class="editor__acciones" method="post" th:action="@{${accionEnviar}}" th:if="${planificacion != null}">
+            <form class="editor__acciones" id="form-envio" method="post" th:action="@{${accionEnviar}}" th:if="${planificacion != null}">
                 <button type="submit" class="btn btn-accent" th:disabled="${!planificacion.tieneArchivo()}"
                         th:text="${etiquetaEnviar}">Enviar al profesor</button>
                 <a class="btn btn-secondary" th:href="@{/estudiante/planificaciones}"

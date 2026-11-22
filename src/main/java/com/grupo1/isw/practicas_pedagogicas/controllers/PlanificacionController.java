@@ -9,6 +9,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+
 @Controller
 @RequestMapping("/planificaciones")
 @PreAuthorize("hasRole('COLABORADOR')")
@@ -25,7 +27,7 @@ public class PlanificacionController {
     @GetMapping("/pendientes")
     public String listarPendientes(@AuthenticationPrincipal UsuarioDetails usuarioLogueado, Model model) {
         model.addAttribute("planificaciones",
-                planificacionService.obtenerPendientesDelColaborador(usuarioLogueado.getIdUsuario()));
+                planificacionService.listarPendientesDelColaborador(usuarioLogueado.getIdUsuario(), LocalDate.now()));
         return VISTA_PENDIENTES;
     }
 

@@ -135,7 +135,7 @@ class HistorialEvaluacionServiceTest {
 
         service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Faltan objetivos medibles",
                 EstadoPlanificacion.RECHAZADA);
-        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION);
+        service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision());
 
         // Al reenviar, la planificación olvida el rechazo: justo lo que el historial viene a conservar.
         assertEquals(EstadoPlanificacion.ENVIADA, planificacion.getEstado());
@@ -207,7 +207,7 @@ class HistorialEvaluacionServiceTest {
         borrador.setIdPlanificacion(ID_PLANIFICACION);
         dadoQueExiste(borrador);
 
-        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION);
+        service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision());
 
         assertEquals(EstadoPlanificacion.ENVIADA, borrador.getEstado());
         assertTrue(borrador.getEvaluaciones().isEmpty());

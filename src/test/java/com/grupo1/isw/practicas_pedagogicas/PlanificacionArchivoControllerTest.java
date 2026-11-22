@@ -62,10 +62,10 @@ class PlanificacionArchivoControllerTest {
         ResultadoSubida resultado = new ResultadoSubida(ID_PLANIFICACION, "plan.pdf", 1L,
                 LocalDateTime.of(2026, 10, 1, 9, 0), false, List.of());
         MockMultipartFile archivo = pdf();
-        when(archivoService.subirPdf(ID_ESTUDIANTE, 7L, null, archivo)).thenReturn(resultado);
+        when(archivoService.subirPdf(ID_ESTUDIANTE, 7L, null, archivo, null)).thenReturn(resultado);
 
         ResponseEntity<?> respuesta = new PlanificacionArchivoController(archivoService)
-                .subir(7L, null, archivo, usuario(ID_ESTUDIANTE, RolUsuario.ESTUDIANTE));
+                .subir(7L, null, archivo, null, usuario(ID_ESTUDIANTE, RolUsuario.ESTUDIANTE));
 
         assertEquals(200, respuesta.getStatusCode().value());
         assertSame(resultado, respuesta.getBody());
@@ -74,11 +74,11 @@ class PlanificacionArchivoControllerTest {
     @Test
     @DisplayName("HU-31/32. Un archivo inválido responde 400 con el mensaje en JSON")
     void subir_archivoInvalido_responde400() {
-        when(archivoService.subirPdf(ID_ESTUDIANTE, 7L, null, null))
+        when(archivoService.subirPdf(ID_ESTUDIANTE, 7L, null, null, null))
                 .thenThrow(new IllegalArgumentException("Debe seleccionar un archivo"));
 
         ResponseEntity<?> respuesta = new PlanificacionArchivoController(archivoService)
-                .subir(7L, null, null, usuario(ID_ESTUDIANTE, RolUsuario.ESTUDIANTE));
+                .subir(7L, null, null, null, usuario(ID_ESTUDIANTE, RolUsuario.ESTUDIANTE));
 
         assertEquals(400, respuesta.getStatusCode().value());
         assertEquals(Map.of("error", "Debe seleccionar un archivo"), respuesta.getBody());
@@ -88,11 +88,11 @@ class PlanificacionArchivoControllerTest {
     @DisplayName("HU-31/32. Cambiar el PDF de una planificación no editable responde 409")
     void subir_noEditable_responde409() {
         MockMultipartFile archivo = pdf();
-        when(archivoService.subirPdf(ID_ESTUDIANTE, null, ID_PLANIFICACION, archivo))
+        when(archivoService.subirPdf(ID_ESTUDIANTE, null, ID_PLANIFICACION, archivo, null))
                 .thenThrow(new IllegalStateException("Solo se puede cambiar el PDF de una planificación en borrador o rechazada"));
 
         ResponseEntity<?> respuesta = new PlanificacionArchivoController(archivoService)
-                .subir(null, ID_PLANIFICACION, archivo, usuario(ID_ESTUDIANTE, RolUsuario.ESTUDIANTE));
+                .subir(null, ID_PLANIFICACION, archivo, null, usuario(ID_ESTUDIANTE, RolUsuario.ESTUDIANTE));
 
         assertEquals(409, respuesta.getStatusCode().value());
     }
@@ -101,11 +101,11 @@ class PlanificacionArchivoControllerTest {
     @DisplayName("HU-31/32. Si el servicio da 403/404 la excepción se propaga tal cual")
     void subir_sinPermiso_sePropaga() {
         MockMultipartFile archivo = pdf();
-        when(archivoService.subirPdf(ID_ESTUDIANTE, 7L, null, archivo))
+        when(archivoService.subirPdf(ID_ESTUDIANTE, 7L, null, archivo, null))
                 .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN));
 
         assertThrows(ResponseStatusException.class, () -> new PlanificacionArchivoController(archivoService)
-                .subir(7L, null, archivo, usuario(ID_ESTUDIANTE, RolUsuario.ESTUDIANTE)));
+                .subir(7L, null, archivo, null, usuario(ID_ESTUDIANTE, RolUsuario.ESTUDIANTE)));
     }
 
     @Test

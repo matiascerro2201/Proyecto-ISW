@@ -18,6 +18,8 @@ import java.util.Objects;
 @Service
 public class NotificacionService {
     public static final String TIPO_PLANIFICACION = "PLANIFICACION";
+    /** Faltan 2 días (o menos) para la fecha de revisión que pidió el estudiante. */
+    public static final String TIPO_REVISION_PROXIMA = "REVISION_PROXIMA";
     /** HU-17: el informe final del estudiante fue publicado. */
     public static final String TIPO_INFORME_FINAL = "INFORME_FINAL";
     private static final int MAX_MENSAJE = 500;

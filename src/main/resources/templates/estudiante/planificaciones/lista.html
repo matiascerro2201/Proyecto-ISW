@@ -113,6 +113,8 @@
                     <span th:unless="${p.esBorrador()}"
                           th:text="|Enviada el ${#temporals.format(p.fechaEnvio(), 'dd/MM/yyyy HH:mm')}|">Enviada el 01/01/2026 10:00</span>
                 </p>
+                <p class="curso-periodo" th:if="${p.fechaRevisionSolicitada() != null}"
+                   th:text="|Revisión solicitada para el ${#temporals.format(p.fechaRevisionSolicitada(), 'dd/MM/yyyy')}|">Revisión solicitada para el 21/09/2026</p>
 
                 <p class="card__content" th:if="${p.tieneArchivo()}">
                     <strong th:text="${p.archivoOriginal()}">planificacion.pdf</strong><br>

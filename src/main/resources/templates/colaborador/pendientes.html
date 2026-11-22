@@ -10,6 +10,9 @@
     <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/planificaciones-pendientes.css}">
+    <script th:src="@{/js/lista-asignaturas.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/planificaciones/pendientes')}"></th:block>
@@ -17,38 +20,81 @@
     <a class="back-link" th:href="@{/}">Volver al inicio</a>
 
     <h1>Planificaciones pendientes de evaluación</h1>
-    <p style="color:var(--ink-500);margin-top:0;">Ordenadas de la más antigua a la más reciente.</p>
 
-    <section th:if="${#lists.isEmpty(planificaciones)}">
-        <p>No tienes planificaciones por evaluar. Cuando un estudiante envíe una, aparecerá aquí.</p>
+    <section class="asignaturas" aria-labelledby="titulo-pendientes">
+        <div class="asignaturas__cab">
+            <h2 id="titulo-pendientes">Pendientes</h2>
+            <span class="asignaturas__contador" id="contador" aria-live="polite"
+                  th:text="|${#lists.size(planificaciones)} ${#lists.size(planificaciones) == 1 ? 'planificación' : 'planificaciones'}|">3 planificaciones</span>
+        </div>
+
+        <p class="vacio" th:if="${#lists.isEmpty(planificaciones)}">
+            No tienes planificaciones por evaluar. Cuando un estudiante envíe una, aparecerá aquí.
+        </p>
+
+        <th:block th:unless="${#lists.isEmpty(planificaciones)}">
+            <p class="pendientes-orden">
+                Ordenadas de la más antigua a la más reciente según su fecha de envío.
+                Se destacan las que están por llegar a la fecha de revisión que pidió el estudiante.
+            </p>
+
+            <div class="filtros" style="--filtros: 2;" role="search">
+                <div class="filtros__buscar">
+                    <label for="buscar">Estudiante</label>
+                    <div class="sugerencias">
+                        <input type="search" id="buscar" placeholder="Nombre o asignatura" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                        <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias de estudiantes" hidden></ul>
+                    </div>
+                </div>
+                <label>
+                    Línea
+                    <select id="filtro-linea">
+                        <option value="">Todas</option>
+                    </select>
+                </label>
+                <label>
+                    Fecha de revisión
+                    <select id="filtro-estado">
+                        <option value="">Todas</option>
+                        <option value="VENCIDA">Vencida</option>
+                        <option value="PROXIMA">Vence pronto (2 días o menos)</option>
+                        <option value="EN_PLAZO">En plazo</option>
+                        <option value="SIN_FECHA">Sin fecha</option>
+                    </select>
+                </label>
+                <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+            </div>
+
+            <ul class="asignaturas__lista" id="lista-asignaturas" style="--datos: 3;"
+                data-singular="planificación" data-plural="planificaciones" data-sugerencias-unicas>
+                <li class="asignatura" th:each="p : ${planificaciones}"
+                    th:classappend="${p.urgencia().name() == 'PROXIMA'} ? 'pendiente--proxima' : (${p.urgencia().name() == 'VENCIDA'} ? 'pendiente--vencida' : '')"
+                    th:attr="data-estado=${p.urgencia().name()}, data-linea=${p.linea()}, data-busqueda=${p.asignatura()}">
+                    <a class="asignatura__fila" th:href="@{/planificaciones/{id}/evaluar(id=${p.idPlanificacion()})}">
+                        <span class="asignatura__principal">
+                            <span class="asignatura__nombre" th:text="${p.nombreEstudiante()}">Camila Soto</span>
+                            <span class="asignatura__periodo" th:text="${p.asignatura()}">Práctica Pedagógica</span>
+                        </span>
+                        <span class="asignatura__dato" th:text="${p.linea()}">Especialidad</span>
+                        <span class="asignatura__dato">
+                            <b th:text="${#temporals.format(p.fechaEnvio(), 'dd/MM/yyyy')}">14/09/2026</b>
+                            <small th:text="${p.textoAntiguedad()}">Enviada hace 3 días</small>
+                        </span>
+                        <span class="asignatura__dato"
+                              th:classappend="${p.urgencia().name() == 'PROXIMA' or p.urgencia().name() == 'VENCIDA'} ? 'asignatura__dato--urgente'">
+                            <th:block th:if="${p.fechaRevision() != null}">
+                                Revisión: <b th:text="${#temporals.format(p.fechaRevision(), 'dd/MM/yyyy')}">21/09/2026</b>
+                            </th:block>
+                            <th:block th:unless="${p.fechaRevision() != null}">Sin fecha de revisión</th:block>
+                        </span>
+                        <span class="badge" th:classappend="${p.claseEstado()}" th:text="${p.textoEstado()}">Vence en 5 días</span>
+                    </a>
+                </li>
+            </ul>
+            <p class="vacio" id="sin-resultados" hidden>Ninguna planificación coincide con los filtros.</p>
+        </th:block>
     </section>
-
-    <div class="tabla-scroll" th:unless="${#lists.isEmpty(planificaciones)}">
-        <table>
-            <caption class="sr-only">Planificaciones pendientes de evaluación</caption>
-            <thead>
-                <tr>
-                    <th scope="col">Estudiante</th>
-                    <th scope="col">Línea</th>
-                    <th scope="col">Enviada</th>
-                    <th scope="col">Planificación</th>
-                    <th scope="col"><span class="sr-only">Acción</span></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="p : ${planificaciones}">
-                    <td style="font-weight:600;color:var(--ink-900);" th:text="${p.linea?.inscripcion?.estudiante?.nombre}">Nombre del estudiante</td>
-                    <td th:text="${p.linea?.tipo}">ESPECIALIDAD</td>
-                    <td th:text="${#temporals.format(p.fechaEnvio, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
-                    <td th:text="${p.tieneArchivo() ? 'PDF: ' + p.archivoOriginal : (p.contenido != null ? #strings.abbreviate(p.contenido, 90) : '')}">Resumen del contenido</td>
-                    <td>
-                        <a class="btn btn-primary"
-                           th:href="@{/planificaciones/{id}/evaluar(id=${p.idPlanificacion})}">Evaluar</a>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
 </main>
 </body>
 </html>
