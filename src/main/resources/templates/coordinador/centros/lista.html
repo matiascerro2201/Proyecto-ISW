@@ -13,46 +13,112 @@
     <link rel="stylesheet" th:href="@{/css/cursos.css}">
     <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
     <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/lista-asignaturas.js}" defer></script>
     <script th:src="@{/js/coordinador.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/coordinador/centros')}"></th:block>
 <main>
     <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
     <h1>Centros de práctica</h1>
 
-    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
-    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <p class="msg ok" role="status" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
+    <p class="msg error" role="alert" th:if="${error}" th:text="${error}">Mensaje de error</p>
 
-    <div class="coord-filtros">
-        <a class="btn btn-primary" th:href="@{/coordinador/centros/nuevo}">Nuevo centro</a>
+    <div class="coord-barra">
+        <a class="btn btn-accent" th:href="@{/coordinador/centros/nuevo}">+ Nuevo centro</a>
     </div>
 
-    <p class="coord-contador" aria-live="polite"
-       th:text="|${#lists.size(centros)} ${#lists.size(centros) == 1 ? 'centro' : 'centros'}|">3 centros</p>
-    <p class="vacio" th:if="${#lists.isEmpty(centros)}">Todavía no hay centros de práctica. Crea el primero.</p>
+    <section class="asignaturas" aria-labelledby="titulo-lista">
+        <div class="asignaturas__cab">
+            <h2 id="titulo-lista">Centros</h2>
+            <span class="asignaturas__contador" id="contador" aria-live="polite"
+                  th:text="|${#lists.size(centros)} ${#lists.size(centros) == 1 ? 'centro' : 'centros'}|">3 centros</span>
+        </div>
 
-    <table class="coord-tabla" th:unless="${#lists.isEmpty(centros)}">
-        <thead><tr><th>Nombre</th><th>Comuna</th><th>Tipo</th><th>Colaboradores</th><th>Inscripciones</th><th>Acciones</th></tr></thead>
-        <tbody>
-        <tr th:each="c : ${centros}">
-            <td th:text="${c.nombre()}">Nombre</td>
-            <td th:text="${c.comunaEtiqueta()}">Comuna</td>
-            <td th:text="${c.tipoEtiqueta()}">Tipo</td>
-            <td th:text="${c.colaboradores()}">0</td>
-            <td th:text="${c.inscripciones()}">0</td>
-            <td class="coord-acciones">
-                <a class="btn btn-ghost" th:href="@{/coordinador/centros/{id}/editar(id=${c.id()})}">Editar</a>
-                <form method="post" th:if="${c.puedeEliminar()}"
-                      th:action="@{/coordinador/centros/{id}/eliminar(id=${c.id()})}"
-                      data-confirmar="¿Eliminar este centro de práctica? No se puede deshacer.">
-                    <button type="submit" class="btn btn-ghost">Eliminar</button>
-                </form>
-                <span class="coord-sub" th:unless="${c.puedeEliminar()}">En uso</span>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+        <p class="vacio" th:if="${#lists.isEmpty(centros)}">Todavía no hay centros de práctica. Crea el primero.</p>
+
+        <th:block th:unless="${#lists.isEmpty(centros)}">
+            <div class="filtros" style="--filtros: 2;" role="search">
+                <div class="filtros__buscar">
+                    <label for="buscar">Buscar</label>
+                    <div class="sugerencias">
+                        <input type="search" id="buscar" placeholder="Nombre o comuna" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                        <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias" hidden></ul>
+                    </div>
+                </div>
+                <label>
+                    Tipo
+                    <select id="filtro-linea">
+                        <option value="">Todos</option>
+                    </select>
+                </label>
+                <label>
+                    Uso
+                    <select id="filtro-estado">
+                        <option value="">Todos</option>
+                        <option value="EN_USO">En uso</option>
+                        <option value="SIN_USO">Sin uso</option>
+                    </select>
+                </label>
+                <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+            </div>
+
+            <ul class="asignaturas__lista" id="lista-asignaturas" style="--datos: 3;" data-sugerencias-unicas
+                data-singular="centro" data-plural="centros">
+                <li class="asignatura" th:each="c : ${centros}"
+                    th:attr="data-estado=${c.puedeEliminar() ? 'SIN_USO' : 'EN_USO'}, data-linea=${c.tipoEtiqueta()}, data-busqueda=${c.comunaEtiqueta()}">
+                    <button type="button" class="asignatura__fila" aria-haspopup="dialog"
+                            th:attr="data-id=${c.id()}, data-titulo=${c.nombre()}">
+                        <span class="asignatura__principal">
+                            <span class="asignatura__nombre" th:text="${c.nombre()}">Liceo Narciso Tondreau</span>
+                            <span class="asignatura__periodo" th:text="${c.comunaEtiqueta()}">Chillán</span>
+                        </span>
+                        <span class="asignatura__dato" th:text="${c.tipoEtiqueta()}">Municipal</span>
+                        <span class="asignatura__dato"
+                              th:text="|${c.colaboradores()} ${c.colaboradores() == 1 ? 'colaborador' : 'colaboradores'}|">0 colaboradores</span>
+                        <span class="asignatura__dato"
+                              th:text="|${c.inscripciones()} ${c.inscripciones() == 1 ? 'inscripción' : 'inscripciones'}|">0 inscripciones</span>
+                        <span class="asignatura__ver">Ver detalle</span>
+                    </button>
+                </li>
+            </ul>
+            <p class="vacio" id="sin-resultados" hidden>Ninguna centro coincide con los filtros.</p>
+
+            <template th:each="c : ${centros}" th:id="|plantilla-${c.id()}|">
+                <div class="coord-ficha">
+                    <dl>
+                        <div><dt>Comuna</dt><dd th:text="${c.comunaEtiqueta()}">Chillán</dd></div>
+                        <div><dt>Tipo</dt><dd th:text="${c.tipoEtiqueta()}">Municipal</dd></div>
+                        <div><dt>Colaboradores</dt><dd th:text="${c.colaboradores()}">0</dd></div>
+                        <div><dt>Inscripciones</dt><dd th:text="${c.inscripciones()}">0</dd></div>
+                    </dl>
+                </div>
+                <div class="card__footer coord-acciones-dialogo">
+                    <a class="btn btn-secondary" th:href="@{/coordinador/centros/{id}/editar(id=${c.id()})}">Editar</a>
+                    <form method="post" th:if="${c.puedeEliminar()}"
+                          th:action="@{/coordinador/centros/{id}/eliminar(id=${c.id()})}"
+                          data-confirmar="¿Eliminar este centro de práctica? No se puede deshacer.">
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                    <span class="coord-sub" th:unless="${c.puedeEliminar()}">No se puede eliminar: el centro está en uso.</span>
+                </div>
+            </template>
+        </th:block>
+    </section>
+    <noscript><p class="alerta">Esta página necesita JavaScript para mostrar el detalle y las acciones.</p></noscript>
 </main>
+
+<dialog class="dialogo dialogo--ancho" id="dialogo-lista" aria-labelledby="dialogo-lista-titulo">
+    <div class="dialogo__cab">
+        <h2 id="dialogo-lista-titulo">Centro de práctica</h2>
+        <button type="button" class="dialogo__cerrar" id="dialogo-lista-cerrar" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="dialogo__cuerpo" id="dialogo-lista-cuerpo"></div>
+</dialog>
 </body>
 </html>

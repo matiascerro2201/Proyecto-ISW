@@ -13,49 +13,120 @@
     <link rel="stylesheet" th:href="@{/css/cursos.css}">
     <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
     <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/lista-asignaturas.js}" defer></script>
     <script th:src="@{/js/coordinador.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/coordinador/secciones')}"></th:block>
 <main>
     <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
     <h1>Secciones</h1>
 
-    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
-    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <p class="msg ok" role="status" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
+    <p class="msg error" role="alert" th:if="${error}" th:text="${error}">Mensaje de error</p>
 
-    <div class="coord-filtros">
-        <a class="btn btn-primary" th:href="@{/coordinador/secciones/nueva}">Nueva sección</a>
-        <a class="btn btn-ghost" th:href="@{/coordinador/asignaturas}">Ver asignaturas</a>
+    <div class="coord-barra">
+        <a class="btn btn-accent" th:href="@{/coordinador/secciones/nueva}">+ Nueva sección</a>
+        <a class="btn btn-secondary" th:href="@{/coordinador/asignaturas}">Ver asignaturas</a>
     </div>
 
-    <p class="coord-contador" aria-live="polite"
-       th:text="|${#lists.size(secciones)} ${#lists.size(secciones) == 1 ? 'sección' : 'secciones'}|">3 secciones</p>
-    <p class="vacio" th:if="${#lists.isEmpty(secciones)}">Todavía no hay secciones. Crea la primera.</p>
+    <section class="asignaturas" aria-labelledby="titulo-lista">
+        <div class="asignaturas__cab">
+            <h2 id="titulo-lista">Secciones</h2>
+            <span class="asignaturas__contador" id="contador" aria-live="polite"
+                  th:text="|${#lists.size(secciones)} ${#lists.size(secciones) == 1 ? 'sección' : 'secciones'}|">3 secciones</span>
+        </div>
 
-    <table class="coord-tabla" th:unless="${#lists.isEmpty(secciones)}">
-        <thead><tr><th>Asignatura</th><th>Período</th><th>Profesor</th><th>Estudiantes</th><th>Acciones</th></tr></thead>
-        <tbody>
-        <tr th:each="s : ${secciones}">
-            <td th:text="${s.asignatura()}">Asignatura</td>
-            <td th:text="${s.periodo()}">Semestre 1 de 2026</td>
-            <td th:text="${s.profesor()}">Profesor</td>
-            <td th:text="${s.inscritos()}">0</td>
-            <td class="coord-acciones">
-                <a class="btn btn-ghost" th:href="@{/coordinador/semestre/{id}/inscripciones(id=${s.id()})}">Inscripciones</a>
-                <a class="btn btn-ghost" th:href="@{/coordinador/semestre/{id}(id=${s.id()})}">Estructura</a>
-                <a class="btn btn-ghost" th:href="@{/coordinador/cursos/seccion/{id}(id=${s.id()})}">Ver curso</a>
-                <a class="btn btn-ghost" th:href="@{/coordinador/secciones/{id}/editar(id=${s.id()})}">Editar</a>
-                <form method="post" th:if="${s.puedeEliminar()}"
-                      th:action="@{/coordinador/secciones/{id}/eliminar(id=${s.id()})}"
-                      data-confirmar="¿Eliminar esta sección? No se puede deshacer.">
-                    <button type="submit" class="btn btn-ghost">Eliminar</button>
-                </form>
-                <span class="coord-sub" th:unless="${s.puedeEliminar()}">Tiene estudiantes</span>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+        <p class="vacio" th:if="${#lists.isEmpty(secciones)}">Todavía no hay secciones. Crea la primera.</p>
+
+        <th:block th:unless="${#lists.isEmpty(secciones)}">
+            <div class="filtros" style="--filtros: 3;" role="search">
+                <div class="filtros__buscar">
+                    <label for="buscar">Buscar</label>
+                    <div class="sugerencias">
+                        <input type="search" id="buscar" placeholder="Asignatura o profesor" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                        <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias" hidden></ul>
+                    </div>
+                </div>
+                <label>
+                    Semestre
+                    <select id="filtro-periodo">
+                        <option value="">Todos</option>
+                    </select>
+                </label>
+                <label>
+                    Profesor
+                    <select id="filtro-linea">
+                        <option value="">Todos</option>
+                    </select>
+                </label>
+                <label>
+                    Estudiantes
+                    <select id="filtro-estado">
+                        <option value="">Todos</option>
+                        <option value="CON_ESTUDIANTES">Con estudiantes</option>
+                        <option value="SIN_ESTUDIANTES">Sin estudiantes</option>
+                    </select>
+                </label>
+                <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+            </div>
+
+            <ul class="asignaturas__lista" id="lista-asignaturas" style="--datos: 2;" data-sugerencias-unicas
+                data-singular="sección" data-plural="secciones">
+                <li class="asignatura" th:each="s : ${secciones}"
+                    th:attr="data-estado=${s.inscritos() > 0 ? 'CON_ESTUDIANTES' : 'SIN_ESTUDIANTES'}, data-linea=${s.profesor()}, data-periodo=${s.periodo()}, data-orden=${s.anio() * 10 + s.semestre()}, data-busqueda=${s.profesor()}">
+                    <button type="button" class="asignatura__fila" aria-haspopup="dialog"
+                            th:attr="data-id=${s.id()}, data-titulo=|${s.asignatura()}, ${s.periodo()}|">
+                        <span class="asignatura__principal">
+                            <span class="asignatura__nombre" th:text="${s.asignatura()}">Práctica Pedagógica</span>
+                            <span class="asignatura__periodo" th:text="${s.periodo()}">Semestre 2 de 2026</span>
+                        </span>
+                        <span class="asignatura__dato" th:text="|Profesor: ${s.profesor()}|">Profesor: Víctor Parra</span>
+                        <span class="asignatura__dato"
+                              th:text="|${s.inscritos()} ${s.inscritos() == 1 ? 'estudiante' : 'estudiantes'}|">0 estudiantes</span>
+                        <span class="asignatura__ver">Ver detalle</span>
+                    </button>
+                </li>
+            </ul>
+            <p class="vacio" id="sin-resultados" hidden>Ninguna sección coincide con los filtros.</p>
+
+            <template th:each="s : ${secciones}" th:id="|plantilla-${s.id()}|">
+                <div class="coord-ficha">
+                    <dl>
+                        <div><dt>Asignatura</dt><dd th:text="${s.asignatura()}">Práctica Pedagógica</dd></div>
+                        <div><dt>Semestre</dt><dd th:text="${s.periodo()}">Semestre 2 de 2026</dd></div>
+                        <div><dt>Profesor</dt><dd th:text="${s.profesor()}">Víctor Parra</dd></div>
+                        <div><dt>Estudiantes inscritos</dt><dd th:text="${s.inscritos()}">0</dd></div>
+                    </dl>
+                </div>
+                <div class="card__footer coord-acciones-dialogo">
+                    <a class="btn btn-primary" th:href="@{/coordinador/semestre/{id}/inscripciones(id=${s.id()})}">Inscripciones</a>
+                    <a class="btn btn-secondary" th:href="@{/coordinador/semestre/{id}(id=${s.id()})}">Estructura</a>
+                    <a class="btn btn-secondary" th:href="@{/coordinador/cursos/seccion/{id}(id=${s.id()})}">Ver curso</a>
+                    <a class="btn btn-secondary" th:href="@{/coordinador/secciones/{id}/editar(id=${s.id()})}">Editar</a>
+                    <form method="post" th:if="${s.puedeEliminar()}"
+                          th:action="@{/coordinador/secciones/{id}/eliminar(id=${s.id()})}"
+                          data-confirmar="¿Eliminar esta sección? No se puede deshacer.">
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                    <span class="coord-sub" th:unless="${s.puedeEliminar()}">No se puede eliminar: tiene estudiantes.</span>
+                </div>
+            </template>
+        </th:block>
+    </section>
+    <noscript><p class="alerta">Esta página necesita JavaScript para mostrar el detalle y las acciones.</p></noscript>
 </main>
+
+<dialog class="dialogo dialogo--ancho" id="dialogo-lista" aria-labelledby="dialogo-lista-titulo">
+    <div class="dialogo__cab">
+        <h2 id="dialogo-lista-titulo">Sección</h2>
+        <button type="button" class="dialogo__cerrar" id="dialogo-lista-cerrar" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="dialogo__cuerpo" id="dialogo-lista-cuerpo"></div>
+</dialog>
 </body>
 </html>

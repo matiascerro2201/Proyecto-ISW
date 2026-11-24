@@ -24,11 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
         dialogo.addEventListener('click', evento => { if (evento.target === dialogo) { dialogo.close(); } });
     }
 
-    // Confirmación antes de enviar formularios marcados.
-    document.querySelectorAll('form[data-confirmar]').forEach(formulario => {
-        formulario.addEventListener('submit', evento => {
-            if (!window.confirm(formulario.dataset.confirmar)) { evento.preventDefault(); }
-        });
+    // Confirmación antes de enviar formularios marcados. Se escucha en el documento porque algunos formularios
+    // (los de las ventanas de detalle) se copian a la página después de cargarla.
+    document.addEventListener('submit', evento => {
+        const formulario = evento.target.closest ? evento.target.closest('form[data-confirmar]') : null;
+        if (formulario && !window.confirm(formulario.dataset.confirmar)) { evento.preventDefault(); }
     });
 
     // Muestra solo los campos que corresponden al rol elegido.

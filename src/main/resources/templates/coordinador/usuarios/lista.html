@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="'Usuarios y roles · Coordinación'">Usuarios</title>
+    <title>Usuarios y roles · Coordinación</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
@@ -13,70 +13,111 @@
     <link rel="stylesheet" th:href="@{/css/cursos.css}">
     <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
     <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/lista-asignaturas.js}" defer></script>
     <script th:src="@{/js/coordinador.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/coordinador/usuarios')}"></th:block>
 <main>
     <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
     <h1>Usuarios y roles</h1>
 
-    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
-    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <p class="msg ok" role="status" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
+    <p class="msg error" role="alert" th:if="${error}" th:text="${error}">Mensaje de error</p>
 
-    <form class="coord-filtros" method="get" role="search" th:action="@{/coordinador/usuarios}">
-        <label class="coord-filtros__buscar">
-            Buscar
-            <input type="search" name="q" th:value="${q}" placeholder="Nombre o correo" autocomplete="off">
-        </label>
-        <label>
-            Rol
-            <select name="rol">
-                <option value="">Todos</option>
-                <option th:each="r : ${roles}" th:value="${r.valor()}" th:selected="${rol == r.valor()}" th:text="${r.etiqueta()}">Rol</option>
-            </select>
-        </label>
-        <label>
-            Estado
-            <select name="estado">
-                <option value="" th:selected="${estado == ''}">Todos</option>
-                <option value="ACTIVOS" th:selected="${estado == 'ACTIVOS'}">Activos</option>
-                <option value="INACTIVOS" th:selected="${estado == 'INACTIVOS'}">Inactivos</option>
-            </select>
-        </label>
-        <button type="submit" class="btn btn-primary">Filtrar</button>
-        <a class="btn btn-ghost" th:href="@{/coordinador/usuarios}">Limpiar</a>
-        <a class="btn btn-primary" th:href="@{/coordinador/usuarios/nuevo}">Nueva cuenta</a>
-    </form>
+    <div class="coord-barra">
+        <a class="btn btn-accent" th:href="@{/coordinador/usuarios/nuevo}">+ Nueva cuenta</a>
+    </div>
 
-    <p class="coord-contador" aria-live="polite"
-       th:text="|${#lists.size(usuarios)} ${#lists.size(usuarios) == 1 ? 'usuario' : 'usuarios'}|">3 usuarios</p>
-    <p class="vacio" th:if="${#lists.isEmpty(usuarios)}">No hay usuarios que coincidan.</p>
+    <section class="asignaturas" aria-labelledby="titulo-lista">
+        <div class="asignaturas__cab">
+            <h2 id="titulo-lista">Cuentas</h2>
+            <span class="asignaturas__contador" id="contador" aria-live="polite"
+                  th:text="|${#lists.size(usuarios)} ${#lists.size(usuarios) == 1 ? 'usuario' : 'usuarios'}|">3 usuarios</span>
+        </div>
 
-    <table class="coord-tabla" th:unless="${#lists.isEmpty(usuarios)}">
-        <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
-        <tbody>
-        <tr th:each="u : ${usuarios}">
-            <td th:text="${u.nombre()}">Nombre</td>
-            <td th:text="${u.email()}">correo</td>
-            <td th:text="${u.rolEtiqueta()}">Rol</td>
-            <td><span class="coord-estado" th:classappend="${u.activo()} ? 'coord-estado--ok' : 'coord-estado--pendiente'"
-                      th:text="${u.activo()} ? 'Activa' : 'Inactiva'"></span></td>
-            <td class="coord-acciones">
-                <a class="btn btn-ghost" th:href="@{/coordinador/usuarios/{id}/editar(id=${u.id()})}">Editar</a>
-                <form method="post" th:if="${u.activo() and u.id() != idActual}"
-                      th:action="@{/coordinador/usuarios/{id}/desactivar(id=${u.id()})}"
-                      data-confirmar="¿Desactivar esta cuenta? Ya no podrá iniciar sesión.">
-                    <button type="submit" class="btn btn-ghost">Desactivar</button>
-                </form>
-                <form method="post" th:unless="${u.activo()}"
-                      th:action="@{/coordinador/usuarios/{id}/activar(id=${u.id()})}">
-                    <button type="submit" class="btn btn-ghost">Activar</button>
-                </form>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+        <p class="vacio" th:if="${#lists.isEmpty(usuarios)}">Todavía no hay usuarios.</p>
+
+        <th:block th:unless="${#lists.isEmpty(usuarios)}">
+            <div class="filtros" style="--filtros: 2;" role="search">
+                <div class="filtros__buscar">
+                    <label for="buscar">Buscar</label>
+                    <div class="sugerencias">
+                        <input type="search" id="buscar" placeholder="Nombre o correo" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                        <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias" hidden></ul>
+                    </div>
+                </div>
+                <label>
+                    Rol
+                    <select id="filtro-linea">
+                        <option value="">Todos</option>
+                    </select>
+                </label>
+                <label>
+                    Estado
+                    <select id="filtro-estado">
+                        <option value="">Todos</option>
+                        <option value="ACTIVA">Activa</option>
+                        <option value="INACTIVA">Inactiva</option>
+                    </select>
+                </label>
+                <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+            </div>
+
+            <ul class="asignaturas__lista" id="lista-asignaturas" style="--datos: 1;" data-sugerencias-unicas
+                data-singular="usuario" data-plural="usuarios">
+                <li class="asignatura" th:each="u : ${usuarios}"
+                    th:attr="data-estado=${u.activo() ? 'ACTIVA' : 'INACTIVA'}, data-linea=${u.rolEtiqueta()}, data-busqueda=|${u.email()} ${u.rolEtiqueta()}|">
+                    <button type="button" class="asignatura__fila" aria-haspopup="dialog"
+                            th:attr="data-id=${u.id()}, data-titulo=${u.nombre()}">
+                        <span class="asignatura__principal">
+                            <span class="asignatura__nombre" th:text="${u.nombre()}">Nombre</span>
+                            <span class="asignatura__periodo" th:text="${u.email()}">correo@ubb.cl</span>
+                        </span>
+                        <span class="asignatura__dato" th:text="${u.rolEtiqueta()}">Rol</span>
+                        <span class="badge" th:classappend="${u.activo()} ? 'aprobada' : 'pendiente'"
+                              th:text="${u.activo()} ? 'Activa' : 'Inactiva'">Activa</span>
+                    </button>
+                </li>
+            </ul>
+            <p class="vacio" id="sin-resultados" hidden>Ninguna usuario coincide con los filtros.</p>
+
+            <template th:each="u : ${usuarios}" th:id="|plantilla-${u.id()}|">
+                <div class="coord-ficha">
+                    <dl>
+                        <div><dt>Correo</dt><dd th:text="${u.email()}">correo@ubb.cl</dd></div>
+                        <div><dt>Rol</dt><dd th:text="${u.rolEtiqueta()}">Rol</dd></div>
+                        <div><dt>Estado</dt><dd th:text="${u.activo()} ? 'Cuenta activa' : 'Cuenta inactiva (no puede iniciar sesión)'">Cuenta activa</dd></div>
+                    </dl>
+                </div>
+                <div class="card__footer coord-acciones-dialogo">
+                    <a class="btn btn-secondary" th:href="@{/coordinador/usuarios/{id}/editar(id=${u.id()})}">Editar</a>
+                    <form method="post" th:if="${u.activo() and u.id() != idActual}"
+                          th:action="@{/coordinador/usuarios/{id}/desactivar(id=${u.id()})}"
+                          data-confirmar="¿Desactivar esta cuenta? Ya no podrá iniciar sesión.">
+                        <button type="submit" class="btn btn-danger">Desactivar</button>
+                    </form>
+                    <form method="post" th:unless="${u.activo()}"
+                          th:action="@{/coordinador/usuarios/{id}/activar(id=${u.id()})}">
+                        <button type="submit" class="btn btn-primary">Activar</button>
+                    </form>
+                </div>
+            </template>
+        </th:block>
+    </section>
+    <noscript><p class="alerta">Esta página necesita JavaScript para mostrar el detalle y las acciones.</p></noscript>
 </main>
+
+<dialog class="dialogo dialogo--ancho" id="dialogo-lista" aria-labelledby="dialogo-lista-titulo">
+    <div class="dialogo__cab">
+        <h2 id="dialogo-lista-titulo">Cuenta</h2>
+        <button type="button" class="dialogo__cerrar" id="dialogo-lista-cerrar" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="dialogo__cuerpo" id="dialogo-lista-cuerpo"></div>
+</dialog>
 </body>
 </html>
