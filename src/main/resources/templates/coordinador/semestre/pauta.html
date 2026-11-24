@@ -11,116 +11,173 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/tema.css}">
     <link rel="stylesheet" th:href="@{/css/cursos.css}">
-    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
-    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
-    <script th:src="@{/js/coordinador.js}" defer></script>
+    <link rel="stylesheet" th:href="@{/css/pauta-editor.css}">
+    <link rel="stylesheet" th:href="@{/css/navegador-dimensiones.css}">
+    <link rel="stylesheet" th:href="@{/css/evaluar-pauta.css}">
+    <link rel="stylesheet" th:href="@{/css/ver-pauta.css}">
+    <script th:src="@{/js/navegador-dimensiones.js}" defer></script>
+    <script th:src="@{/js/pauta-editor.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/coordinador/secciones')}"></th:block>
-<main>
+<main class="editor-pagina" th:with="soloLectura=${seccion.iniciada()}">
     <a class="back-link" th:href="@{/coordinador/semestre/{id}(id=${seccion.id()})}">Volver a la estructura</a>
-    <h1 th:text="${editando} ? 'Pauta del semestre' : 'Nueva pauta'">Nueva pauta</h1>
-    <p class="coord-sub" th:text="${seccion.titulo()}">Asignatura · Semestre</p>
 
-    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
-    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
-    <div class="coord-error" role="alert" th:if="${errores}">
-        <p th:each="e : ${errores}" th:text="${e}">Error</p>
-    </div>
+    <h1 class="ev-titulo" th:text="${editando} ? 'Pauta del semestre' : 'Nueva pauta'">Nueva pauta</h1>
+    <p class="ver-aviso" th:unless="${soloLectura}">
+        A la izquierda están los datos de la pauta; a la derecha, sus dimensiones y criterios. Todo se guarda junto.
+    </p>
 
-    <p class="coord-mensaje" th:if="${editando and seccion.iniciada()}">El semestre está iniciado: la pauta no se puede modificar.</p>
-
-    <form class="coord-formulario" method="post" th:object="${formulario}"
+    <form class="editor" id="editor-pauta" method="post" novalidate th:object="${formulario}"
           th:action="${editando} ? @{/coordinador/semestre/{s}/pautas/{p}(s=${seccion.id()},p=${detalle.pauta().id()})} : @{/coordinador/semestre/{s}/pautas(s=${seccion.id()})}">
-        <label>Nombre de la pauta
-            <input type="text" th:field="*{nombre}" maxlength="150" required placeholder="Ej.: Desempeño en aula (colaborador)">
-        </label>
-        <label>Quién aplica la pauta
-            <select th:field="*{evaluador}" required>
-                <option value="">Elige un evaluador</option>
-                <option value="COLABORADOR">Profesor colaborador</option>
-                <option value="TUTOR">Tutor</option>
-            </select>
-        </label>
-        <label>Línea de práctica
-            <select th:field="*{tipoLinea}" required>
-                <option value="">Elige una línea</option>
-                <option th:each="l : ${lineas}" th:value="${l}"
-                        th:text="${l == 'ESPECIALIDAD'} ? 'Especialidad' : (${l == 'ORIENTACION'} ? 'Orientación' : 'Línea única')">Línea</option>
-            </select>
-        </label>
-        <label>Aplicación
-            <select th:field="*{aplicacion}" required>
-                <option value="1">A</option>
-                <option value="2">B</option>
-            </select>
-        </label>
-        <label>Ponderación (%)
-            <input type="text" inputmode="decimal" th:field="*{ponderacion}" required placeholder="Ej.: 15">
-        </label>
-        <div class="coord-formulario__acciones" th:unless="${editando and seccion.iniciada()}">
-            <button type="submit" class="btn btn-primary" th:text="${editando} ? 'Guardar cambios' : 'Crear pauta'">Guardar</button>
-            <a class="btn btn-ghost" th:href="@{/coordinador/semestre/{id}(id=${seccion.id()})}">Cancelar</a>
-        </div>
-    </form>
 
-    <!-- Contenido: dimensiones y criterios -->
-    <section th:if="${editando}">
-        <h2>Dimensiones y criterios</h2>
-        <p class="vacio" th:if="${#lists.isEmpty(detalle.dimensiones())}">La pauta todavía no tiene dimensiones.</p>
+        <!-- Bloque izquierdo fijo: datos de la pauta y lista de dimensiones -->
+        <aside class="editor__lateral ev-lateral" aria-label="Datos de la pauta">
+            <div class="ev-datos">
+                <p class="editor__etiqueta">Asignatura</p>
+                <h2 class="ev-nombre" th:text="${seccion.titulo()}">Práctica Pedagógica · Semestre 2 de 2026</h2>
 
-        <div class="card" th:each="d : ${detalle.dimensiones()}">
-            <h3 th:text="${d.nombre()}">Dimensión</h3>
-            <p class="coord-sub" th:if="${#lists.isEmpty(d.criterios())}">Sin criterios.</p>
-            <table class="coord-tabla" th:unless="${#lists.isEmpty(d.criterios())}">
-                <thead><tr><th>Criterio</th><th>Puntaje máximo</th><th th:unless="${seccion.iniciada()}">Acciones</th></tr></thead>
-                <tbody>
-                <tr th:each="c : ${d.criterios()}">
-                    <td th:text="${c.descripcion()}">Criterio</td>
-                    <td th:text="${c.puntajeMaximo().stripTrailingZeros().toPlainString()}">10</td>
-                    <td class="coord-acciones" th:unless="${seccion.iniciada()}">
-                        <form method="post"
-                              th:action="@{/coordinador/semestre/{s}/pautas/{p}/dimensiones/{d}/criterios/{c}/eliminar(s=${seccion.id()},p=${detalle.pauta().id()},d=${d.id()},c=${c.id()})}"
-                              data-confirmar="¿Eliminar este criterio?">
-                            <button type="submit" class="btn btn-ghost">Eliminar</button>
-                        </form>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-            <th:block th:unless="${seccion.iniciada()}">
-                <form class="coord-formulario" method="post"
-                      th:action="@{/coordinador/semestre/{s}/pautas/{p}/dimensiones/{d}/criterios(s=${seccion.id()},p=${detalle.pauta().id()},d=${d.id()})}">
-                    <label>Nuevo criterio
-                        <input type="text" name="descripcion" maxlength="500" required placeholder="Descripción del criterio">
+                <div class="editor__alerta" id="alerta-servidor" role="alert"
+                     th:if="${(errores != null and !#lists.isEmpty(errores)) or error != null}">
+                    <button type="button" class="editor__alerta-cerrar" data-cerrar-alerta aria-label="Cerrar aviso">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                    <strong th:text="${errores != null and !#lists.isEmpty(errores) ? 'No se pudo guardar la pauta:' : 'Aviso:'}">No se pudo guardar la pauta:</strong>
+                    <ul th:if="${errores != null and !#lists.isEmpty(errores)}">
+                        <li th:each="mensajeError : ${errores}" th:text="${mensajeError}">Falta el puntaje máximo de ...</li>
+                    </ul>
+                    <p th:if="${error != null}" th:text="${error}">Mensaje de error</p>
+                </div>
+                <p class="msg ok" role="status" th:if="${mensaje}" th:text="${mensaje}">Pauta actualizada.</p>
+                <p class="msg" th:if="${soloLectura}">
+                    El semestre está iniciado: la pauta no se puede modificar, solo consultar.
+                </p>
+
+                <h2>Datos de la pauta</h2>
+
+                <div class="campo">
+                    <label class="campo__control">
+                        <span class="campo__etiqueta">Nombre de la pauta</span>
+                        <input type="text" th:field="*{nombre}" maxlength="150" autocomplete="off"
+                               placeholder="Ej.: Desempeño en aula (colaborador)" data-validar="texto"
+                               data-mensaje="Escribe el nombre de la pauta." th:readonly="${soloLectura}">
                     </label>
-                    <label>Puntaje máximo
-                        <input type="text" inputmode="decimal" name="puntajeMaximo" required placeholder="Ej.: 10">
-                    </label>
-                    <div class="coord-formulario__acciones">
-                        <button type="submit" class="btn btn-secondary">Agregar criterio</button>
-                    </div>
-                </form>
-                <form method="post"
-                      th:action="@{/coordinador/semestre/{s}/pautas/{p}/dimensiones/{d}/eliminar(s=${seccion.id()},p=${detalle.pauta().id()},d=${d.id()})}"
-                      data-confirmar="¿Eliminar esta dimensión con todos sus criterios?">
-                    <button type="submit" class="btn btn-ghost">Eliminar dimensión</button>
-                </form>
-            </th:block>
-        </div>
+                    <p class="campo__error" role="alert" hidden></p>
+                </div>
 
-        <form class="coord-formulario" method="post" th:unless="${seccion.iniciada()}"
-              th:action="@{/coordinador/semestre/{s}/pautas/{p}/dimensiones(s=${seccion.id()},p=${detalle.pauta().id()})}">
-            <label>Nueva dimensión
-                <input type="text" name="nombre" maxlength="200" required placeholder="Ej.: Manejo de grupo">
-            </label>
-            <div class="coord-formulario__acciones">
-                <button type="submit" class="btn btn-secondary">Agregar dimensión</button>
+                <div class="campo">
+                    <label class="campo__control">
+                        <span class="campo__etiqueta">Quién aplica la pauta</span>
+                        <select th:field="*{evaluador}" data-validar="texto" data-mensaje="Elige quién aplica la pauta."
+                                th:disabled="${soloLectura}">
+                            <option value="">Elige un evaluador</option>
+                            <option value="COLABORADOR">Profesor colaborador</option>
+                            <option value="TUTOR">Tutor</option>
+                        </select>
+                    </label>
+                    <p class="campo__error" role="alert" hidden></p>
+                </div>
+
+                <div class="campo">
+                    <label class="campo__control">
+                        <span class="campo__etiqueta">Línea de práctica</span>
+                        <select th:field="*{tipoLinea}" data-validar="texto" data-mensaje="Elige una línea."
+                                th:disabled="${soloLectura}">
+                            <option value="">Elige una línea</option>
+                            <option th:each="l : ${lineas}" th:value="${l}"
+                                    th:text="${l == 'ESPECIALIDAD'} ? 'Especialidad' : (${l == 'ORIENTACION'} ? 'Orientación' : 'Línea única')">Línea</option>
+                        </select>
+                    </label>
+                    <p class="campo__error" role="alert" hidden></p>
+                </div>
+
+                <div class="campo">
+                    <label class="campo__control">
+                        <span class="campo__etiqueta">Aplicación</span>
+                        <select th:field="*{aplicacion}" th:disabled="${soloLectura}">
+                            <option value="1">A</option>
+                            <option value="2">B</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="campo">
+                    <label class="campo__control">
+                        <span class="campo__etiqueta">Ponderación (%)</span>
+                        <input type="text" th:field="*{ponderacion}" inputmode="decimal" autocomplete="off"
+                               placeholder="Ej.: 15" data-validar="ponderacion"
+                               data-mensaje="Debe ser mayor que 0 y hasta 100, con hasta 2 decimales."
+                               th:readonly="${soloLectura}">
+                    </label>
+                    <p class="campo__ayuda">Mayor que 0 y hasta 100. Puedes usar coma o punto.</p>
+                    <p class="campo__error" role="alert" hidden></p>
+                </div>
             </div>
-        </form>
-        <p class="coord-sub">Puntaje máximo total de la pauta:
-            <strong th:text="${detalle.pauta().puntajeMaximo().stripTrailingZeros().toPlainString()}">0</strong></p>
-    </section>
+
+            <nav class="ev-nav" aria-label="Dimensiones de la pauta">
+                <div class="ev-nav__cab-titulo">
+                    <h3 class="ev-nav__titulo">Dimensiones</h3>
+                    <div class="ev-nav__acciones">
+                        <button type="button" class="ev-nav__boton" id="ev-nav-expandir" aria-label="Expandir todas las dimensiones de la lista">Expandir</button>
+                        <button type="button" class="ev-nav__boton" id="ev-nav-plegar" aria-label="Plegar todas las dimensiones de la lista">Plegar</button>
+                    </div>
+                </div>
+                <ul class="ev-nav__lista" id="ev-nav-lista"></ul>
+                <p class="ev-nav__vacio" id="ev-nav-vacio" hidden>Aún no hay dimensiones.</p>
+            </nav>
+
+            <div class="editor__acciones" th:unless="${soloLectura}">
+                <button type="submit" class="btn btn-primary btn-grande"
+                        th:text="${editando} ? 'Guardar cambios' : 'Crear pauta'">Guardar</button>
+                <a class="btn btn-secondary" th:href="@{/coordinador/semestre/{id}(id=${seccion.id()})}">Cancelar</a>
+            </div>
+        </aside>
+
+        <!-- Derecha: dimensiones y criterios, plegables y editables -->
+        <section class="editor__principal" aria-labelledby="titulo-dimensiones">
+            <div class="editor__cab ev-cab">
+                <h2 id="titulo-dimensiones">Dimensiones y criterios</h2>
+                <div class="ev-cab__acciones">
+                    <button type="button" class="btn btn-ghost" id="ev-expandir">Expandir todo</button>
+                    <button type="button" class="btn btn-ghost" id="ev-plegar">Plegar todo</button>
+                </div>
+            </div>
+
+            <ol class="dimensiones" id="dimensiones"
+                th:with="hayAvisos=${(errores != null and !#lists.isEmpty(errores)) or error != null}">
+                <th:block th:each="dimension, d : ${formulario.dimensiones}">
+                    <th:block th:replace="~{fragments/pauta-editor :: dimension(${dimension}, ${d.index}, ${d.first or hayAvisos})}"></th:block>
+                </th:block>
+            </ol>
+            <p class="campo__error" id="error-dimensiones" role="alert" hidden>Agrega al menos una dimensión.</p>
+
+            <button type="button" class="btn btn-secondary btn-grande editor__agregar" id="agregar-dimension" th:unless="${soloLectura}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                Agregar dimensión
+            </button>
+        </section>
+
+        <template id="plantilla-dimension" th:unless="${soloLectura}">
+            <th:block th:replace="~{fragments/pauta-editor :: dimension(null, 0, true)}"></th:block>
+        </template>
+        <template id="plantilla-criterio" th:unless="${soloLectura}">
+            <th:block th:replace="~{fragments/pauta-editor :: criterio(null, 0, 0)}"></th:block>
+        </template>
+    </form>
+    <noscript><p class="alerta">Esta página necesita JavaScript para agregar o quitar dimensiones y criterios.</p></noscript>
 </main>
+
+<dialog class="dialogo dialogo--confirmar" id="dialogo-confirmar" aria-labelledby="confirmar-titulo">
+    <div class="dialogo__cab">
+        <h2 id="confirmar-titulo">Confirmar</h2>
+    </div>
+    <div class="dialogo__cuerpo">
+        <p id="confirmar-mensaje"></p>
+        <div class="confirmar__acciones">
+            <button type="button" class="btn btn-secondary" id="confirmar-cancelar">Cancelar</button>
+            <button type="button" class="btn btn-peligro btn-peligro--solido" id="confirmar-aceptar">Quitar</button>
+        </div>
+    </div>
+</dialog>
 </body>
 </html>

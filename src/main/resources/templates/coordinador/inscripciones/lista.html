@@ -13,51 +13,125 @@
     <link rel="stylesheet" th:href="@{/css/cursos.css}">
     <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
     <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/lista-asignaturas.js}" defer></script>
     <script th:src="@{/js/coordinador.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/coordinador/secciones')}"></th:block>
 <main>
     <a class="back-link" th:href="@{/coordinador/secciones}">Volver a secciones</a>
+
     <h1>Inscripciones</h1>
     <p class="coord-sub" th:text="${seccion.titulo()}">Práctica Pedagógica · Semestre 2 de 2026</p>
 
-    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
-    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <p class="msg ok" role="status" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
+    <p class="msg error" role="alert" th:if="${error}" th:text="${error}">Mensaje de error</p>
 
-    <div class="coord-filtros">
-        <a class="btn btn-primary" th:href="@{/coordinador/semestre/{id}/inscripciones/nueva(id=${seccion.id()})}">Inscribir estudiante</a>
-        <a class="btn btn-ghost" th:href="@{/coordinador/semestre/{id}(id=${seccion.id()})}">Estructura del semestre</a>
+    <div class="coord-barra">
+        <a class="btn btn-accent" th:href="@{/coordinador/semestre/{id}/inscripciones/nueva(id=${seccion.id()})}">+ Inscribir estudiante</a>
+        <a class="btn btn-secondary" th:href="@{/coordinador/semestre/{id}(id=${seccion.id()})}">Estructura del semestre</a>
     </div>
 
-    <p class="coord-contador" aria-live="polite"
-       th:text="|${#lists.size(inscripciones)} ${#lists.size(inscripciones) == 1 ? 'estudiante inscrito' : 'estudiantes inscritos'}|">2 estudiantes</p>
-    <p class="vacio" th:if="${#lists.isEmpty(inscripciones)}">Todavía no hay estudiantes inscritos en esta sección.</p>
+    <section class="asignaturas" aria-labelledby="titulo-lista">
+        <div class="asignaturas__cab">
+            <h2 id="titulo-lista">Estudiantes inscritos</h2>
+            <span class="asignaturas__contador" id="contador" aria-live="polite"
+                  th:text="|${#lists.size(inscripciones)} ${#lists.size(inscripciones) == 1 ? 'estudiante' : 'estudiantes'}|">2 estudiantes</span>
+        </div>
 
-    <table class="coord-tabla" th:unless="${#lists.isEmpty(inscripciones)}">
-        <thead><tr><th>Estudiante</th><th>Centro de práctica</th><th>Líneas (colaborador · tutor)</th><th>Acciones</th></tr></thead>
-        <tbody>
-        <tr th:each="i : ${inscripciones}">
-            <td><span th:text="${i.estudiante()}">Nombre</span><br><span class="coord-sub" th:text="${i.email()}">correo</span></td>
-            <td th:text="${i.centro()}">Centro</td>
-            <td>
-                <div th:each="l : ${i.lineas()}">
-                    <strong th:text="${l.etiquetaTipo()}">Línea</strong>:
-                    <span th:text="${l.colaborador() != null} ? ${l.colaborador()} : 'sin colaborador'">Colaborador</span> ·
-                    <span th:text="${l.tutor() != null} ? ${l.tutor()} : 'sin tutor'">Tutor</span>
+        <p class="vacio" th:if="${#lists.isEmpty(inscripciones)}">Todavía no hay estudiantes inscritos en esta sección.</p>
+
+        <th:block th:unless="${#lists.isEmpty(inscripciones)}">
+            <div class="filtros" style="--filtros: 2;" role="search">
+                <div class="filtros__buscar">
+                    <label for="buscar">Buscar</label>
+                    <div class="sugerencias">
+                        <input type="search" id="buscar" placeholder="Estudiante, correo, centro o profesor" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                        <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias de estudiantes" hidden></ul>
+                    </div>
                 </div>
-            </td>
-            <td class="coord-acciones">
-                <a class="btn btn-ghost"
-                   th:href="@{/coordinador/semestre/{s}/inscripciones/{i}/editar(s=${seccion.id()},i=${i.id()})}">Editar</a>
-                <form method="post" th:action="@{/coordinador/semestre/{s}/inscripciones/{i}/quitar(s=${seccion.id()},i=${i.id()})}"
-                      data-confirmar="¿Quitar a este estudiante de la sección? Solo es posible si aún no tiene nada evaluado.">
-                    <button type="submit" class="btn btn-ghost">Quitar</button>
-                </form>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+                <label>
+                    Centro de práctica
+                    <select id="filtro-linea">
+                        <option value="">Todos</option>
+                    </select>
+                </label>
+                <label>
+                    Profesores
+                    <select id="filtro-estado">
+                        <option value="">Todos</option>
+                        <option value="COMPLETA">Con colaborador y tutor</option>
+                        <option value="INCOMPLETA">Falta colaborador o tutor</option>
+                    </select>
+                </label>
+                <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+            </div>
+
+            <ul class="asignaturas__lista" id="lista-asignaturas" style="--datos: 2;"
+                data-singular="estudiante" data-plural="estudiantes" data-sugerencias-unicas>
+                <li class="asignatura" th:each="i : ${inscripciones}"
+                    th:with="completa=${i.completa()}"
+                    th:attr="data-estado=${completa ? 'COMPLETA' : 'INCOMPLETA'}, data-linea=${i.centro()}, data-busqueda=${i.textoBusqueda()}">
+                    <button type="button" class="asignatura__fila" aria-haspopup="dialog"
+                            th:attr="data-id=${i.id()}, data-titulo=${i.estudiante()}">
+                        <span class="asignatura__principal">
+                            <span class="asignatura__nombre" th:text="${i.estudiante()}">Camila Soto</span>
+                            <span class="asignatura__periodo" th:text="${i.email()}">camila@correo.cl</span>
+                        </span>
+                        <span class="asignatura__dato" th:text="${i.centro()}">Liceo Narciso Tondreau</span>
+                        <span class="asignatura__dato"
+                              th:text="|${#lists.size(i.lineas())} ${#lists.size(i.lineas()) == 1 ? 'línea' : 'líneas'}|">1 línea</span>
+                        <span class="badge" th:classappend="${completa} ? 'aprobada' : 'pendiente'"
+                              th:text="${completa} ? 'Completa' : 'Falta asignar'">Completa</span>
+                    </button>
+                </li>
+            </ul>
+            <p class="vacio" id="sin-resultados" hidden>Ningún estudiante coincide con los filtros.</p>
+
+            <template th:each="i : ${inscripciones}" th:id="|plantilla-${i.id()}|">
+                <div class="coord-ficha">
+                    <dl>
+                        <div><dt>Estudiante</dt><dd th:text="${i.estudiante()}">Camila Soto</dd></div>
+                        <div><dt>Correo</dt><dd th:text="${i.email()}">camila@correo.cl</dd></div>
+                        <div><dt>Centro de práctica</dt><dd th:text="${i.centro()}">Liceo Narciso Tondreau</dd></div>
+                    </dl>
+                </div>
+
+                <h3>Líneas de práctica</h3>
+                <p class="vacio" th:if="${#lists.isEmpty(i.lineas())}">Este estudiante no tiene líneas registradas.</p>
+                <ul class="coord-items" th:unless="${#lists.isEmpty(i.lineas())}">
+                    <li class="coord-item" th:each="l : ${i.lineas()}">
+                        <div class="coord-item__cab">
+                            <span class="coord-item__titulo" th:text="${l.etiquetaTipo()}">Especialidad</span>
+                        </div>
+                        <p class="coord-item__meta" th:text="|Colaborador: ${l.colaborador() != null ? l.colaborador() : 'sin asignar'}|">Colaborador: Ana Pérez</p>
+                        <p class="coord-item__meta" th:text="|Tutor: ${l.tutor() != null ? l.tutor() : 'sin asignar'}|">Tutor: Luis Soto</p>
+                    </li>
+                </ul>
+
+                <div class="card__footer coord-acciones-dialogo">
+                    <a class="btn btn-secondary"
+                       th:href="@{/coordinador/semestre/{s}/inscripciones/{i}/editar(s=${seccion.id()},i=${i.id()})}">Editar</a>
+                    <form method="post" th:action="@{/coordinador/semestre/{s}/inscripciones/{i}/quitar(s=${seccion.id()},i=${i.id()})}"
+                          data-confirmar="¿Quitar a este estudiante de la sección? Solo es posible si aún no tiene nada evaluado.">
+                        <button type="submit" class="btn btn-danger">Quitar de la sección</button>
+                    </form>
+                </div>
+            </template>
+        </th:block>
+    </section>
+    <noscript><p class="alerta">Esta página necesita JavaScript para mostrar el detalle y las acciones.</p></noscript>
 </main>
+
+<dialog class="dialogo dialogo--ancho" id="dialogo-lista" aria-labelledby="dialogo-lista-titulo">
+    <div class="dialogo__cab">
+        <h2 id="dialogo-lista-titulo">Inscripción</h2>
+        <button type="button" class="dialogo__cerrar" id="dialogo-lista-cerrar" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="dialogo__cuerpo" id="dialogo-lista-cuerpo"></div>
+</dialog>
 </body>
 </html>

@@ -1,7 +1,11 @@
 package com.grupo1.isw.practicas_pedagogicas;
 
+import com.grupo1.isw.practicas_pedagogicas.dto.PautaFormulario.CriterioFormulario;
+import com.grupo1.isw.practicas_pedagogicas.dto.PautaFormulario.DimensionFormulario;
 import com.grupo1.isw.practicas_pedagogicas.dto.coordinador.PautaSemestreFormulario;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaSemestreRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.PautaSemestreRepository.CriterioFila;
+import com.grupo1.isw.practicas_pedagogicas.repositories.PautaSemestreRepository.DimensionFila;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaSemestreRepository.PautaFila;
 import com.grupo1.isw.practicas_pedagogicas.repositories.SeccionEstructuraRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.SeccionEstructuraRepository.SeccionDatos;
@@ -70,6 +74,24 @@ class CoordinadorPautaServiceTest {
         f.setTipoLinea(linea);
         f.setAplicacion(aplicacion);
         f.setPonderacion(pond);
+        return f;
+    }
+
+    private static DimensionFormulario dimension(String nombre, String... criterios) {
+        DimensionFormulario d = new DimensionFormulario();
+        d.setNombre(nombre);
+        for (int i = 0; i + 1 < criterios.length; i += 2) {
+            CriterioFormulario c = new CriterioFormulario();
+            c.setDescripcion(criterios[i]);
+            c.setPuntajeMax(criterios[i + 1]);
+            d.getCriterios().add(c);
+        }
+        return d;
+    }
+
+    private static PautaSemestreFormulario conContenido(DimensionFormulario... dimensiones) {
+        PautaSemestreFormulario f = formulario("COLABORADOR", "ESPECIALIDAD", "2", "15");
+        f.setDimensiones(new java.util.ArrayList<>(List.of(dimensiones)));
         return f;
     }
 
@@ -210,5 +232,87 @@ class CoordinadorPautaServiceTest {
         when(pautas.dimensiones(ID_PAUTA)).thenReturn(List.of());
 
         assertEquals(Long.valueOf(ID_PAUTA), servicio.detalle(ID_SECCION, ID_PAUTA).pauta().id());
+    }
+
+    @Test
+    @DisplayName("13. Crea la pauta junto con sus dimensiones y criterios")
+    void creaPautaConContenido() {
+        when(pautas.insertar(10L, ID_SECCION, "Desempeño", "COLABORADOR", "ESPECIALIDAD", 2,
+                new BigDecimal("15"), true, null)).thenReturn(30L);
+        when(pautas.insertarDimension(30L, "Preparación")).thenReturn(101L);
+        when(pautas.insertarDimension(30L, "Ejecución")).thenReturn(102L);
+
+        servicio.crear(ID_SECCION, conContenido(
+                dimension("  Preparación ", " Define objetivos ", "7,5", "Organiza el material", "5"),
+                dimension("Ejecución", "Mantiene el orden", "10")));
+
+        verify(pautas).insertarCriterio(101L, "Define objetivos", new BigDecimal("7.5"));
+        verify(pautas).insertarCriterio(101L, "Organiza el material", new BigDecimal("5"));
+        verify(pautas).insertarCriterio(102L, "Mantiene el orden", new BigDecimal("10"));
+    }
+
+    @Test
+    @DisplayName("14. El contenido se valida entero y los errores dicen dónde están; no se guarda nada")
+    void validaContenidoCompleto() {
+        EstructuraInvalidaException ex = assertThrows(EstructuraInvalidaException.class,
+                () -> servicio.crear(ID_SECCION, conContenido(
+                        dimension(" ", "Criterio", "5"),
+                        dimension("Sin criterios"),
+                        dimension("Con errores", "", "5", "Descripción", "0", "Otra", "x"))));
+
+        String errores = String.join(" | ", ex.getErrores());
+        assertTrue(errores.contains("nombre de la dimensión 1"));
+        assertTrue(errores.contains("dimensión 2 necesita al menos un criterio"));
+        assertTrue(errores.contains("descripción del criterio 1 de la dimensión 3"));
+        assertTrue(errores.contains("puntaje máximo del criterio 2 de la dimensión 3"));
+        assertTrue(errores.contains("puntaje máximo del criterio 3 de la dimensión 3"));
+        verify(pautas, never()).insertar(anyLong(), anyLong(), anyString(), anyString(), anyString(), anyInt(),
+                any(BigDecimal.class), anyBoolean(), org.mockito.ArgumentMatchers.<java.time.LocalDate>any());
+        verify(pautas, never()).insertarDimension(anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("15. Al guardar una pauta con contenido, reemplaza el que tenía")
+    void actualizaReemplazandoContenido() {
+        when(pautas.insertarDimension(ID_PAUTA, "Nueva")).thenReturn(200L);
+
+        servicio.actualizar(ID_SECCION, ID_PAUTA, conContenido(dimension("Nueva", "Criterio", "4")));
+
+        org.mockito.InOrder orden = org.mockito.Mockito.inOrder(pautas);
+        orden.verify(pautas).eliminarDimensiones(ID_PAUTA);
+        orden.verify(pautas).insertarDimension(ID_PAUTA, "Nueva");
+        orden.verify(pautas).insertarCriterio(200L, "Criterio", new BigDecimal("4"));
+    }
+
+    @Test
+    @DisplayName("16. Si se guarda sin dimensiones, el contenido que ya tenía la pauta no se toca")
+    void actualizaSinTocarContenido() {
+        servicio.actualizar(ID_SECCION, ID_PAUTA, formulario("COLABORADOR", "ESPECIALIDAD", "1", "10"));
+
+        verify(pautas).actualizar(ID_PAUTA, "Desempeño", "COLABORADOR", "ESPECIALIDAD", 1, new BigDecimal("10"));
+        verify(pautas, never()).eliminarDimensiones(anyLong());
+    }
+
+    @Test
+    @DisplayName("17. El formulario de edición trae las dimensiones y criterios guardados")
+    void formularioConContenido() {
+        when(pautas.dimensiones(ID_PAUTA)).thenReturn(List.of(new DimensionFila(4L, "Preparación", 1,
+                List.of(new CriterioFila(70L, "Define objetivos", new BigDecimal("7.50"), 1)))));
+
+        PautaSemestreFormulario f = servicio.formularioDe(ID_SECCION, ID_PAUTA);
+
+        assertEquals(1, f.getDimensiones().size());
+        assertEquals("Preparación", f.getDimensiones().get(0).getNombre());
+        assertEquals("Define objetivos", f.getDimensiones().get(0).getCriterios().get(0).getDescripcion());
+        assertEquals("7.5", f.getDimensiones().get(0).getCriterios().get(0).getPuntajeMax());
+    }
+
+    @Test
+    @DisplayName("18. El formulario de una pauta nueva parte con una dimensión y un criterio en blanco")
+    void formularioVacio() {
+        PautaSemestreFormulario f = PautaSemestreFormulario.vacio();
+
+        assertEquals(1, f.getDimensiones().size());
+        assertEquals(1, f.getDimensiones().get(0).getCriterios().size());
     }
 }

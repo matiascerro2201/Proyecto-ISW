@@ -31,6 +31,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (formulario && !window.confirm(formulario.dataset.confirmar)) { evento.preventDefault(); }
     });
 
+    // Botones de ayuda "?": el texto se muestra al pasar el mouse, al enfocar y al pulsar; se cierra con Escape o al
+    // pulsar fuera.
+    const ayudas = document.querySelectorAll('.ayuda');
+    const cerrarAyudas = () => {
+        ayudas.forEach(ayuda => {
+            ayuda.classList.remove('ayuda--abierta');
+            ayuda.querySelector('[data-ayuda]')?.setAttribute('aria-expanded', 'false');
+        });
+    };
+    ayudas.forEach(ayuda => {
+        const boton = ayuda.querySelector('[data-ayuda]');
+        boton?.addEventListener('click', evento => {
+            evento.stopPropagation();
+            const abrir = !ayuda.classList.contains('ayuda--abierta');
+            cerrarAyudas();
+            ayuda.classList.toggle('ayuda--abierta', abrir);
+            boton.setAttribute('aria-expanded', String(abrir));
+        });
+    });
+    document.addEventListener('click', cerrarAyudas);
+    document.addEventListener('keydown', evento => { if (evento.key === 'Escape') { cerrarAyudas(); } });
+
     // Muestra solo los campos que corresponden al rol elegido.
     const rol = document.getElementById('campo-rol');
     if (rol) {

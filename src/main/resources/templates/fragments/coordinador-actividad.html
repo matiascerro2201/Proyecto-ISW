@@ -17,7 +17,11 @@
         <span class="coord-fila__dato" th:text="|Informe: ${a.informeEstado()}|">Informe: Publicado</span>
     </summary>
 
-    <div class="coord-actividad__cuerpo">
+    <th:block th:replace="~{fragments/coordinador-actividad :: cuerpo(${a})}"></th:block>
+</details>
+
+<!-- Detalle de la actividad de un estudiante en un curso (lo que se despliega o se muestra en la ventana). -->
+    <div class="coord-actividad__cuerpo" th:fragment="cuerpo(a)">
         <p class="coord-sub">
             <span th:text="|Inscripción: ${a.estadoInscripcion()}|">Inscripción</span>
             <span th:if="${a.centro() != null}" th:text="| · Centro: ${a.centro()}|"></span>
@@ -85,6 +89,5 @@
                     ${a.informe().calificacionSugerida() != null ? ' · Sugerida: ' + #numbers.formatDecimal(a.informe().calificacionSugerida(), 1, 1) : ''}
                     ${a.informe().calificacionFinal() != null ? ' · Final: ' + #numbers.formatDecimal(a.informe().calificacionFinal(), 1, 1) : ''}|"></p>
     </div>
-</details>
 </body>
 </html>

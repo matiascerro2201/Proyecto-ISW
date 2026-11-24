@@ -1,7 +1,10 @@
 package com.grupo1.isw.practicas_pedagogicas.services;
 
+import com.grupo1.isw.practicas_pedagogicas.dto.PautaFormulario.CriterioFormulario;
+import com.grupo1.isw.practicas_pedagogicas.dto.PautaFormulario.DimensionFormulario;
 import com.grupo1.isw.practicas_pedagogicas.dto.coordinador.PautaSemestreFormulario;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaSemestreRepository;
+import com.grupo1.isw.practicas_pedagogicas.repositories.PautaSemestreRepository.CriterioFila;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaSemestreRepository.DimensionFila;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PautaSemestreRepository.PautaFila;
 import com.grupo1.isw.practicas_pedagogicas.repositories.SeccionEstructuraRepository;
@@ -63,6 +66,17 @@ public class CoordinadorPautaService {
         formulario.setTipoLinea(pauta.tipoLinea());
         formulario.setAplicacion(String.valueOf(pauta.aplicacion()));
         formulario.setPonderacion(pauta.ponderacion().stripTrailingZeros().toPlainString());
+        for (DimensionFila fila : pautas.dimensiones(idPauta)) {
+            DimensionFormulario dimension = new DimensionFormulario();
+            dimension.setNombre(fila.nombre());
+            for (CriterioFila criterio : fila.criterios()) {
+                CriterioFormulario campos = new CriterioFormulario();
+                campos.setDescripcion(criterio.descripcion());
+                campos.setPuntajeMax(criterio.puntajeMaximo().stripTrailingZeros().toPlainString());
+                dimension.getCriterios().add(campos);
+            }
+            formulario.getDimensiones().add(dimension);
+        }
         return formulario;
     }
 
@@ -71,8 +85,10 @@ public class CoordinadorPautaService {
         SeccionDatos seccion = seccion(idSeccion);
         exigirEditable(seccion);
         Datos datos = validar(seccion, formulario, null);
-        return pautas.insertar(seccion.idAsignatura(), idSeccion, datos.nombre, datos.evaluador, datos.tipoLinea,
-                datos.aplicacion, datos.ponderacion, true, null);
+        long idPauta = pautas.insertar(seccion.idAsignatura(), idSeccion, datos.nombre, datos.evaluador,
+                datos.tipoLinea, datos.aplicacion, datos.ponderacion, true, null);
+        guardarContenido(idPauta, datos.dimensiones);
+        return idPauta;
     }
 
     @Transactional
@@ -83,6 +99,10 @@ public class CoordinadorPautaService {
         exigirSinEvaluaciones(idPauta);
         Datos datos = validar(seccion, formulario, idPauta);
         pautas.actualizar(idPauta, datos.nombre, datos.evaluador, datos.tipoLinea, datos.aplicacion, datos.ponderacion);
+        if (!datos.dimensiones.isEmpty()) {
+            pautas.eliminarDimensiones(idPauta);
+            guardarContenido(idPauta, datos.dimensiones);
+        }
     }
 
     @Transactional
@@ -164,7 +184,14 @@ public class CoordinadorPautaService {
 
     // ---- validación
 
-    private record Datos(String nombre, String evaluador, String tipoLinea, int aplicacion, BigDecimal ponderacion) {
+    private record CriterioValidado(String descripcion, BigDecimal puntajeMaximo) {
+    }
+
+    private record DimensionValidada(String nombre, List<CriterioValidado> criterios) {
+    }
+
+    private record Datos(String nombre, String evaluador, String tipoLinea, int aplicacion, BigDecimal ponderacion,
+                         List<DimensionValidada> dimensiones) {
     }
 
     private Datos validar(SeccionDatos seccion, PautaSemestreFormulario formulario, Long idExcluida) {
@@ -202,8 +229,75 @@ public class CoordinadorPautaService {
                 && pautas.existe(seccion.id(), evaluador, tipoLinea, aplicacion, idExcluida)) {
             errores.add("Ya existe una pauta de ese evaluador, línea y aplicación en este semestre");
         }
+
+        List<DimensionValidada> dimensiones = validarContenido(formulario.getDimensiones(), errores);
         lanzarSiHayErrores(errores);
-        return new Datos(nombre, evaluador, tipoLinea, aplicacion, ponderacion);
+        return new Datos(nombre, evaluador, tipoLinea, aplicacion, ponderacion, dimensiones);
+    }
+
+    /** Valida las dimensiones y criterios enviados; los errores dicen en cuál dimensión y criterio están. */
+    private List<DimensionValidada> validarContenido(List<DimensionFormulario> filas, List<String> errores) {
+        List<DimensionValidada> dimensiones = new ArrayList<>();
+        if (filas == null) {
+            return dimensiones;
+        }
+        for (int i = 0; i < filas.size(); i++) {
+            int numero = i + 1;
+            DimensionFormulario fila = filas.get(i);
+            if (fila == null) {
+                errores.add("La dimensión " + numero + " no tiene datos");
+                continue;
+            }
+            String nombre = fila.getNombre() == null ? "" : fila.getNombre().trim();
+            if (nombre.isEmpty()) {
+                errores.add("El nombre de la dimensión " + numero + " es obligatorio");
+            } else if (nombre.length() > LARGO_DIMENSION) {
+                errores.add("El nombre de la dimensión " + numero + " no puede superar " + LARGO_DIMENSION
+                        + " caracteres");
+            }
+
+            List<CriterioValidado> criterios = new ArrayList<>();
+            List<CriterioFormulario> filasCriterio = fila.getCriterios();
+            if (filasCriterio == null || filasCriterio.isEmpty()) {
+                errores.add("La dimensión " + numero + " necesita al menos un criterio");
+            } else {
+                for (int j = 0; j < filasCriterio.size(); j++) {
+                    String donde = "criterio " + (j + 1) + " de la dimensión " + numero;
+                    CriterioFormulario criterio = filasCriterio.get(j);
+                    if (criterio == null) {
+                        errores.add("El " + donde + " no tiene datos");
+                        continue;
+                    }
+                    String descripcion = criterio.getDescripcion() == null ? "" : criterio.getDescripcion().trim();
+                    if (descripcion.isEmpty()) {
+                        errores.add("La descripción del " + donde + " es obligatoria");
+                    } else if (descripcion.length() > LARGO_CRITERIO) {
+                        errores.add("La descripción del " + donde + " no puede superar " + LARGO_CRITERIO
+                                + " caracteres");
+                    }
+                    BigDecimal puntaje = EntradaNumerica.decimal(criterio.getPuntajeMax(),
+                            "El puntaje máximo del " + donde, errores);
+                    if (puntaje != null && (puntaje.signum() <= 0 || puntaje.compareTo(PUNTAJE_MAXIMO_CRITERIO) > 0)) {
+                        errores.add("El puntaje máximo del " + donde + " debe ser mayor que 0 y no superar 999,99");
+                        puntaje = null;
+                    }
+                    if (!descripcion.isEmpty() && puntaje != null) {
+                        criterios.add(new CriterioValidado(descripcion, puntaje));
+                    }
+                }
+            }
+            dimensiones.add(new DimensionValidada(nombre, criterios));
+        }
+        return dimensiones;
+    }
+
+    private void guardarContenido(long idPauta, List<DimensionValidada> dimensiones) {
+        for (DimensionValidada dimension : dimensiones) {
+            long idDimension = pautas.insertarDimension(idPauta, dimension.nombre());
+            for (CriterioValidado criterio : dimension.criterios()) {
+                pautas.insertarCriterio(idDimension, criterio.descripcion(), criterio.puntajeMaximo());
+            }
+        }
     }
 
     private void lanzarSiHayErrores(List<String> errores) {
