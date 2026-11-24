@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${editando} ? 'Editar centro de práctica' : 'Nuevo centro de práctica'">Centro de práctica</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/centros')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/coordinador/centros}">Volver a centros de práctica</a>
+    <h1 th:text="${editando} ? 'Editar centro de práctica' : 'Nuevo centro de práctica'">Nuevo centro de práctica</h1>
+
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+
+    <form class="coord-formulario" method="post"
+          th:action="${editando} ? @{/coordinador/centros/{id}(id=${idCentro})} : @{/coordinador/centros}"
+          th:object="${formulario}">
+        <label>Nombre
+            <input type="text" th:field="*{nombre}" maxlength="200" required>
+        </label>
+        <label>Comuna
+            <input type="text" th:field="*{comuna}" maxlength="100">
+        </label>
+        <label>Tipo de centro
+            <select th:field="*{tipo}" required>
+                <option value="">Elige un tipo</option>
+                <option th:each="t : ${tipos}" th:value="${t.valor()}" th:text="${t.etiqueta()}">Tipo</option>
+            </select>
+        </label>
+
+        <div class="coord-formulario__acciones">
+            <button type="submit" class="btn btn-primary" th:text="${editando} ? 'Guardar cambios' : 'Crear centro'">Guardar</button>
+            <a class="btn btn-ghost" th:href="@{/coordinador/centros}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

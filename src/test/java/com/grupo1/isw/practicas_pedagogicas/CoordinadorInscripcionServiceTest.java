@@ -100,16 +100,15 @@ class CoordinadorInscripcionServiceTest {
     }
 
     @Test
-    @DisplayName("4. Falta el colaborador de una línea: se informa y no se inscribe")
-    void faltaColaborador() {
-        EstructuraInvalidaException ex = assertThrows(EstructuraInvalidaException.class,
-                () -> servicio.inscribir(ID_SECCION, formulario(
-                        new LineaFormulario("ESPECIALIDAD", COLABORADOR, null),
-                        new LineaFormulario("ORIENTACION", null, null))));
+    @DisplayName("4. El colaborador es opcional: se inscribe con líneas sin colaborador")
+    void colaboradorOpcional() {
+        long id = servicio.inscribir(ID_SECCION, formulario(
+                new LineaFormulario("ESPECIALIDAD", COLABORADOR, null),
+                new LineaFormulario("ORIENTACION", null, null)));
 
-        assertEquals(1, ex.getErrores().size());
-        assertTrue(ex.getErrores().get(0).contains("Orientación"));
-        verify(inscripciones, never()).insertarInscripcion(anyLong(), anyLong(), anyLong());
+        assertEquals(90L, id);
+        verify(inscripciones).guardarLinea(90L, "ESPECIALIDAD", COLABORADOR, null);
+        verify(inscripciones).guardarLinea(90L, "ORIENTACION", null, null);
     }
 
     @Test
@@ -141,6 +140,21 @@ class CoordinadorInscripcionServiceTest {
     }
 
     @Test
+    @DisplayName("6b. Si se elige un colaborador, debe existir y estar activo")
+    void colaboradorElegidoDebeEstarActivo() {
+        when(inscripciones.existePersonaActiva(COLABORADOR, "COLABORADOR")).thenReturn(false);
+
+        EstructuraInvalidaException ex = assertThrows(EstructuraInvalidaException.class,
+                () -> servicio.inscribir(ID_SECCION, formulario(
+                        new LineaFormulario("ESPECIALIDAD", COLABORADOR, null),
+                        new LineaFormulario("ORIENTACION", null, null))));
+
+        assertEquals(1, ex.getErrores().size());
+        assertTrue(ex.getErrores().get(0).contains("Especialidad"));
+        verify(inscripciones, never()).insertarInscripcion(anyLong(), anyLong(), anyLong());
+    }
+
+    @Test
     @DisplayName("7. En una asignatura de una línea solo se guarda la línea única")
     void ignoraLineasQueSobran() {
         when(secciones.buscar(ID_SECCION)).thenReturn(Optional.of(seccion(1)));
@@ -151,7 +165,7 @@ class CoordinadorInscripcionServiceTest {
 
         verify(inscripciones).guardarLinea(90L, "UNICA", COLABORADOR, null);
         verify(inscripciones, never()).guardarLinea(anyLong(), org.mockito.ArgumentMatchers.eq("ORIENTACION"),
-                anyLong(), org.mockito.ArgumentMatchers.<Long>any());
+                org.mockito.ArgumentMatchers.<Long>any(), org.mockito.ArgumentMatchers.<Long>any());
     }
 
     @Test

@@ -46,6 +46,7 @@ class CoordinadorUsuarioServiceTest {
         f.setEmail(" Ana@UBB.cl ");
         f.setRol(rol);
         f.setPassword("clave-segura");
+        f.setPasswordConfirmacion("clave-segura");
         return f;
     }
 
@@ -62,7 +63,7 @@ class CoordinadorUsuarioServiceTest {
         Long id = service.crear(formulario(RolUsuario.PROFESOR_ASIGNATURA));
 
         assertEquals(7L, id);
-        verify(adminRepository).insertarSubtipo(7L, RolUsuario.PROFESOR_ASIGNATURA, null, null);
+        verify(adminRepository).insertarSubtipo(7L, RolUsuario.PROFESOR_ASIGNATURA, null);
     }
 
     @Test
@@ -74,8 +75,19 @@ class CoordinadorUsuarioServiceTest {
     }
 
     @Test
-    void elEstudianteNecesitaCarrera() {
-        assertThrows(IllegalArgumentException.class, () -> service.crear(formulario(RolUsuario.ESTUDIANTE)));
+    void creaUnEstudianteSinPedirCarrera() {
+        when(usuarioRepository.findByEmailIgnoreCase("ana@ubb.cl")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("clave-segura")).thenReturn("cifrada");
+        when(usuarioRepository.saveAndFlush(any(Usuario.class))).thenAnswer(i -> {
+            Usuario u = i.getArgument(0);
+            u.setIdUsuario(8L);
+            return u;
+        });
+
+        Long id = service.crear(formulario(RolUsuario.ESTUDIANTE));
+
+        assertEquals(8L, id);
+        verify(adminRepository).insertarSubtipo(8L, RolUsuario.ESTUDIANTE, null);
     }
 
     @Test
@@ -91,11 +103,81 @@ class CoordinadorUsuarioServiceTest {
     void laClaveInicialEsObligatoriaYTieneLargoMinimo() {
         UsuarioFormulario sinClave = formulario(RolUsuario.PROFESOR_ASIGNATURA);
         sinClave.setPassword("");
+        sinClave.setPasswordConfirmacion("");
         assertThrows(IllegalArgumentException.class, () -> service.crear(sinClave));
 
         UsuarioFormulario corta = formulario(RolUsuario.PROFESOR_ASIGNATURA);
         corta.setPassword("1234567");
+        corta.setPasswordConfirmacion("1234567");
         assertThrows(IllegalArgumentException.class, () -> service.crear(corta));
+    }
+
+    @Test
+    void noCreaSiLaContrasenaRepetidaNoCoincide() {
+        UsuarioFormulario distinta = formulario(RolUsuario.PROFESOR_ASIGNATURA);
+        distinta.setPasswordConfirmacion("clave-segurA");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> service.crear(distinta));
+
+        assertEquals("Las contraseñas no coinciden.", error.getMessage());
+        verify(usuarioRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void noCreaSiNoSeRepiteLaContrasena() {
+        UsuarioFormulario sinRepetir = formulario(RolUsuario.PROFESOR_ASIGNATURA);
+        sinRepetir.setPasswordConfirmacion(null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.crear(sinRepetir));
+        verify(usuarioRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void alEditarNoCambiaLaClaveSiNoSeEscribeUnaNueva() {
+        Usuario u = usuario(4L, RolUsuario.PROFESOR_ASIGNATURA, true);
+        when(usuarioRepository.findById(4L)).thenReturn(Optional.of(u));
+        when(usuarioRepository.findByEmailIgnoreCase("ana@ubb.cl")).thenReturn(Optional.empty());
+        UsuarioFormulario f = formulario(RolUsuario.PROFESOR_ASIGNATURA);
+        f.setPassword("");
+        f.setPasswordConfirmacion("");
+
+        service.actualizar(1L, 4L, f);
+
+        verify(passwordEncoder, never()).encode(any());
+        assertEquals("hash", u.getPasswordHash());
+    }
+
+    @Test
+    void alEditarCambiaLaClaveSoloSiLaRepeticionCoincide() {
+        Usuario u = usuario(4L, RolUsuario.PROFESOR_ASIGNATURA, true);
+        when(usuarioRepository.findById(4L)).thenReturn(Optional.of(u));
+        when(usuarioRepository.findByEmailIgnoreCase("ana@ubb.cl")).thenReturn(Optional.empty());
+        UsuarioFormulario distinta = formulario(RolUsuario.PROFESOR_ASIGNATURA);
+        distinta.setPassword("otra-clave-1");
+        distinta.setPasswordConfirmacion("otra-clave-2");
+
+        assertThrows(IllegalArgumentException.class, () -> service.actualizar(1L, 4L, distinta));
+        verify(passwordEncoder, never()).encode(any());
+
+        UsuarioFormulario igual = formulario(RolUsuario.PROFESOR_ASIGNATURA);
+        igual.setPassword("otra-clave-1");
+        igual.setPasswordConfirmacion("otra-clave-1");
+        when(passwordEncoder.encode("otra-clave-1")).thenReturn("nueva-cifrada");
+
+        service.actualizar(1L, 4L, igual);
+
+        assertEquals("nueva-cifrada", u.getPasswordHash());
+    }
+
+    @Test
+    void alEditarRechazaUnaRepeticionSinContrasenaNueva() {
+        Usuario u = usuario(4L, RolUsuario.PROFESOR_ASIGNATURA, true);
+        when(usuarioRepository.findById(4L)).thenReturn(Optional.of(u));
+        UsuarioFormulario f = formulario(RolUsuario.PROFESOR_ASIGNATURA);
+        f.setPassword("");
+
+        assertThrows(IllegalArgumentException.class, () -> service.actualizar(1L, 4L, f));
+        verify(usuarioRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -140,10 +222,11 @@ class CoordinadorUsuarioServiceTest {
         when(adminRepository.contarRegistrosAsociados(4L, RolUsuario.PROFESOR_ASIGNATURA)).thenReturn(0L);
         UsuarioFormulario f = formulario(RolUsuario.TUTOR);
         f.setPassword("");
+        f.setPasswordConfirmacion("");
 
         service.actualizar(1L, 4L, f);
 
-        verify(adminRepository).reemplazarSubtipo(4L, RolUsuario.PROFESOR_ASIGNATURA, RolUsuario.TUTOR, null, null);
+        verify(adminRepository).reemplazarSubtipo(4L, RolUsuario.PROFESOR_ASIGNATURA, RolUsuario.TUTOR, null);
         verify(passwordEncoder, never()).encode(any());
     }
 
@@ -155,7 +238,7 @@ class CoordinadorUsuarioServiceTest {
         when(adminRepository.contarRegistrosAsociados(4L, RolUsuario.PROFESOR_ASIGNATURA)).thenReturn(2L);
 
         assertThrows(IllegalArgumentException.class, () -> service.actualizar(1L, 4L, formulario(RolUsuario.TUTOR)));
-        verify(adminRepository, never()).reemplazarSubtipo(anyLong(), any(), any(), any(), any());
+        verify(adminRepository, never()).reemplazarSubtipo(anyLong(), any(), any(), any());
     }
 
     @Test

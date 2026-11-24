@@ -76,7 +76,7 @@ public class EvaluacionesEsperadasRepository {
               JOIN linea_practica l ON l.id_inscripcion = i.id_inscripcion
               JOIN pauta_evaluacion p ON p.id_seccion = s.id_seccion AND p.habilitada = 1
                                      AND p.tipo_linea = l.tipo
-                                     AND (p.evaluador = 'COLABORADOR'
+                                     AND ((p.evaluador = 'COLABORADOR' AND l.id_colaborador IS NOT NULL)
                                           OR (p.evaluador = 'TUTOR' AND l.id_tutor IS NOT NULL))
               LEFT JOIN usuario ur ON ur.id_usuario =
                         CASE p.evaluador WHEN 'COLABORADOR' THEN l.id_colaborador ELSE l.id_tutor END

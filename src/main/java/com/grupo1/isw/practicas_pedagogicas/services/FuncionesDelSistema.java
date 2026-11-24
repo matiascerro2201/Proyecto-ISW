@@ -79,6 +79,9 @@ public final class FuncionesDelSistema {
         de("COORDINADOR", "Asignaturas", "Asignaturas",
                     "Crea y edita las asignaturas del programa de prácticas.",
                     "/coordinador/asignaturas"),
+        de("COORDINADOR", "Centros de práctica", "Centros",
+                    "Registra y edita los centros donde los estudiantes hacen su práctica.",
+                    "/coordinador/centros"),
         de("COORDINADOR", "Secciones", "Secciones",
                     "Abre las secciones de cada semestre y asigna su profesor.",
                     "/coordinador/secciones")

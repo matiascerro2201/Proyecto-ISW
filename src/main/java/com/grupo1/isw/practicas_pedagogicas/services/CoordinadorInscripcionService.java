@@ -15,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** N-02: el coordinador inscribe estudiantes en una sección y asigna colaborador y tutor en cada línea. */
+/** N-02: el coordinador inscribe estudiantes en una sección y asigna, si corresponde, colaborador y tutor en cada línea. */
 @Service
 public class CoordinadorInscripcionService {
     private final InscripcionAdminRepository inscripciones;
@@ -146,11 +146,12 @@ public class CoordinadorInscripcionService {
         for (String tipo : esperados) {
             LineaFormulario linea = lineas.stream().filter(l -> tipo.equals(l.getTipo())).findFirst().orElse(null);
             String nombre = linea == null ? tipo : linea.etiquetaTipo();
-            if (linea == null || linea.getIdColaborador() == null) {
-                errores.add("Debes elegir el profesor colaborador de la línea " + nombre);
+            if (linea == null) {
                 continue;
             }
-            if (!inscripciones.existePersonaActiva(linea.getIdColaborador(), "COLABORADOR")) {
+            // El colaborador y el tutor son opcionales: algunas asignaturas no cuentan con uno de ellos.
+            if (linea.getIdColaborador() != null
+                    && !inscripciones.existePersonaActiva(linea.getIdColaborador(), "COLABORADOR")) {
                 errores.add("El profesor colaborador de la línea " + nombre + " no existe o está desactivado");
             }
             if (linea.getIdTutor() != null && !inscripciones.existePersonaActiva(linea.getIdTutor(), "TUTOR")) {

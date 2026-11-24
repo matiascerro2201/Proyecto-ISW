@@ -110,7 +110,7 @@ CREATE TABLE inscripcion_asignatura (
 CREATE TABLE linea_practica (
     id_linea         BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_inscripcion   BIGINT NOT NULL,
-    id_colaborador   BIGINT NOT NULL,
+    id_colaborador   BIGINT NULL,
     id_tutor         BIGINT NULL,
     tipo             ENUM('UNICA','ESPECIALIDAD','ORIENTACION') NOT NULL,
     CONSTRAINT fk_linea_inscripcion

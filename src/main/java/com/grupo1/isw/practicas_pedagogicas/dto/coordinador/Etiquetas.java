@@ -4,6 +4,7 @@ import com.grupo1.isw.practicas_pedagogicas.models.Ciclo;
 import com.grupo1.isw.practicas_pedagogicas.models.EstadoInscripcion;
 import com.grupo1.isw.practicas_pedagogicas.models.EstadoPlanificacion;
 import com.grupo1.isw.practicas_pedagogicas.models.RolUsuario;
+import com.grupo1.isw.practicas_pedagogicas.models.TipoCentro;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoDocumento;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoEvaluador;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoLinea;
@@ -79,6 +80,18 @@ public final class Etiquetas {
             case ENVIADA -> "Por revisar";
             case APROBADA -> "Aprobada";
             case RECHAZADA -> "Rechazada";
+        };
+    }
+
+    public static String tipoCentro(TipoCentro tipo) {
+        if (tipo == null) {
+            return SIN_DATO;
+        }
+        return switch (tipo) {
+            case MUNICIPAL -> "Municipal";
+            case SUBVENCIONADO -> "Particular subvencionado";
+            case PARTICULAR -> "Particular pagado";
+            case EDUCACION_ADULTOS -> "Educación de adultos";
         };
     }
 

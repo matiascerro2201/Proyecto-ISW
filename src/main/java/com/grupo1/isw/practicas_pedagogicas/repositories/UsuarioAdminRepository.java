@@ -20,14 +20,17 @@ import java.util.List;
 @Repository
 public class UsuarioAdminRepository {
 
+    /** El sistema es solo para Pedagogía en Matemática: todo estudiante nuevo queda con esta carrera. */
+    public static final String CARRERA_ESTUDIANTES = "Pedagogía en Matemática";
+
     @PersistenceContext
     private EntityManager em;
 
     /** Crea la fila de la tabla del rol. COORDINADOR no tiene tabla propia. */
-    public void insertarSubtipo(Long idUsuario, RolUsuario rol, String carrera, Long idCentro) {
+    public void insertarSubtipo(Long idUsuario, RolUsuario rol, Long idCentro) {
         switch (rol) {
             case ESTUDIANTE -> ejecutar("INSERT INTO estudiante (id_usuario, carrera) VALUES (?1, ?2)",
-                    idUsuario, carrera);
+                    idUsuario, CARRERA_ESTUDIANTES);
             case COLABORADOR -> ejecutar("INSERT INTO profesor_colaborador (id_usuario, id_centro) VALUES (?1, ?2)",
                     idUsuario, idCentro);
             case TUTOR -> ejecutar("INSERT INTO profesor_tutor (id_usuario) VALUES (?1)", idUsuario);
@@ -37,13 +40,12 @@ public class UsuarioAdminRepository {
         }
     }
 
-    /** Actualiza los datos propios del rol (carrera del estudiante, centro del colaborador). */
-    public void actualizarSubtipo(Long idUsuario, RolUsuario rol, String carrera, Long idCentro) {
+    /** Actualiza los datos propios del rol (hoy solo el centro del colaborador). */
+    public void actualizarSubtipo(Long idUsuario, RolUsuario rol, Long idCentro) {
         switch (rol) {
-            case ESTUDIANTE -> ejecutar("UPDATE estudiante SET carrera = ?2 WHERE id_usuario = ?1", idUsuario, carrera);
             case COLABORADOR -> ejecutar("UPDATE profesor_colaborador SET id_centro = ?2 WHERE id_usuario = ?1",
                     idUsuario, idCentro);
-            case TUTOR, PROFESOR_ASIGNATURA, COORDINADOR -> {
+            case ESTUDIANTE, TUTOR, PROFESOR_ASIGNATURA, COORDINADOR -> {
             }
         }
     }
@@ -53,11 +55,11 @@ public class UsuarioAdminRepository {
      * lo pendiente y después vacía el contexto de persistencia, para que no quede en memoria una entidad
      * de la clase anterior.
      */
-    public void reemplazarSubtipo(Long idUsuario, RolUsuario actual, RolUsuario nuevo, String carrera, Long idCentro) {
+    public void reemplazarSubtipo(Long idUsuario, RolUsuario actual, RolUsuario nuevo, Long idCentro) {
         em.flush();
         eliminarSubtipo(idUsuario, actual);
         ejecutar("UPDATE usuario SET rol = ?2 WHERE id_usuario = ?1", idUsuario, nuevo.name());
-        insertarSubtipo(idUsuario, nuevo, carrera, idCentro);
+        insertarSubtipo(idUsuario, nuevo, idCentro);
         em.clear();
     }
 
@@ -90,14 +92,6 @@ public class UsuarioAdminRepository {
         }
         Object resultado = em.createNativeQuery(sql).setParameter(1, idUsuario).getSingleResult();
         return ((Number) resultado).longValue();
-    }
-
-    public String carreraDe(Long idUsuario) {
-        List<String> carreras = em.createQuery(
-                        "SELECT e.carrera FROM Estudiante e WHERE e.idUsuario = :id", String.class)
-                .setParameter("id", idUsuario)
-                .getResultList();
-        return carreras.isEmpty() ? null : carreras.get(0);
     }
 
     public Long centroDe(Long idUsuario) {

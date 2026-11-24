@@ -38,7 +38,7 @@ public interface LineaPracticaRepository extends JpaRepository<LineaPractica, Lo
     @Query("""
             SELECT l
             FROM LineaPractica l
-            JOIN FETCH l.colaborador col
+            LEFT JOIN FETCH l.colaborador col
             LEFT JOIN FETCH l.tutor tut
             JOIN FETCH l.inscripcion ins
             JOIN FETCH ins.estudiante est

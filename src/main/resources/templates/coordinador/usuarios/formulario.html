@@ -14,6 +14,7 @@
     <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
     <link rel="stylesheet" th:href="@{/css/coordinador.css}">
     <script th:src="@{/js/coordinador.js}" defer></script>
+    <script th:src="@{/js/contrasena.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/coordinador/usuarios')}"></th:block>
@@ -25,7 +26,7 @@
 
     <form class="coord-formulario" method="post"
           th:action="${editando} ? @{/coordinador/usuarios/{id}(id=${idUsuario})} : @{/coordinador/usuarios}"
-          th:object="${formulario}">
+          th:object="${formulario}" data-formulario-clave>
         <label>Nombre
             <input type="text" th:field="*{nombre}" maxlength="150" required>
         </label>
@@ -41,19 +42,32 @@
         <input type="hidden" name="rol" th:if="${propia}" th:value="*{rol}">
         <p class="coord-sub" th:if="${propia}">No puedes cambiar tu propio rol.</p>
 
-        <label data-solo-rol="ESTUDIANTE">Carrera
-            <input type="text" th:field="*{carrera}" maxlength="150">
-        </label>
+        <p class="coord-sub" data-solo-rol="ESTUDIANTE">Todos los estudiantes son de Pedagogía en Matemática.</p>
         <label data-solo-rol="COLABORADOR">Centro de práctica
             <select th:field="*{idCentro}">
                 <option value="">Elige un centro</option>
                 <option th:each="c : ${centros}" th:value="${c.id()}" th:text="${c.etiqueta()}">Centro</option>
             </select>
         </label>
+        <p class="coord-sub" data-solo-rol="COLABORADOR" th:if="${#lists.isEmpty(centros)}">
+            Todavía no hay centros de práctica.
+            <a th:href="@{/coordinador/centros/nuevo}">Crea el primero</a> y vuelve a esta pantalla.
+        </p>
         <label>
             <span th:text="${editando} ? 'Nueva contraseña (déjala vacía para mantener la actual)' : 'Contraseña inicial'">Contraseña</span>
-            <input type="password" th:field="*{password}" minlength="8" autocomplete="new-password" th:required="${!editando}">
+            <input type="password" th:field="*{password}" minlength="8" autocomplete="new-password"
+                   data-clave th:required="${!editando}">
         </label>
+        <label>Repite la contraseña
+            <input type="password" th:field="*{passwordConfirmacion}" minlength="8" autocomplete="new-password"
+                   data-clave-confirmacion th:required="${!editando}">
+        </label>
+        <p class="coord-aviso" role="status" aria-live="polite" data-aviso-mayus hidden>
+            Las mayúsculas están activadas (Bloq Mayús).
+        </p>
+        <p class="coord-aviso coord-aviso--error" role="status" aria-live="polite" data-aviso-coincidencia hidden>
+            Las contraseñas no coinciden.
+        </p>
 
         <div class="coord-formulario__acciones">
             <button type="submit" class="btn btn-primary" th:text="${editando} ? 'Guardar cambios' : 'Crear cuenta'">Guardar</button>

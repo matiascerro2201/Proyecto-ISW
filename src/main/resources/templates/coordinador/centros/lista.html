@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Centros de práctica · Coordinación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/centros')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+    <h1>Centros de práctica</h1>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+
+    <div class="coord-filtros">
+        <a class="btn btn-primary" th:href="@{/coordinador/centros/nuevo}">Nuevo centro</a>
+    </div>
+
+    <p class="coord-contador" aria-live="polite"
+       th:text="|${#lists.size(centros)} ${#lists.size(centros) == 1 ? 'centro' : 'centros'}|">3 centros</p>
+    <p class="vacio" th:if="${#lists.isEmpty(centros)}">Todavía no hay centros de práctica. Crea el primero.</p>
+
+    <table class="coord-tabla" th:unless="${#lists.isEmpty(centros)}">
+        <thead><tr><th>Nombre</th><th>Comuna</th><th>Tipo</th><th>Colaboradores</th><th>Inscripciones</th><th>Acciones</th></tr></thead>
+        <tbody>
+        <tr th:each="c : ${centros}">
+            <td th:text="${c.nombre()}">Nombre</td>
+            <td th:text="${c.comunaEtiqueta()}">Comuna</td>
+            <td th:text="${c.tipoEtiqueta()}">Tipo</td>
+            <td th:text="${c.colaboradores()}">0</td>
+            <td th:text="${c.inscripciones()}">0</td>
+            <td class="coord-acciones">
+                <a class="btn btn-ghost" th:href="@{/coordinador/centros/{id}/editar(id=${c.id()})}">Editar</a>
+                <form method="post" th:if="${c.puedeEliminar()}"
+                      th:action="@{/coordinador/centros/{id}/eliminar(id=${c.id()})}"
+                      data-confirmar="¿Eliminar este centro de práctica? No se puede deshacer.">
+                    <button type="submit" class="btn btn-ghost">Eliminar</button>
+                </form>
+                <span class="coord-sub" th:unless="${c.puedeEliminar()}">En uso</span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

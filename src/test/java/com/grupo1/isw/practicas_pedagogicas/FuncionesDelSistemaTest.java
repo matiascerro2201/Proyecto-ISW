@@ -47,6 +47,15 @@ class FuncionesDelSistemaTest {
     }
 
     @Test
+    @DisplayName("2b. El coordinador tiene en su barra la administración de centros de práctica")
+    void elCoordinadorAdministraCentrosDePractica() {
+        assertTrue(FuncionesDelSistema.paraRol("COORDINADOR").stream()
+                .anyMatch(f -> f.enlace().equals("/coordinador/centros")));
+        assertTrue(FuncionesDelSistema.paraRol("COORDINADOR").stream()
+                .allMatch(f -> f.enlace().startsWith("/coordinador")));
+    }
+
+    @Test
     @DisplayName("3. Un rol desconocido o nulo no recibe ninguna función")
     void rolDesconocido() {
         assertTrue(FuncionesDelSistema.paraRol("INVITADO").isEmpty());
