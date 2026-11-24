@@ -149,7 +149,7 @@ class InicioServiceTest {
 
         assertEquals(1, inicio.cursos().size());
         assertEquals("1 estudiante", inicio.cursos().get(0).detalle());
-        assertEquals("/colaborador/lineas", inicio.cursos().get(0).enlace());
+        assertEquals("/cursos/20/estudiantes", inicio.cursos().get(0).enlace());
 
         assertEquals(1, inicio.pendientes().size());
         PendienteInicio pendiente = inicio.pendientes().get(0);

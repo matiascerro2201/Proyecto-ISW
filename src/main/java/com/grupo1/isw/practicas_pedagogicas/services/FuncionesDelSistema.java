@@ -32,10 +32,6 @@ public final class FuncionesDelSistema {
                     "Mira las pautas que te tocan por estudiante, con su fecha límite y estado.",
                     "/evaluador/pautas"),
 
-        de("COLABORADOR", "Planificaciones pendientes de evaluación", "Planificaciones pendientes",
-                    "Aprueba o rechaza las planificaciones que enviaron tus estudiantes.",
-                    "/planificaciones/pendientes"),
-
         de("TUTOR", "Mis estudiantes", "Mis estudiantes",
                     "Llena las pautas de evaluación de los estudiantes que supervisas.", "/tutor/lineas"),
 
@@ -48,6 +44,10 @@ public final class FuncionesDelSistema {
                     "/profesor/informes"),
         de("PROFESOR_ASIGNATURA", "Pautas de mi asignatura", "Pautas de mi asignatura",
                     "Crea y edita las pautas de evaluación de tus asignaturas.", "/profesor/pautas"),
+
+        de("PROFESOR_ASIGNATURA", "Planificaciones pendientes de evaluación", "Planificaciones pendientes",
+                    "Aprueba o rechaza las planificaciones que enviaron los estudiantes de tus secciones.",
+                    "/planificaciones/pendientes"),
 
         de("PROFESOR_ASIGNATURA", "Estructura del semestre", "Estructura",
                     "Consulta las entregas y pautas del semestre y define sus fechas límite.",

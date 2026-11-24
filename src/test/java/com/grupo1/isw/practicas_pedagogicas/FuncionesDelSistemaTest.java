@@ -37,10 +37,13 @@ class FuncionesDelSistemaTest {
     void cadaRolVeSoloLoSuyo() {
         assertTrue(FuncionesDelSistema.paraRol("ESTUDIANTE").stream()
                 .noneMatch(f -> f.enlace().startsWith("/profesor") || f.enlace().startsWith("/colaborador")));
+        // La revisión de planificaciones vive en /planificaciones y es del profesor de la asignatura.
         assertTrue(FuncionesDelSistema.paraRol("PROFESOR_ASIGNATURA").stream()
-                .allMatch(f -> f.enlace().startsWith("/profesor")));
+                .allMatch(f -> f.enlace().startsWith("/profesor") || f.enlace().equals("/planificaciones/pendientes")));
+        assertTrue(FuncionesDelSistema.paraRol("COLABORADOR").stream()
+                .noneMatch(f -> f.enlace().equals("/planificaciones/pendientes")));
         assertTrue(FuncionesDelSistema.paraRol("TUTOR").stream()
-                .allMatch(f -> f.enlace().startsWith("/tutor")));
+                .allMatch(f -> f.enlace().startsWith("/tutor") || f.enlace().equals("/evaluador/pautas")));
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.grupo1.isw.practicas_pedagogicas.models.Estudiante;
 import com.grupo1.isw.practicas_pedagogicas.models.InscripcionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.ProfesorAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.ProfesorColaborador;
 import com.grupo1.isw.practicas_pedagogicas.models.SeccionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoLinea;
@@ -34,7 +35,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AlertaRevisionPlanificacionServiceTest {
-    private static final Long ID_COLABORADOR = 1L;
+    private static final Long ID_PROFESOR = 1L;
     private static final LocalDate HOY = LocalDate.of(2026, 11, 23);
 
     @Mock
@@ -45,18 +46,20 @@ class AlertaRevisionPlanificacionServiceTest {
     @InjectMocks
     private AlertaRevisionPlanificacionService service;
 
-    private Planificacion planificacion(LocalDate fechaRevision, boolean conColaborador) {
+    private Planificacion planificacion(LocalDate fechaRevision, boolean conProfesor) {
         Estudiante estudiante = new Estudiante();
         estudiante.setNombre("Camila Soto");
         Asignatura asignatura = new Asignatura();
         asignatura.setNombre("Práctica Pedagógica");
-        InscripcionAsignatura inscripcion =
-                new InscripcionAsignatura(estudiante, new SeccionAsignatura(asignatura, null, 2026, 2), null);
-        ProfesorColaborador colaborador = null;
-        if (conColaborador) {
-            colaborador = new ProfesorColaborador();
-            colaborador.setIdUsuario(ID_COLABORADOR);
+        ProfesorAsignatura profesor = null;
+        if (conProfesor) {
+            profesor = new ProfesorAsignatura();
+            profesor.setIdUsuario(ID_PROFESOR);
         }
+        InscripcionAsignatura inscripcion =
+                new InscripcionAsignatura(estudiante, new SeccionAsignatura(asignatura, profesor, 2026, 2), null);
+        ProfesorColaborador colaborador = new ProfesorColaborador();
+        colaborador.setIdUsuario(99L); // no es quien revisa: el aviso va al profesor de la asignatura
         Planificacion p = new Planificacion(new LineaPractica(inscripcion, colaborador, null, TipoLinea.ESPECIALIDAD),
                 null, LocalDateTime.of(2026, 11, 10, 9, 0));
         p.setIdPlanificacion(33L);
@@ -72,8 +75,8 @@ class AlertaRevisionPlanificacionServiceTest {
     }
 
     @Test
-    @DisplayName("Cuando faltan 2 días notifica al colaborador con enlace a la evaluación y marca el aviso")
-    void faltanDosDias_notificaAlColaborador() {
+    @DisplayName("Cuando faltan 2 días notifica al profesor de la asignatura con enlace a la evaluación y marca el aviso")
+    void faltanDosDias_notificaAlProfesor() {
         Planificacion p = planificacion(HOY.plusDays(2), true);
         dadoQueLaBusquedaDevuelve(p);
 
@@ -81,7 +84,7 @@ class AlertaRevisionPlanificacionServiceTest {
 
         assertEquals(1, avisos);
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
-        verify(notificacionService).crear(eq(ID_COLABORADOR), eq(NotificacionService.TIPO_REVISION_PROXIMA),
+        verify(notificacionService).crear(eq(ID_PROFESOR), eq(NotificacionService.TIPO_REVISION_PROXIMA),
                 mensaje.capture(), eq("/planificaciones/33/evaluar"));
         assertTrue(mensaje.getValue().contains("Camila Soto"), mensaje.getValue());
         assertTrue(mensaje.getValue().contains("25/11/2026"), mensaje.getValue());
@@ -100,8 +103,8 @@ class AlertaRevisionPlanificacionServiceTest {
     }
 
     @Test
-    @DisplayName("Una línea sin colaborador se omite y no queda marcada como avisada")
-    void sinColaborador_seOmite() {
+    @DisplayName("Una sección sin profesor se omite y no queda marcada como avisada")
+    void sinProfesor_seOmite() {
         Planificacion p = planificacion(HOY.plusDays(2), false);
         dadoQueLaBusquedaDevuelve(p);
 

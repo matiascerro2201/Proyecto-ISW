@@ -7,6 +7,7 @@ import com.grupo1.isw.practicas_pedagogicas.models.EvaluacionPlanificacion;
 import com.grupo1.isw.practicas_pedagogicas.models.InscripcionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.ProfesorAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.ProfesorColaborador;
 import com.grupo1.isw.practicas_pedagogicas.models.SeccionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoLinea;
@@ -36,15 +37,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 /**
- * Cada vez que el colaborador evalúa una planificación queda registrada en su historial, con la decisión,
+ * Cada vez que el profesor de la asignatura evalúa una planificación queda registrada en su historial, con la decisión,
  * la retroalimentación y la fecha. Se usan planificaciones reales (no simuladas) para comprobar el historial.
  */
 @ExtendWith(MockitoExtension.class)
 class HistorialEvaluacionServiceTest {
 
     private static final Long ID_PLANIFICACION = 10L;
-    private static final Long ID_COLABORADOR = 1L;
-    private static final Long ID_OTRO_COLABORADOR = 2L;
+    private static final Long ID_PROFESOR = 1L;
+    private static final Long ID_OTRO_PROFESOR = 2L;
     private static final Long ID_ESTUDIANTE = 4L;
 
     @Mock
@@ -65,10 +66,12 @@ class HistorialEvaluacionServiceTest {
         estudiante.setNombre("Camila Soto");
         Asignatura asignatura = new Asignatura();
         asignatura.setNombre("Práctica Pedagógica");
+        ProfesorAsignatura profesor = new ProfesorAsignatura();
+        profesor.setIdUsuario(ID_PROFESOR);
         InscripcionAsignatura inscripcion =
-                new InscripcionAsignatura(estudiante, new SeccionAsignatura(asignatura, null, 2026, 2), null);
+                new InscripcionAsignatura(estudiante, new SeccionAsignatura(asignatura, profesor, 2026, 2), null);
         ProfesorColaborador colaborador = new ProfesorColaborador();
-        colaborador.setIdUsuario(ID_COLABORADOR);
+        colaborador.setIdUsuario(99L); // el colaborador ya no evalúa planificaciones
         return new LineaPractica(inscripcion, colaborador, null, TipoLinea.ESPECIALIDAD);
     }
 
@@ -89,7 +92,7 @@ class HistorialEvaluacionServiceTest {
         Planificacion planificacion = enviada();
         dadoQueExiste(planificacion);
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "  Faltan objetivos medibles  ",
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR, "  Faltan objetivos medibles  ",
                 EstadoPlanificacion.RECHAZADA);
 
         assertEquals(1, planificacion.getEvaluaciones().size());
@@ -107,7 +110,7 @@ class HistorialEvaluacionServiceTest {
         Planificacion planificacion = enviada();
         dadoQueExiste(planificacion);
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "   ", EstadoPlanificacion.APROBADA);
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR, "   ", EstadoPlanificacion.APROBADA);
 
         EvaluacionPlanificacion evaluacion = planificacion.getEvaluaciones().get(0);
         assertEquals(EstadoPlanificacion.APROBADA, evaluacion.getDecision());
@@ -121,7 +124,7 @@ class HistorialEvaluacionServiceTest {
         Planificacion planificacion = enviada();
         dadoQueExiste(planificacion);
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Excelente", EstadoPlanificacion.APROBADA);
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR, "Excelente", EstadoPlanificacion.APROBADA);
 
         assertEquals(1, planificacion.getEvaluaciones().size());
         assertEquals(EstadoPlanificacion.APROBADA, planificacion.getEvaluaciones().get(0).getDecision());
@@ -133,7 +136,7 @@ class HistorialEvaluacionServiceTest {
         Planificacion planificacion = enviada();
         dadoQueExiste(planificacion);
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Faltan objetivos medibles",
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR, "Faltan objetivos medibles",
                 EstadoPlanificacion.RECHAZADA);
         service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION, PlanificacionService.fechaMinimaRevision());
 
@@ -143,7 +146,7 @@ class HistorialEvaluacionServiceTest {
         assertNull(planificacion.getFechaRetro());
         assertEquals(1, planificacion.getEvaluaciones().size());
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Ahora sí", EstadoPlanificacion.APROBADA);
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR, "Ahora sí", EstadoPlanificacion.APROBADA);
 
         List<EvaluacionPlanificacion> historial = planificacion.getEvaluaciones();
         assertEquals(2, historial.size());
@@ -161,11 +164,11 @@ class HistorialEvaluacionServiceTest {
         dadoQueExiste(planificacion);
 
         assertThrows(IllegalArgumentException.class, () -> service.evaluarPlanificacion(
-                ID_PLANIFICACION, ID_COLABORADOR, "x", EstadoPlanificacion.ENVIADA));
+                ID_PLANIFICACION, ID_PROFESOR, "x", EstadoPlanificacion.ENVIADA));
         assertThrows(IllegalArgumentException.class, () -> service.evaluarPlanificacion(
-                ID_PLANIFICACION, ID_COLABORADOR, "  ", EstadoPlanificacion.RECHAZADA));
+                ID_PLANIFICACION, ID_PROFESOR, "  ", EstadoPlanificacion.RECHAZADA));
         ResponseStatusException ajeno = assertThrows(ResponseStatusException.class, () -> service.evaluarPlanificacion(
-                ID_PLANIFICACION, ID_OTRO_COLABORADOR, "x", EstadoPlanificacion.APROBADA));
+                ID_PLANIFICACION, ID_OTRO_PROFESOR, "x", EstadoPlanificacion.APROBADA));
 
         assertEquals(403, ajeno.getStatusCode().value());
         assertTrue(planificacion.getEvaluaciones().isEmpty());
@@ -180,7 +183,7 @@ class HistorialEvaluacionServiceTest {
         dadoQueExiste(planificacion);
 
         assertThrows(IllegalStateException.class, () -> service.evaluarPlanificacion(
-                ID_PLANIFICACION, ID_COLABORADOR, "x", EstadoPlanificacion.RECHAZADA));
+                ID_PLANIFICACION, ID_PROFESOR, "x", EstadoPlanificacion.RECHAZADA));
 
         assertTrue(planificacion.getEvaluaciones().isEmpty());
     }
@@ -193,7 +196,7 @@ class HistorialEvaluacionServiceTest {
         dadoQueExiste(borrador);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.evaluarPlanificacion(
-                ID_PLANIFICACION, ID_COLABORADOR, "x", EstadoPlanificacion.APROBADA));
+                ID_PLANIFICACION, ID_PROFESOR, "x", EstadoPlanificacion.APROBADA));
 
         assertEquals(404, ex.getStatusCode().value());
         assertTrue(borrador.getEvaluaciones().isEmpty());

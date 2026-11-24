@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** PDF de una planificación enviada, para el colaborador de su línea. */
+/** PDF de una planificación enviada, para el profesor de la asignatura de la sección del estudiante. */
 @RestController
 @RequestMapping("/planificaciones")
-@PreAuthorize("hasRole('COLABORADOR')")
+@PreAuthorize("hasRole('PROFESOR_ASIGNATURA')")
 public class PlanificacionArchivoColaboradorController {
     private final PlanificacionArchivoService archivoService;
 

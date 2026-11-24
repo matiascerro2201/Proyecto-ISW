@@ -157,21 +157,6 @@ public class InicioService {
 
         List<PendienteInicio> pendientes = new ArrayList<>();
 
-        if (esColaborador) {
-            for (Planificacion planificacion
-                    : planificacionRepository.findByEstadoAndLinea_Colaborador_IdUsuarioOrderByFechaEnvioAsc(
-                            EstadoPlanificacion.ENVIADA, idProfesor)) {
-                String estudiante = planificacion.getLinea().getInscripcion().getEstudiante().getNombre();
-                // La fecha que pidió el estudiante pone la planificación en el calendario del inicio.
-                LocalDate fechaRevision = planificacion.getFechaRevisionSolicitada();
-                pendientes.add(new PendienteInicio("Evaluar la planificación de " + estudiante,
-                        nombreAsignatura(planificacion.getLinea()), fechaRevision,
-                        "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar",
-                        "Por evaluar", "pendiente",
-                        fechaRevision != null && fechaRevision.isBefore(LocalDate.now())));
-            }
-        }
-
         Map<Long, List<PautaEvaluacion>> pautasPorAsignatura = new HashMap<>();
         for (LineaPractica linea : lineas) {
             Long idAsignatura = linea.getInscripcion().getSeccion().getAsignatura().getIdAsignatura();
@@ -209,7 +194,23 @@ public class InicioService {
                         enlaceCurso(plazo.idSeccion()), true))
                 .toList();
 
-        List<PendienteInicio> pendientes = plazos.stream()
+        List<PendienteInicio> pendientes = new ArrayList<>();
+
+        // Las planificaciones enviadas las revisa el profesor de la asignatura de cada sección.
+        for (Planificacion planificacion
+                : planificacionRepository.findByEstadoAndLinea_Inscripcion_Seccion_Profesor_IdUsuarioOrderByFechaEnvioAsc(
+                        EstadoPlanificacion.ENVIADA, idProfesor)) {
+            String estudiante = planificacion.getLinea().getInscripcion().getEstudiante().getNombre();
+            // La fecha que pidió el estudiante pone la planificación en el calendario del inicio.
+            LocalDate fechaRevision = planificacion.getFechaRevisionSolicitada();
+            pendientes.add(new PendienteInicio("Evaluar la planificación de " + estudiante,
+                    nombreAsignatura(planificacion.getLinea()), fechaRevision,
+                    "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar",
+                    "Por evaluar", "pendiente",
+                    fechaRevision != null && fechaRevision.isBefore(LocalDate.now())));
+        }
+
+        plazos.stream()
                 .filter(plazo -> plazo.informesPendientes() > 0)
                 .map(plazo -> new PendienteInicio(
                         "Revisar informes finales de " + plazo.nombreAsignatura(),
@@ -217,7 +218,7 @@ public class InicioService {
                         plazo.fechaLimite(), "/profesor/informes",
                         plazo.textoEstado(), plazo.claseEstado(),
                         plazo.estado() == PlazoRevisionResponse.Estado.VENCIDO))
-                .toList();
+                .forEach(pendientes::add);
 
         return new InicioResponse(cursos, pendientes);
     }

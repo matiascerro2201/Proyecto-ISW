@@ -6,6 +6,7 @@ import com.grupo1.isw.practicas_pedagogicas.models.Estudiante;
 import com.grupo1.isw.practicas_pedagogicas.models.InscripcionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.ProfesorAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.ProfesorColaborador;
 import com.grupo1.isw.practicas_pedagogicas.models.SeccionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoLinea;
@@ -57,8 +58,8 @@ class PlanificacionBorradorServiceTest {
 
     private static final Long ID_PLANIFICACION = 10L;
     private static final Long ID_PLANIFICACION_NUEVA = 77L;
-    private static final Long ID_COLABORADOR = 1L;
-    private static final Long ID_OTRO_COLABORADOR = 2L;
+    private static final Long ID_PROFESOR = 1L;
+    private static final Long ID_OTRO_PROFESOR = 2L;
     private static final Long ID_ESTUDIANTE = 4L;
     private static final Long ID_OTRO_ESTUDIANTE = 5L;
     private static final Long ID_LINEA = 7L;
@@ -78,22 +79,24 @@ class PlanificacionBorradorServiceTest {
 
     // ------------------------------------------------------------------ ayudas
 
-    private LineaPractica lineaDe(Long idEstudiante, Long idColaborador) {
+    private LineaPractica lineaDe(Long idEstudiante, Long idProfesor) {
         Estudiante estudiante = new Estudiante();
         estudiante.setIdUsuario(idEstudiante);
         estudiante.setNombre("Camila Soto");
         Asignatura asignatura = new Asignatura();
         asignatura.setNombre("Práctica Pedagógica");
+        ProfesorAsignatura profesor = new ProfesorAsignatura();
+        profesor.setIdUsuario(idProfesor);
         InscripcionAsignatura inscripcion =
-                new InscripcionAsignatura(estudiante, new SeccionAsignatura(asignatura, null, 2026, 2), null);
+                new InscripcionAsignatura(estudiante, new SeccionAsignatura(asignatura, profesor, 2026, 2), null);
         ProfesorColaborador colaborador = new ProfesorColaborador();
-        colaborador.setIdUsuario(idColaborador);
+        colaborador.setIdUsuario(99L); // el colaborador ya no revisa planificaciones
         return new LineaPractica(inscripcion, colaborador, null, TipoLinea.ESPECIALIDAD);
     }
 
     /** Un borrador no tiene fecha de envío; cualquier otro estado conserva la fecha de su envío. */
-    private Planificacion planificacion(EstadoPlanificacion estado, Long idEstudiante, Long idColaborador) {
-        LineaPractica linea = lineaDe(idEstudiante, idColaborador);
+    private Planificacion planificacion(EstadoPlanificacion estado, Long idEstudiante, Long idProfesor) {
+        LineaPractica linea = lineaDe(idEstudiante, idProfesor);
         Planificacion planificacion = estado == EstadoPlanificacion.BORRADOR
                 ? Planificacion.borrador(linea, "Plan de clase")
                 : new Planificacion(linea, "Plan de clase", FECHA_ENVIO_ORIGINAL);
@@ -103,7 +106,7 @@ class PlanificacionBorradorServiceTest {
     }
 
     private Planificacion planificacion(EstadoPlanificacion estado) {
-        return planificacion(estado, ID_ESTUDIANTE, ID_COLABORADOR);
+        return planificacion(estado, ID_ESTUDIANTE, ID_PROFESOR);
     }
 
     private Planificacion conIdNuevo(Planificacion guardada) {
@@ -138,7 +141,7 @@ class PlanificacionBorradorServiceTest {
     // ----------------------------------------------------------- enviarBorrador
 
     @Test
-    @DisplayName("HU-31/32. Enviar un borrador con PDF lo pasa a ENVIADA con fecha y notifica al colaborador")
+    @DisplayName("HU-31/32. Enviar un borrador con PDF lo pasa a ENVIADA con fecha y notifica al profesor")
     void enviarBorrador_pasaAEnviadaYNotifica() {
         Planificacion borrador = borradorConArchivo();
         dadoQueExiste(borrador);
@@ -151,7 +154,7 @@ class PlanificacionBorradorServiceTest {
         assertFalse(borrador.getFechaEnvio().isBefore(antes), "la fecha de envío debe ser la del momento del envío");
 
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
-        verify(notificacionService).crear(eq(ID_COLABORADOR), eq(NotificacionService.TIPO_PLANIFICACION),
+        verify(notificacionService).crear(eq(ID_PROFESOR), eq(NotificacionService.TIPO_PLANIFICACION),
                 mensaje.capture(), eq("/planificaciones/" + ID_PLANIFICACION + "/evaluar"));
         assertTrue(mensaje.getValue().contains("Camila Soto envió"), mensaje.getValue());
 
@@ -193,7 +196,7 @@ class PlanificacionBorradorServiceTest {
     @DisplayName("HU-26. Enviar el borrador de otro estudiante lanza 403 y no notifica")
     void enviarBorrador_ajeno_lanza403() {
         Planificacion ajeno = conArchivo(
-                planificacion(EstadoPlanificacion.BORRADOR, ID_OTRO_ESTUDIANTE, ID_COLABORADOR));
+                planificacion(EstadoPlanificacion.BORRADOR, ID_OTRO_ESTUDIANTE, ID_PROFESOR));
         dadoQueExiste(ajeno);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -217,7 +220,7 @@ class PlanificacionBorradorServiceTest {
     }
 
     @Test
-    @DisplayName("HU-26. Si falla el guardado al enviar no se notifica al colaborador")
+    @DisplayName("HU-26. Si falla el guardado al enviar no se notifica al profesor")
     void enviarBorrador_falloAlGuardar_noNotifica() {
         dadoQueExiste(borradorConArchivo());
         when(planificacionRepository.save(any(Planificacion.class)))
@@ -250,7 +253,7 @@ class PlanificacionBorradorServiceTest {
         dadoQueExiste(planificacion(EstadoPlanificacion.BORRADOR));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.obtenerPlanificacionParaColaborador(ID_PLANIFICACION, ID_COLABORADOR));
+                () -> service.obtenerPlanificacionParaColaborador(ID_PLANIFICACION, ID_PROFESOR));
 
         assertEquals(404, ex.getStatusCode().value());
     }
@@ -261,7 +264,7 @@ class PlanificacionBorradorServiceTest {
         dadoQueExiste(planificacion(EstadoPlanificacion.BORRADOR));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.obtenerPlanificacionParaColaborador(ID_PLANIFICACION, ID_OTRO_COLABORADOR));
+                () -> service.obtenerPlanificacionParaColaborador(ID_PLANIFICACION, ID_OTRO_PROFESOR));
 
         assertEquals(404, ex.getStatusCode().value());
     }
@@ -272,7 +275,7 @@ class PlanificacionBorradorServiceTest {
         Planificacion planificacion = planificacion(estado);
         dadoQueExiste(planificacion);
 
-        assertSame(planificacion, service.obtenerPlanificacionParaColaborador(ID_PLANIFICACION, ID_COLABORADOR));
+        assertSame(planificacion, service.obtenerPlanificacionParaColaborador(ID_PLANIFICACION, ID_PROFESOR));
     }
 
     @Test
@@ -281,7 +284,7 @@ class PlanificacionBorradorServiceTest {
         dadoQueExiste(planificacion(EstadoPlanificacion.ENVIADA));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.obtenerPlanificacionParaColaborador(ID_PLANIFICACION, ID_OTRO_COLABORADOR));
+                () -> service.obtenerPlanificacionParaColaborador(ID_PLANIFICACION, ID_OTRO_PROFESOR));
 
         assertEquals(403, ex.getStatusCode().value());
     }
@@ -292,7 +295,7 @@ class PlanificacionBorradorServiceTest {
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.obtenerPlanificacionParaColaborador(ID_PLANIFICACION, ID_COLABORADOR));
+                () -> service.obtenerPlanificacionParaColaborador(ID_PLANIFICACION, ID_PROFESOR));
 
         assertEquals(404, ex.getStatusCode().value());
     }
@@ -304,7 +307,7 @@ class PlanificacionBorradorServiceTest {
         dadoQueExiste(borrador);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Comentario", decision));
+                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR, "Comentario", decision));
 
         assertEquals(404, ex.getStatusCode().value());
         assertEquals(EstadoPlanificacion.BORRADOR, borrador.getEstado());
@@ -392,7 +395,7 @@ class PlanificacionBorradorServiceTest {
     @Test
     @DisplayName("HU-31/32. Un borrador puede crearse solo con el PDF, sin texto")
     void entidad_borradorSoloConArchivo() {
-        Planificacion borrador = Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), null);
+        Planificacion borrador = Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_PROFESOR), null);
         assertFalse(borrador.tieneArchivo());
 
         borrador.adjuntarArchivo("uuid.pdf", "plan.pdf", 500L, "Texto del PDF", LocalDateTime.of(2026, 10, 1, 9, 0));
@@ -419,7 +422,7 @@ class PlanificacionBorradorServiceTest {
     @Test
     @DisplayName("HU-26. Planificacion.borrador crea un BORRADOR sin fecha de envío")
     void entidad_borrador_noTieneFechaDeEnvio() {
-        LineaPractica linea = lineaDe(ID_ESTUDIANTE, ID_COLABORADOR);
+        LineaPractica linea = lineaDe(ID_ESTUDIANTE, ID_PROFESOR);
 
         Planificacion borrador = Planificacion.borrador(linea, "Plan de clase");
 
@@ -432,7 +435,7 @@ class PlanificacionBorradorServiceTest {
     @Test
     @DisplayName("HU-26. El constructor con fecha de envío sigue creando una planificación ENVIADA")
     void entidad_constructorConFecha_esEnviada() {
-        Planificacion enviada = new Planificacion(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), "Plan de clase",
+        Planificacion enviada = new Planificacion(lineaDe(ID_ESTUDIANTE, ID_PROFESOR), "Plan de clase",
                 FECHA_ENVIO_ORIGINAL);
 
         assertEquals(EstadoPlanificacion.ENVIADA, enviada.getEstado());
