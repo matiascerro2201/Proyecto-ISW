@@ -220,67 +220,11 @@ class MisEstudiantesServiceTest {
         when(pautaRepository.findByAsignatura(10L)).thenReturn(List.of(pauta));
         when(evaluacionRepository.findDelColaboradorByLinea(11L))
                 .thenReturn(List.of(evaluacion(linea, pauta, TipoEvaluador.COLABORADOR, "18")));
-        when(planificacionRepository.findByEstadoAndLinea_Colaborador_IdUsuarioOrderByFechaEnvioAsc(
-                EstadoPlanificacion.ENVIADA, ID_COLABORADOR)).thenReturn(List.of());
-
         EstudianteSupervisado estudiante = service.delColaborador(ID_COLABORADOR).get(0);
 
         assertTrue(estudiante.lineas().get(0).pautas().get(0).evaluada());
         assertEquals("AL_DIA", estudiante.estado());
         verify(evaluacionRepository, never()).findDelTutorByLinea(Mockito.any());
         verify(lineaRepository, never()).findByTutor(Mockito.any());
-    }
-
-    @Test
-    @DisplayName("8. Las planificaciones enviadas cuentan como pendientes del estudiante, aunque sus pautas estén evaluadas")
-    void colaboradorConPlanificacionPorEvaluar() {
-        InscripcionAsignatura camila = inscripcion(30L, "Camila Soto");
-        InscripcionAsignatura diego = inscripcion(31L, "Diego Pérez");
-        LineaPractica deCamila = linea(11L, camila, TipoLinea.ESPECIALIDAD);
-        LineaPractica deDiego = linea(12L, diego, TipoLinea.ESPECIALIDAD);
-        PautaEvaluacion pauta = pauta(100L, TipoLinea.ESPECIALIDAD, 1);
-        when(lineaRepository.findByColaborador(ID_COLABORADOR)).thenReturn(List.of(deCamila, deDiego));
-        when(pautaRepository.findByAsignatura(10L)).thenReturn(List.of(pauta));
-        when(evaluacionRepository.findDelColaboradorByLinea(11L))
-                .thenReturn(List.of(evaluacion(deCamila, pauta, TipoEvaluador.COLABORADOR, "18")));
-        when(evaluacionRepository.findDelColaboradorByLinea(12L))
-                .thenReturn(List.of(evaluacion(deDiego, pauta, TipoEvaluador.COLABORADOR, "15")));
-
-        Planificacion enviada = Mockito.mock(Planificacion.class);
-        when(enviada.getLinea()).thenReturn(deCamila);
-        when(enviada.getIdPlanificacion()).thenReturn(77L);
-        when(enviada.getFechaEnvio()).thenReturn(LocalDateTime.of(2026, 9, 14, 10, 30));
-        when(planificacionRepository.findByEstadoAndLinea_Colaborador_IdUsuarioOrderByFechaEnvioAsc(
-                EstadoPlanificacion.ENVIADA, ID_COLABORADOR)).thenReturn(List.of(enviada));
-
-        List<EstudianteSupervisado> estudiantes = service.delColaborador(ID_COLABORADOR);
-
-        EstudianteSupervisado conPlanificacion = estudiantes.get(0);
-        assertEquals(1, conPlanificacion.planificaciones().size());
-        assertEquals(77L, conPlanificacion.planificaciones().get(0).idPlanificacion());
-        assertEquals(LocalDateTime.of(2026, 9, 14, 10, 30), conPlanificacion.planificaciones().get(0).fechaEnvio());
-        assertEquals(1, conPlanificacion.pendientes());
-        assertEquals("PENDIENTE", conPlanificacion.estado());
-
-        EstudianteSupervisado alDia = estudiantes.get(1);
-        assertTrue(alDia.planificaciones().isEmpty());
-        assertEquals("AL_DIA", alDia.estado());
-    }
-
-    @Test
-    @DisplayName("9. Un estudiante sin pautas pero con una planificación por evaluar no queda como \"sin pautas\"")
-    void planificacionSinPautas() {
-        InscripcionAsignatura camila = inscripcion(30L, "Camila Soto");
-        LineaPractica linea = linea(11L, camila, TipoLinea.ESPECIALIDAD);
-        when(lineaRepository.findByColaborador(ID_COLABORADOR)).thenReturn(List.of(linea));
-        when(pautaRepository.findByAsignatura(10L)).thenReturn(List.of());
-        Planificacion enviada = Mockito.mock(Planificacion.class);
-        when(enviada.getLinea()).thenReturn(linea);
-        when(enviada.getIdPlanificacion()).thenReturn(77L);
-        when(enviada.getFechaEnvio()).thenReturn(LocalDateTime.of(2026, 9, 14, 10, 30));
-        when(planificacionRepository.findByEstadoAndLinea_Colaborador_IdUsuarioOrderByFechaEnvioAsc(
-                EstadoPlanificacion.ENVIADA, ID_COLABORADOR)).thenReturn(List.of(enviada));
-
-        assertEquals("PENDIENTE", service.delColaborador(ID_COLABORADOR).get(0).estado());
     }
 }

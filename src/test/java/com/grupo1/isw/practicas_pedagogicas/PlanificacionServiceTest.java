@@ -6,6 +6,7 @@ import com.grupo1.isw.practicas_pedagogicas.models.Estudiante;
 import com.grupo1.isw.practicas_pedagogicas.models.InscripcionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.ProfesorAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.ProfesorColaborador;
 import com.grupo1.isw.practicas_pedagogicas.models.SeccionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoLinea;
@@ -49,8 +50,8 @@ import static org.mockito.Mockito.when;
 class PlanificacionServiceTest {
 
     private static final Long ID_PLANIFICACION = 10L;
-    private static final Long ID_COLABORADOR = 1L;
-    private static final Long ID_OTRO_COLABORADOR = 2L;
+    private static final Long ID_PROFESOR = 1L;
+    private static final Long ID_OTRO_PROFESOR = 2L;
     private static final Long ID_ESTUDIANTE = 4L;
     private static final Long ID_OTRO_ESTUDIANTE = 5L;
     private static final Long ID_LINEA = 7L;
@@ -71,13 +72,14 @@ class PlanificacionServiceTest {
     @InjectMocks
     private PlanificacionService service;
 
-    private void dadoQueExisteYPerteneceA(Long idColaboradorDeLaLinea) {
+    private void dadoQueExisteYPerteneceA(Long idProfesorDeLaSeccion) {
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(planificacion));
-        when(planificacion.getLinea().getColaborador().getIdUsuario()).thenReturn(idColaboradorDeLaLinea);
+        when(planificacion.getLinea().getInscripcion().getSeccion().getProfesor().getIdUsuario())
+                .thenReturn(idProfesorDeLaSeccion);
     }
 
-    private void dadoQueEsDelColaboradorYEstaEn(EstadoPlanificacion estadoActual) {
-        dadoQueExisteYPerteneceA(ID_COLABORADOR);
+    private void dadoQueEsDelProfesorYEstaEn(EstadoPlanificacion estadoActual) {
+        dadoQueExisteYPerteneceA(ID_PROFESOR);
         when(planificacion.getEstado()).thenReturn(estadoActual);
     }
 
@@ -94,7 +96,7 @@ class PlanificacionServiceTest {
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.empty());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR,
+                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR,
                         "Comentario", EstadoPlanificacion.APROBADA));
 
         assertEquals(404, ex.getStatusCode().value());
@@ -103,12 +105,12 @@ class PlanificacionServiceTest {
     }
 
     @Test
-    @DisplayName("2. Lanza 403 si quien evalúa no es el colaborador de la línea")
-    void colaboradorAjeno_lanza403() {
-        dadoQueExisteYPerteneceA(ID_OTRO_COLABORADOR);
+    @DisplayName("2. Lanza 403 si quien evalúa no es el profesor de la asignatura de la sección")
+    void profesorAjeno_lanza403() {
+        dadoQueExisteYPerteneceA(ID_OTRO_PROFESOR);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR,
+                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR,
                         "Comentario", EstadoPlanificacion.APROBADA));
 
         assertEquals(403, ex.getStatusCode().value());
@@ -119,10 +121,10 @@ class PlanificacionServiceTest {
     @NullSource
     @EnumSource(value = EstadoPlanificacion.class, names = {"BORRADOR", "ENVIADA"})
     void decisionInvalida_lanzaIllegalArgument(EstadoPlanificacion decisionInvalida) {
-        dadoQueExisteYPerteneceA(ID_COLABORADOR);
+        dadoQueExisteYPerteneceA(ID_PROFESOR);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR,
+                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR,
                         "Comentario", decisionInvalida));
 
         verificarQueNoSeGuardoNada();
@@ -132,10 +134,10 @@ class PlanificacionServiceTest {
     @ParameterizedTest(name = "4. Ya estaba {0}")
     @EnumSource(value = EstadoPlanificacion.class, names = {"APROBADA", "RECHAZADA"})
     void noEnviada_lanzaIllegalState(EstadoPlanificacion estadoActual) {
-        dadoQueEsDelColaboradorYEstaEn(estadoActual);
+        dadoQueEsDelProfesorYEstaEn(estadoActual);
 
         assertThrows(IllegalStateException.class,
-                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR,
+                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR,
                         "Comentario", EstadoPlanificacion.APROBADA));
 
         verificarQueNoSeGuardoNada();
@@ -145,10 +147,10 @@ class PlanificacionServiceTest {
     @NullAndEmptySource
     @ValueSource(strings = {"   ", "\n\t"})
     void rechazoSinTexto_lanzaIllegalArgument(String retroalimentacionVacia) {
-        dadoQueEsDelColaboradorYEstaEn(EstadoPlanificacion.ENVIADA);
+        dadoQueEsDelProfesorYEstaEn(EstadoPlanificacion.ENVIADA);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR,
+                () -> service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR,
                         retroalimentacionVacia, EstadoPlanificacion.RECHAZADA));
 
         verificarQueNoSeGuardoNada();
@@ -157,10 +159,10 @@ class PlanificacionServiceTest {
     @Test
     @DisplayName("6. Aprueba: guarda estado, retroalimentación (sin espacios sobrantes) y fecha")
     void aprobar_exito() {
-        dadoQueEsDelColaboradorYEstaEn(EstadoPlanificacion.ENVIADA);
+        dadoQueEsDelProfesorYEstaEn(EstadoPlanificacion.ENVIADA);
         LocalDateTime antes = LocalDateTime.now();
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR,
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR,
                 "  Buen trabajo, la planificación es clara.  ", EstadoPlanificacion.APROBADA);
 
         verify(planificacion).setEstado(EstadoPlanificacion.APROBADA);
@@ -176,10 +178,10 @@ class PlanificacionServiceTest {
     @Test
     @DisplayName("7. Rechaza: guarda estado, retroalimentación y fecha")
     void rechazar_exito() {
-        dadoQueEsDelColaboradorYEstaEn(EstadoPlanificacion.ENVIADA);
+        dadoQueEsDelProfesorYEstaEn(EstadoPlanificacion.ENVIADA);
         LocalDateTime antes = LocalDateTime.now();
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR,
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR,
                 "Faltan los objetivos de aprendizaje.", EstadoPlanificacion.RECHAZADA);
 
         verify(planificacion).setEstado(EstadoPlanificacion.RECHAZADA);
@@ -196,9 +198,9 @@ class PlanificacionServiceTest {
     @NullAndEmptySource
     @ValueSource(strings = {"   "})
     void aprobarSinComentario_guardaNull(String retroalimentacionVacia) {
-        dadoQueEsDelColaboradorYEstaEn(EstadoPlanificacion.ENVIADA);
+        dadoQueEsDelProfesorYEstaEn(EstadoPlanificacion.ENVIADA);
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR,
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR,
                 retroalimentacionVacia, EstadoPlanificacion.APROBADA);
 
         verify(planificacion).setRetroalimentacion(null);
@@ -206,16 +208,18 @@ class PlanificacionServiceTest {
         verify(planificacionRepository).save(planificacion);
     }
 
-    private LineaPractica lineaDe(Long idEstudiante, Long idColaborador) {
+    private LineaPractica lineaDe(Long idEstudiante, Long idProfesor) {
         Estudiante estudiante = new Estudiante();
         estudiante.setIdUsuario(idEstudiante);
         estudiante.setNombre("Camila Soto");
         Asignatura asignatura = new Asignatura();
         asignatura.setNombre("Práctica Pedagógica");
+        ProfesorAsignatura profesor = new ProfesorAsignatura();
+        profesor.setIdUsuario(idProfesor);
         InscripcionAsignatura inscripcion =
-                new InscripcionAsignatura(estudiante, new SeccionAsignatura(asignatura, null, 2026, 2), null);
+                new InscripcionAsignatura(estudiante, new SeccionAsignatura(asignatura, profesor, 2026, 2), null);
         ProfesorColaborador colaborador = new ProfesorColaborador();
-        colaborador.setIdUsuario(idColaborador);
+        colaborador.setIdUsuario(99L); // el colaborador ya no revisa planificaciones
         return new LineaPractica(inscripcion, colaborador, null, TipoLinea.ESPECIALIDAD);
     }
 
@@ -235,16 +239,16 @@ class PlanificacionServiceTest {
     }
 
     @Test
-    @DisplayName("HU-22. Al enviar un borrador con PDF se notifica al colaborador de la línea")
-    void enviar_notificaAlColaboradorDeLaLinea() {
-        Planificacion borrador = conArchivo(Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), null));
+    @DisplayName("HU-22. Al enviar un borrador con PDF se notifica al profesor de la asignatura")
+    void enviar_notificaAlProfesorDeLaAsignatura() {
+        Planificacion borrador = conArchivo(Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_PROFESOR), null));
         borrador.setIdPlanificacion(77L);
         when(planificacionRepository.findById(77L)).thenReturn(Optional.of(borrador));
 
         service.enviarBorrador(ID_ESTUDIANTE, 77L, PlanificacionService.fechaMinimaRevision());
 
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
-        verify(notificacionService).crear(eq(ID_COLABORADOR), eq(NotificacionService.TIPO_PLANIFICACION),
+        verify(notificacionService).crear(eq(ID_PROFESOR), eq(NotificacionService.TIPO_PLANIFICACION),
                 mensaje.capture(), eq("/planificaciones/77/evaluar"));
         assertTrue(mensaje.getValue().contains("Camila Soto envió"), mensaje.getValue());
     }
@@ -252,7 +256,7 @@ class PlanificacionServiceTest {
     @Test
     @DisplayName("HU-22. Si el borrador es de otro estudiante (403) no se guarda ni se notifica")
     void enviar_borradorAjeno_noNotifica() {
-        Planificacion ajeno = conArchivo(Planificacion.borrador(lineaDe(ID_OTRO_ESTUDIANTE, ID_COLABORADOR), null));
+        Planificacion ajeno = conArchivo(Planificacion.borrador(lineaDe(ID_OTRO_ESTUDIANTE, ID_PROFESOR), null));
         ajeno.setIdPlanificacion(ID_PLANIFICACION);
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(ajeno));
 
@@ -267,7 +271,7 @@ class PlanificacionServiceTest {
     @Test
     @DisplayName("HU-22. Si falla el guardado no se crea la notificación")
     void enviar_falloAlGuardar_noNotifica() {
-        Planificacion borrador = conArchivo(Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), null));
+        Planificacion borrador = conArchivo(Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_PROFESOR), null));
         borrador.setIdPlanificacion(ID_PLANIFICACION);
         when(planificacionRepository.findById(ID_PLANIFICACION)).thenReturn(Optional.of(borrador));
         when(planificacionRepository.save(any(Planificacion.class)))
@@ -280,9 +284,9 @@ class PlanificacionServiceTest {
     }
 
     @Test
-    @DisplayName("HU-22. Al reenviar una planificación rechazada se notifica al colaborador de la línea")
-    void reenviar_notificaAlColaboradorDeLaLinea() {
-        Planificacion rechazada = conArchivo(new Planificacion(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), null,
+    @DisplayName("HU-22. Al reenviar una planificación rechazada se notifica al profesor de la asignatura")
+    void reenviar_notificaAlProfesorDeLaAsignatura() {
+        Planificacion rechazada = conArchivo(new Planificacion(lineaDe(ID_ESTUDIANTE, ID_PROFESOR), null,
                 LocalDateTime.now().minusDays(2)));
         rechazada.setIdPlanificacion(ID_PLANIFICACION);
         rechazada.setEstado(EstadoPlanificacion.RECHAZADA);
@@ -293,7 +297,7 @@ class PlanificacionServiceTest {
         assertEquals(EstadoPlanificacion.ENVIADA, rechazada.getEstado());
         verify(planificacionRepository).save(rechazada);
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
-        verify(notificacionService).crear(eq(ID_COLABORADOR), eq(NotificacionService.TIPO_PLANIFICACION),
+        verify(notificacionService).crear(eq(ID_PROFESOR), eq(NotificacionService.TIPO_PLANIFICACION),
                 mensaje.capture(), eq("/planificaciones/10/evaluar"));
         assertTrue(mensaje.getValue().contains("Camila Soto reenvió"), mensaje.getValue());
     }
@@ -301,7 +305,7 @@ class PlanificacionServiceTest {
     @Test
     @DisplayName("HU-31/32. Reenviar una rechazada sin PDF lanza IllegalArgument: sigue rechazada y no se notifica")
     void reenviar_sinArchivo_siguesiendoRechazada() {
-        Planificacion rechazada = new Planificacion(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), "Plan antiguo de texto",
+        Planificacion rechazada = new Planificacion(lineaDe(ID_ESTUDIANTE, ID_PROFESOR), "Plan antiguo de texto",
                 LocalDateTime.now().minusDays(2));
         rechazada.setIdPlanificacion(ID_PLANIFICACION);
         rechazada.setEstado(EstadoPlanificacion.RECHAZADA);
@@ -320,7 +324,7 @@ class PlanificacionServiceTest {
     @Test
     @DisplayName("HU-22. Reenviar una planificación que no está rechazada no notifica")
     void reenviar_noRechazada_noNotifica() {
-        Planificacion aprobada = new Planificacion(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), "Plan",
+        Planificacion aprobada = new Planificacion(lineaDe(ID_ESTUDIANTE, ID_PROFESOR), "Plan",
                 LocalDateTime.now().minusDays(2));
         aprobada.setIdPlanificacion(ID_PLANIFICACION);
         aprobada.setEstado(EstadoPlanificacion.APROBADA);
@@ -333,8 +337,8 @@ class PlanificacionServiceTest {
         verificarQueNoSeNotifico();
     }
 
-    private Planificacion enviadaDe(Long idEstudiante, Long idColaborador) {
-        Planificacion enviada = new Planificacion(lineaDe(idEstudiante, idColaborador), "Plan de clase",
+    private Planificacion enviadaDe(Long idEstudiante, Long idProfesor) {
+        Planificacion enviada = new Planificacion(lineaDe(idEstudiante, idProfesor), "Plan de clase",
                 LocalDateTime.now().minusDays(1));
         enviada.setIdPlanificacion(ID_PLANIFICACION);
         return enviada;
@@ -344,9 +348,9 @@ class PlanificacionServiceTest {
     @DisplayName("HU-23. Al aprobar se notifica al estudiante sin copiar la retroalimentación")
     void aprobar_notificaAlEstudiante() {
         when(planificacionRepository.findById(ID_PLANIFICACION))
-                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
+                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_PROFESOR)));
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Muy buen trabajo", EstadoPlanificacion.APROBADA);
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR, "Muy buen trabajo", EstadoPlanificacion.APROBADA);
 
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
         verify(notificacionService).crear(eq(ID_ESTUDIANTE), eq(NotificacionService.TIPO_PLANIFICACION),
@@ -359,9 +363,9 @@ class PlanificacionServiceTest {
     @DisplayName("HU-23. Al rechazar se notifica al estudiante sin copiar la retroalimentación")
     void rechazar_notificaAlEstudiante() {
         when(planificacionRepository.findById(ID_PLANIFICACION))
-                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
+                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_PROFESOR)));
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Faltan los objetivos", EstadoPlanificacion.RECHAZADA);
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR, "Faltan los objetivos", EstadoPlanificacion.RECHAZADA);
 
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
         verify(notificacionService).crear(eq(ID_ESTUDIANTE), eq(NotificacionService.TIPO_PLANIFICACION),
@@ -374,12 +378,12 @@ class PlanificacionServiceTest {
     @DisplayName("HU-23. Si falla el guardado de la evaluación no se notifica al estudiante")
     void evaluar_falloAlGuardar_noNotifica() {
         when(planificacionRepository.findById(ID_PLANIFICACION))
-                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
+                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_PROFESOR)));
         when(planificacionRepository.save(any(Planificacion.class)))
                 .thenThrow(new IllegalStateException("Falla de base de datos"));
 
         assertThrows(IllegalStateException.class, () -> service.evaluarPlanificacion(
-                ID_PLANIFICACION, ID_COLABORADOR, "Comentario", EstadoPlanificacion.APROBADA));
+                ID_PLANIFICACION, ID_PROFESOR, "Comentario", EstadoPlanificacion.APROBADA));
 
         verificarQueNoSeNotifico();
     }
@@ -388,11 +392,11 @@ class PlanificacionServiceTest {
     @DisplayName("HU-23. Evaluar dos veces (dos pestañas) deja una sola notificación")
     void evaluarDosVeces_notificaUnaSolaVez() {
         when(planificacionRepository.findById(ID_PLANIFICACION))
-                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_COLABORADOR)));
+                .thenReturn(Optional.of(enviadaDe(ID_ESTUDIANTE, ID_PROFESOR)));
 
-        service.evaluarPlanificacion(ID_PLANIFICACION, ID_COLABORADOR, "Bien", EstadoPlanificacion.APROBADA);
+        service.evaluarPlanificacion(ID_PLANIFICACION, ID_PROFESOR, "Bien", EstadoPlanificacion.APROBADA);
         assertThrows(IllegalStateException.class, () -> service.evaluarPlanificacion(
-                ID_PLANIFICACION, ID_COLABORADOR, "Bien", EstadoPlanificacion.APROBADA));
+                ID_PLANIFICACION, ID_PROFESOR, "Bien", EstadoPlanificacion.APROBADA));
 
         verify(notificacionService).crear(any(), any(), any(), any());
     }
@@ -400,19 +404,19 @@ class PlanificacionServiceTest {
     @Test
     @DisplayName("HU-22/23. Flujo completo: enviar, rechazar y reenviar notifican al destinatario correcto")
     void flujoCompleto_notificaEnCadaPaso() {
-        Planificacion borrador = conArchivo(Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_COLABORADOR), null));
+        Planificacion borrador = conArchivo(Planificacion.borrador(lineaDe(ID_ESTUDIANTE, ID_PROFESOR), null));
         borrador.setIdPlanificacion(ID_PLANIFICACION_NUEVA);
         when(planificacionRepository.findById(ID_PLANIFICACION_NUEVA)).thenReturn(Optional.of(borrador));
 
         service.enviarBorrador(ID_ESTUDIANTE, ID_PLANIFICACION_NUEVA, PlanificacionService.fechaMinimaRevision());
-        service.evaluarPlanificacion(ID_PLANIFICACION_NUEVA, ID_COLABORADOR, "Faltan objetivos",
+        service.evaluarPlanificacion(ID_PLANIFICACION_NUEVA, ID_PROFESOR, "Faltan objetivos",
                 EstadoPlanificacion.RECHAZADA);
         service.reenviarPlanificacion(ID_ESTUDIANTE, ID_PLANIFICACION_NUEVA, PlanificacionService.fechaMinimaRevision());
 
         ArgumentCaptor<Long> destinatarios = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<String> enlaces = ArgumentCaptor.forClass(String.class);
         verify(notificacionService, times(3)).crear(destinatarios.capture(), any(), any(), enlaces.capture());
-        assertEquals(List.of(ID_COLABORADOR, ID_ESTUDIANTE, ID_COLABORADOR), destinatarios.getAllValues());
+        assertEquals(List.of(ID_PROFESOR, ID_ESTUDIANTE, ID_PROFESOR), destinatarios.getAllValues());
         assertEquals(List.of("/planificaciones/77/evaluar", "/estudiante/planificaciones",
                 "/planificaciones/77/evaluar"), enlaces.getAllValues());
     }
