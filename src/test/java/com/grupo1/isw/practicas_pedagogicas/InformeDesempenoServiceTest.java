@@ -261,8 +261,8 @@ class InformeDesempenoServiceTest {
                 new com.grupo1.isw.practicas_pedagogicas.repositories.SeccionEstructuraRepository.SeccionDatos(
                         SECCION, 10L, "Práctica", 2, 2026, 1, PROFESOR, "Profesor", true, null)));
         usarInscripcion(true);
-        when(repositorio.inscripcionesDeLaSeccion(SECCION)).thenReturn(List.of(
-                repositorio.inscripcion(INSCRIPCION).get()));
+        DatosInscripcion inscripcion = repositorio.inscripcion(INSCRIPCION).get();
+        when(repositorio.inscripcionesDeLaSeccion(SECCION)).thenReturn(List.of(inscripcion));
         when(repositorio.informesDeLaSeccion(SECCION)).thenReturn(List.of());
         List<EvaluacionEsperada> pautas = List.of(pauta(1, "COLABORADOR", "30", "20", "18", null, false),
                 pauta(2, "TUTOR", "20", "20", null, null, false));
