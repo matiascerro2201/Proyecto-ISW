@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Entregas del semestre</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/profesor/entregas')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/profesor/entregas}">Volver a mis semestres</a>
+    <h1>Entregas del semestre</h1>
+    <p class="coord-sub" th:text="${seccion.titulo()}">Asignatura · Semestre</p>
+
+    <div class="coord-filtros">
+        <a class="btn btn-ghost" th:href="@{/semestre/{id}/fechas(id=${seccion.id()})}">Fechas límite</a>
+        <a class="btn btn-ghost" th:href="@{/profesor/estructura/{id}(id=${seccion.id()})}">Estructura</a>
+        <a class="btn btn-ghost" th:href="@{/profesor/pautas-semestre/{id}(id=${seccion.id()})}">Pautas de colaboradores y tutores</a>
+        <a class="btn btn-ghost" th:href="@{/profesor/desempeno/{id}(id=${seccion.id()})}">Informes de desempeño</a>
+    </div>
+
+    <p class="vacio" th:if="${#lists.isEmpty(entregas)}">Este semestre no tiene entregas habilitadas.</p>
+    <table class="coord-tabla" th:unless="${#lists.isEmpty(entregas)}">
+        <thead><tr><th>Entrega</th><th>Ponderación</th><th>Fecha límite</th><th>Entregaron</th><th>Faltan</th><th>Notas publicadas</th><th>Acciones</th></tr></thead>
+        <tbody>
+        <tr th:each="e : ${entregas}">
+            <td th:text="${e.nombre()}">Entrega</td>
+            <td th:text="|${e.ponderacion().stripTrailingZeros().toPlainString()} %|">20 %</td>
+            <td th:text="${e.fechaLimite() != null} ? ${#temporals.format(e.fechaLimite(), 'dd/MM/yyyy')} : 'Sin definir'">Sin definir</td>
+            <td th:text="|${e.entregaron()} de ${e.inscritos()}|">3 de 5</td>
+            <td th:text="${e.faltan()}">2</td>
+            <td th:text="|${e.publicadas()} de ${e.inscritos()}|">0 de 5</td>
+            <td class="coord-acciones">
+                <a class="btn btn-ghost" th:href="@{/profesor/entregas/{s}/{e}(s=${seccion.id()},e=${e.idEntrega()})}">Revisar</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

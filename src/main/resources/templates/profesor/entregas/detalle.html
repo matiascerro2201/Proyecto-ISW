@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Revisar entrega</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/profesor/entregas')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/profesor/entregas/{id}(id=${detalle.seccion().id()})}">Volver a las entregas</a>
+    <h1 th:text="${detalle.entrega().nombre()}">Entrega</h1>
+    <p class="coord-sub"
+       th:text="|${detalle.seccion().titulo()} · ${detalle.entrega().fechaLimite() != null ? 'Fecha límite: ' + #temporals.format(detalle.entrega().fechaLimite(), 'dd/MM/yyyy') : 'Sin fecha límite'}|">Asignatura · Fecha</p>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <div class="coord-error" role="alert" th:if="${errores}">
+        <p th:each="e : ${errores}" th:text="${e}">Error</p>
+    </div>
+
+    <p class="coord-contador" th:text="|Entregaron ${detalle.entrega().entregaron()} de ${detalle.entrega().inscritos()} · Faltan ${detalle.entrega().faltan()}|">Entregaron 3 de 5</p>
+    <p class="coord-sub" th:if="${detalle.plazoVencido()}">El plazo venció: quien no entregó tiene un 1,0 automático que puedes cambiar.</p>
+    <p class="coord-sub" th:unless="${detalle.plazoVencido()}">El plazo sigue abierto: solo se puede calificar a quien ya entregó.</p>
+
+    <p class="vacio" th:if="${#lists.isEmpty(detalle.estudiantes())}">No hay estudiantes inscritos en este semestre.</p>
+
+    <article class="card" th:each="f : ${detalle.estudiantes()}">
+        <h3 th:text="${f.estudiante()}">Estudiante</h3>
+        <p class="card__meta" th:text="${f.email()}">correo</p>
+        <p class="card__meta">
+            <span th:if="${f.tieneArchivo()}"
+                  th:text="|Entregó el ${#temporals.format(f.fechaSubida(), 'dd/MM/yyyy HH:mm')}|">Entregó</span>
+            <span th:if="${!f.tieneArchivo() and f.puedeCalificar()}">No entregó (plazo vencido)</span>
+            <span th:if="${!f.tieneArchivo() and !f.puedeCalificar()}">Aún no entrega</span>
+            <span th:if="${f.automatica()}"> · Nota automática</span>
+            <span th:if="${f.publicada()}"> · Nota publicada</span>
+        </p>
+
+        <div class="card__footer" th:if="${f.tieneArchivo()}">
+            <a class="btn btn-secondary"
+               th:href="@{/profesor/entregas/{s}/{e}/{i}/descargar(s=${detalle.seccion().id()},e=${detalle.entrega().idEntrega()},i=${f.idInscripcion()})}">Descargar PDF</a>
+        </div>
+
+        <form class="coord-formulario" method="post" th:if="${f.puedeCalificar()}"
+              th:action="@{/profesor/entregas/{s}/{e}/{i}/nota(s=${detalle.seccion().id()},e=${detalle.entrega().idEntrega()},i=${f.idInscripcion()})}">
+            <label>Nota (1,0 a 7,0)
+                <input type="text" name="nota" inputmode="decimal" required
+                       th:value="${f.nota() != null} ? ${f.nota().toPlainString().replace('.', ',')} : ''">
+            </label>
+            <label>Comentario para el estudiante
+                <textarea name="comentario" rows="3" maxlength="2000" th:text="${f.comentario()}"></textarea>
+            </label>
+            <div class="coord-formulario__acciones">
+                <button type="submit" class="btn btn-primary" th:text="${f.nota() != null} ? 'Guardar cambios' : 'Guardar nota'">Guardar nota</button>
+            </div>
+        </form>
+
+        <div class="coord-acciones" th:if="${f.puedeCalificar() and f.nota() != null}">
+            <form method="post" th:unless="${f.publicada()}"
+                  th:action="@{/profesor/entregas/{s}/{e}/{i}/publicar(s=${detalle.seccion().id()},e=${detalle.entrega().idEntrega()},i=${f.idInscripcion()})}"
+                  data-confirmar="¿Publicar la nota y el comentario? El estudiante los verá y recibirá un aviso.">
+                <button type="submit" class="btn btn-accent">Publicar nota</button>
+            </form>
+            <form method="post" th:if="${f.publicada()}"
+                  th:action="@{/profesor/entregas/{s}/{e}/{i}/retirar(s=${detalle.seccion().id()},e=${detalle.entrega().idEntrega()},i=${f.idInscripcion()})}"
+                  data-confirmar="¿Retirar la publicación? El estudiante dejará de ver su nota.">
+                <button type="submit" class="btn btn-ghost">Retirar publicación</button>
+            </form>
+        </div>
+    </article>
+</main>
+</body>
+</html>

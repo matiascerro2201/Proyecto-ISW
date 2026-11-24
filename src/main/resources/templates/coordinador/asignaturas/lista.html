@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Asignaturas · Coordinación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/asignaturas')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+    <h1>Asignaturas</h1>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+
+    <div class="coord-filtros">
+        <a class="btn btn-primary" th:href="@{/coordinador/asignaturas/nueva}">Nueva asignatura</a>
+        <a class="btn btn-ghost" th:href="@{/coordinador/secciones}">Ver secciones</a>
+    </div>
+
+    <p class="coord-contador" aria-live="polite"
+       th:text="|${#lists.size(asignaturas)} ${#lists.size(asignaturas) == 1 ? 'asignatura' : 'asignaturas'}|">3 asignaturas</p>
+    <p class="vacio" th:if="${#lists.isEmpty(asignaturas)}">Todavía no hay asignaturas. Crea la primera.</p>
+
+    <table class="coord-tabla" th:unless="${#lists.isEmpty(asignaturas)}">
+        <thead><tr><th>Nombre</th><th>Ciclo</th><th>Líneas</th><th>Secciones</th><th>Acciones</th></tr></thead>
+        <tbody>
+        <tr th:each="a : ${asignaturas}">
+            <td th:text="${a.nombre()}">Nombre</td>
+            <td th:text="${a.cicloEtiqueta()}">Ciclo</td>
+            <td th:text="${a.numeroLineas()}">1</td>
+            <td th:text="${a.secciones()}">0</td>
+            <td class="coord-acciones">
+                <a class="btn btn-ghost" th:href="@{/coordinador/asignaturas/{id}/editar(id=${a.id()})}">Editar</a>
+                <form method="post" th:if="${a.puedeEliminar()}"
+                      th:action="@{/coordinador/asignaturas/{id}/eliminar(id=${a.id()})}"
+                      data-confirmar="¿Eliminar esta asignatura? Se borrarán también sus pautas y no se puede deshacer.">
+                    <button type="submit" class="btn btn-ghost">Eliminar</button>
+                </form>
+                <span class="coord-sub" th:unless="${a.puedeEliminar()}">Tiene secciones</span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

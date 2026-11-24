@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Detalle de la evaluación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/estudiante/evaluaciones')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/estudiante/evaluaciones}">Volver a mis evaluaciones</a>
+    <h1 th:text="${detalle.nombre()}">Pauta</h1>
+    <p class="coord-sub" th:text="|${detalle.asignatura()} · ${detalle.periodo()} · ${detalle.evaluador()}: ${detalle.nombreEvaluador()}|">Asignatura</p>
+
+    <p class="coord-contador"
+       th:text="|Nota: ${detalle.nota() != null ? detalle.nota().toPlainString().replace('.', ',') : '—'} · ${detalle.puntaje().toPlainString().replace('.', ',')} de ${detalle.puntajeMaximo().toPlainString().replace('.', ',')} puntos · Ponderación: ${detalle.ponderacion().stripTrailingZeros().toPlainString()} %|">Nota</p>
+    <p class="card__meta" th:if="${detalle.fecha() != null}" th:text="|Evaluada el ${#temporals.format(detalle.fecha(), 'dd/MM/yyyy')}|">Evaluada</p>
+
+    <article class="card" th:each="d : ${detalle.dimensiones()}">
+        <h3 th:text="|${d.nombre()} (${d.obtenido().toPlainString().replace('.', ',')} de ${d.maximo().toPlainString().replace('.', ',')})|">Dimensión</h3>
+        <div class="tabla-scroll">
+            <table class="coord-tabla">
+                <thead><tr><th>Criterio</th><th>Puntaje</th><th>Comentario del evaluador</th></tr></thead>
+                <tbody>
+                <tr th:each="c : ${d.criterios()}">
+                    <td th:text="${c.criterio()}">Criterio</td>
+                    <td th:text="|${c.obtenido() != null ? c.obtenido().toPlainString().replace('.', ',') : '—'} de ${c.maximo().toPlainString().replace('.', ',')}|">3 de 5</td>
+                    <td th:text="${c.comentario() != null} ? ${c.comentario()} : '—'">—</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </article>
+</main>
+</body>
+</html>

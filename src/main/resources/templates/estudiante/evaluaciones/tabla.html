@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mis evaluaciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/estudiante/evaluaciones')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+    <h1>Mis evaluaciones</h1>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+
+    <p class="vacio" th:if="${#lists.isEmpty(grupos)}">Todavía no tienes evaluaciones: aparecen cuando el semestre de tu asignatura se inicia.</p>
+
+    <section th:each="g : ${grupos}">
+        <h2 th:text="|${g.asignatura()} · ${g.periodo()}|">Asignatura · Semestre</h2>
+        <div class="tabla-scroll">
+        <table class="coord-tabla">
+            <thead>
+            <tr><th>Evaluación</th><th>Ponderación</th><th>Fecha límite</th><th>Estado</th><th>Nota</th><th>Acciones</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="f : ${g.filas()}">
+                <td>
+                    <strong th:text="${f.nombre()}">Evaluación</strong><br>
+                    <span class="card__meta" th:text="${f.detalle()}">Entrega de documento</span>
+                </td>
+                <td th:text="|${f.ponderacion().stripTrailingZeros().toPlainString()} %|">20 %</td>
+                <td th:text="${f.fechaLimite() != null} ? ${#temporals.format(f.fechaLimite(), 'dd/MM/yyyy')} : '—'">—</td>
+                <td th:switch="${f.estado()}">
+                    <span class="badge aprobada" th:case="'ENTREGADA'">Entregada</span>
+                    <span class="badge aprobada" th:case="'APLICADA'">Aplicada</span>
+                    <span class="badge pendiente" th:case="'NO_ENTREGADA'">No entregada</span>
+                    <span class="badge borrador" th:case="*">Pendiente</span>
+                </td>
+                <td th:text="${f.nota() != null} ? ${f.nota().toPlainString().replace('.', ',')} : '—'">—</td>
+                <td>
+                    <div class="coord-acciones">
+                        <a class="btn btn-ghost" th:if="${f.esEntrega() and f.conDetalle()}"
+                           th:href="@{/estudiante/evaluaciones/entregas/{i}/{e}(i=${f.idInscripcion()},e=${f.idEntrega()})}">Ver detalle</a>
+                        <a class="btn btn-ghost" th:if="${!f.esEntrega() and f.conDetalle()}"
+                           th:href="@{/estudiante/evaluaciones/pautas/{e}(e=${f.idEvaluacion()})}">Ver detalle</a>
+                        <a class="btn btn-secondary" th:if="${f.esEntrega() and f.tieneArchivo()}"
+                           th:href="@{/estudiante/entregas/{i}/{e}/descargar(i=${f.idInscripcion()},e=${f.idEntrega()})}">Mi PDF</a>
+                    </div>
+                    <form method="post" enctype="multipart/form-data" th:if="${f.puedeEntregar()}"
+                          th:action="@{/estudiante/evaluaciones/entregas/{i}/{e}(i=${f.idInscripcion()},e=${f.idEntrega()})}">
+                        <input type="file" name="archivo" accept="application/pdf,.pdf" required="required"
+                               th:attr="aria-label=|Archivo PDF de ${f.nombre()}|">
+                        <button type="submit" class="btn btn-accent"
+                                th:text="${f.tieneArchivo()} ? 'Reemplazar' : 'Entregar'">Entregar</button>
+                    </form>
+                </td>
+            </tr>
+            <tr th:if="${g.tieneNotaFinal()}">
+                <td colspan="4"><strong>Nota final de la práctica</strong><br>
+                    <span class="card__meta">Informe de desempeño publicado por el profesor</span></td>
+                <td><strong th:text="${g.notaFinal().toPlainString().replace('.', ',')}">5,8</strong></td>
+                <td></td>
+            </tr>
+            <tr th:unless="${g.tieneNotaFinal()}">
+                <td colspan="4"><strong>Nota final de la práctica</strong></td>
+                <td colspan="2"><span class="card__meta">Se mostrará cuando el profesor publique el informe de desempeño.</span></td>
+            </tr>
+            </tbody>
+        </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

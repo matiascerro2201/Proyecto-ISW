@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pautas del semestre</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/profesor/pautas')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/profesor/pautas}">Volver a mis semestres</a>
+    <h1>Pautas del semestre</h1>
+    <p class="coord-sub" th:text="${panel.seccion().titulo()}">Asignatura · Semestre</p>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <div class="coord-error" role="alert" th:if="${errores}">
+        <p th:each="e : ${errores}" th:text="${e}">Error</p>
+    </div>
+
+    <div class="coord-filtros">
+        <a class="btn btn-ghost" th:href="@{/semestre/{id}/fechas(id=${panel.seccion().id()})}">Fechas límite</a>
+        <a class="btn btn-ghost" th:href="@{/profesor/desempeno/{id}(id=${panel.seccion().id()})}">Informes de desempeño</a>
+    </div>
+    <p class="coord-contador" th:text="|Aplicadas: ${panel.aplicadas()} de ${#lists.size(panel.filas())} · Publicadas: ${panel.publicadas()} · Por publicar: ${panel.porPublicar()}|">Aplicadas</p>
+
+    <form method="post" th:if="${panel.porPublicar() > 0}"
+          th:action="@{/profesor/pautas/{id}/publicar-todas(id=${panel.seccion().id()})}"
+          data-confirmar="¿Publicar todas las pautas aplicadas? Cada estudiante verá su nota y el detalle y recibirá un aviso.">
+        <button type="submit" class="btn btn-accent">Publicar todas las aplicadas</button>
+    </form>
+
+    <p class="vacio" th:if="${#lists.isEmpty(panel.filas())}">Este semestre no tiene pautas habilitadas para los estudiantes inscritos.</p>
+    <table class="coord-tabla" th:unless="${#lists.isEmpty(panel.filas())}">
+        <thead><tr><th>Estudiante</th><th>Pauta</th><th>Evaluador</th><th>Línea</th><th>Fecha límite</th><th>Nota</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+        <tr th:each="f : ${panel.filas()}">
+            <td th:text="${f.datos().estudiante()}">Estudiante</td>
+            <td th:text="|${f.datos().pauta()} (${f.datos().etiquetaAplicacion()})|">Pauta (A)</td>
+            <td th:text="|${f.datos().etiquetaEvaluador()}: ${f.datos().nombreEvaluador()}|">Colaborador</td>
+            <td th:text="${f.datos().etiquetaLinea()}">Línea</td>
+            <td th:text="${f.datos().fechaLimite() != null} ? ${#temporals.format(f.datos().fechaLimite(), 'dd/MM/yyyy')} : 'Sin fecha'">Sin fecha</td>
+            <td th:text="${f.nota() != null} ? ${f.nota().toPlainString().replace('.', ',')} : '—'">—</td>
+            <td>
+                <span class="badge aprobada" th:if="${f.datos().publicada()}">Publicada</span>
+                <span class="badge borrador" th:if="${f.datos().aplicada() and !f.datos().publicada()}">Aplicada, sin publicar</span>
+                <span class="badge pendiente" th:unless="${f.datos().aplicada()}">Sin aplicar</span>
+            </td>
+            <td class="coord-acciones">
+                <a class="btn btn-ghost" th:if="${f.datos().aplicada()}"
+                   th:href="@{/profesor/pautas/{s}/{e}(s=${panel.seccion().id()},e=${f.datos().idEvaluacion()})}">Ver detalle</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${editando} ? 'Editar asignatura' : 'Nueva asignatura'">Asignatura</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/asignaturas')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/coordinador/asignaturas}">Volver a asignaturas</a>
+    <h1 th:text="${editando} ? 'Editar asignatura' : 'Nueva asignatura'">Nueva asignatura</h1>
+
+    <div class="coord-error" role="alert" th:if="${errores}">
+        <p th:each="e : ${errores}" th:text="${e}">Error</p>
+    </div>
+
+    <form class="coord-formulario" method="post"
+          th:action="${editando} ? @{/coordinador/asignaturas/{id}(id=${idAsignatura})} : @{/coordinador/asignaturas}"
+          th:object="${formulario}">
+        <label>Nombre
+            <input type="text" th:field="*{nombre}" maxlength="150" required>
+        </label>
+        <label>Ciclo
+            <select th:field="*{ciclo}" required>
+                <option value="">Elige un ciclo</option>
+                <option th:each="c : ${ciclos}" th:value="${c.valor()}" th:text="${c.etiqueta()}">Ciclo</option>
+            </select>
+        </label>
+        <label>Líneas de práctica
+            <select th:field="*{numeroLineas}" required th:disabled="${lineasBloqueadas}">
+                <option th:value="1" th:text="'1 línea (única)'">1</option>
+                <option th:value="2" th:text="'2 líneas (especialidad y orientación)'">2</option>
+            </select>
+        </label>
+        <input type="hidden" name="numeroLineas" th:if="${lineasBloqueadas}" th:value="*{numeroLineas}">
+        <p class="coord-sub" th:if="${lineasBloqueadas}">
+            No se puede cambiar el número de líneas porque ya hay estudiantes inscritos.
+        </p>
+
+        <div class="coord-formulario__acciones">
+            <button type="submit" class="btn btn-primary" th:text="${editando} ? 'Guardar cambios' : 'Crear asignatura'">Guardar</button>
+            <a class="btn btn-ghost" th:href="@{/coordinador/asignaturas}">Cancelar</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

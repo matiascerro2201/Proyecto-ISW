@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inscripciones · Coordinación</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
+    <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/coordinador.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/coordinador/secciones')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/coordinador/secciones}">Volver a secciones</a>
+    <h1>Inscripciones</h1>
+    <p class="coord-sub" th:text="${seccion.titulo()}">Práctica Pedagógica · Semestre 2 de 2026</p>
+
+    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
+    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+
+    <div class="coord-filtros">
+        <a class="btn btn-primary" th:href="@{/coordinador/semestre/{id}/inscripciones/nueva(id=${seccion.id()})}">Inscribir estudiante</a>
+        <a class="btn btn-ghost" th:href="@{/coordinador/semestre/{id}(id=${seccion.id()})}">Estructura del semestre</a>
+    </div>
+
+    <p class="coord-contador" aria-live="polite"
+       th:text="|${#lists.size(inscripciones)} ${#lists.size(inscripciones) == 1 ? 'estudiante inscrito' : 'estudiantes inscritos'}|">2 estudiantes</p>
+    <p class="vacio" th:if="${#lists.isEmpty(inscripciones)}">Todavía no hay estudiantes inscritos en esta sección.</p>
+
+    <table class="coord-tabla" th:unless="${#lists.isEmpty(inscripciones)}">
+        <thead><tr><th>Estudiante</th><th>Centro de práctica</th><th>Líneas (colaborador · tutor)</th><th>Acciones</th></tr></thead>
+        <tbody>
+        <tr th:each="i : ${inscripciones}">
+            <td><span th:text="${i.estudiante()}">Nombre</span><br><span class="coord-sub" th:text="${i.email()}">correo</span></td>
+            <td th:text="${i.centro()}">Centro</td>
+            <td>
+                <div th:each="l : ${i.lineas()}">
+                    <strong th:text="${l.etiquetaTipo()}">Línea</strong>:
+                    <span th:text="${l.colaborador()}">Colaborador</span> ·
+                    <span th:text="${l.tutor() != null} ? ${l.tutor()} : 'sin tutor'">Tutor</span>
+                </div>
+            </td>
+            <td class="coord-acciones">
+                <a class="btn btn-ghost"
+                   th:href="@{/coordinador/semestre/{s}/inscripciones/{i}/editar(s=${seccion.id()},i=${i.id()})}">Editar</a>
+                <form method="post" th:action="@{/coordinador/semestre/{s}/inscripciones/{i}/quitar(s=${seccion.id()},i=${i.id()})}"
+                      data-confirmar="¿Quitar a este estudiante de la sección? Solo es posible si aún no tiene nada evaluado.">
+                    <button type="submit" class="btn btn-ghost">Quitar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>
