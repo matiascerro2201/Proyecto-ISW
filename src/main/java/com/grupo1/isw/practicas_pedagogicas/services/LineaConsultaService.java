@@ -55,7 +55,8 @@ public class LineaConsultaService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "La línea de práctica no existe"));
 
-        if (!Objects.equals(linea.getColaborador().getIdUsuario(), idColaborador)) {
+        if (linea.getColaborador() == null
+                || !Objects.equals(linea.getColaborador().getIdUsuario(), idColaborador)) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN, "No tienes permiso sobre esta línea de práctica");
         }

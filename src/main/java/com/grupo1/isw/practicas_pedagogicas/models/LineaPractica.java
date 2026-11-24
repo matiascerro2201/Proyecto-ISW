@@ -18,8 +18,9 @@ public class LineaPractica {
     @JoinColumn(name = "id_inscripcion", nullable = false)
     private InscripcionAsignatura inscripcion;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_colaborador", nullable = false)
+    /** Opcional: en algunas asignaturas no participa un profesor colaborador. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_colaborador")
     private ProfesorColaborador colaborador;
 
     @ManyToOne(fetch = FetchType.LAZY)

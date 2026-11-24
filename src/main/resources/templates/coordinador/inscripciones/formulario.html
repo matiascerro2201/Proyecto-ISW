@@ -50,9 +50,9 @@
         <fieldset th:each="linea, st : *{lineas}">
             <legend th:text="|Línea: ${linea.etiquetaTipo()}|">Línea</legend>
             <input type="hidden" th:field="*{lineas[__${st.index}__].tipo}">
-            <label>Profesor colaborador
-                <select th:field="*{lineas[__${st.index}__].idColaborador}" required>
-                    <option value="">Elige un colaborador</option>
+            <label>Profesor colaborador (opcional)
+                <select th:field="*{lineas[__${st.index}__].idColaborador}">
+                    <option value="">Sin colaborador</option>
                     <option th:each="c : ${colaboradores}" th:value="${c.id()}" th:text="${c.etiqueta()}">Colaborador</option>
                 </select>
             </label>

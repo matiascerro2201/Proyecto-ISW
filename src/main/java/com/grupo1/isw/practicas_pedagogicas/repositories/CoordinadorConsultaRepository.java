@@ -93,7 +93,7 @@ public interface CoordinadorConsultaRepository extends Repository<SeccionAsignat
     @Query("""
             SELECT l
             FROM LineaPractica l
-            JOIN FETCH l.colaborador
+            LEFT JOIN FETCH l.colaborador
             LEFT JOIN FETCH l.tutor
             WHERE l.inscripcion.idInscripcion IN :idsInscripcion
             ORDER BY l.tipo

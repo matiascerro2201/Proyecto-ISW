@@ -8,8 +8,8 @@ public class UsuarioFormulario {
     private String email;
     private RolUsuario rol;
     private String password;
-    /** Solo para el rol ESTUDIANTE. */
-    private String carrera;
+    /** La contraseña escrita por segunda vez; debe ser igual a {@link #password}. */
+    private String passwordConfirmacion;
     /** Solo para el rol COLABORADOR. */
     private Long idCentro;
 
@@ -49,12 +49,12 @@ public class UsuarioFormulario {
         this.password = password;
     }
 
-    public String getCarrera() {
-        return carrera;
+    public String getPasswordConfirmacion() {
+        return passwordConfirmacion;
     }
 
-    public void setCarrera(String carrera) {
-        this.carrera = carrera;
+    public void setPasswordConfirmacion(String passwordConfirmacion) {
+        this.passwordConfirmacion = passwordConfirmacion;
     }
 
     public Long getIdCentro() {

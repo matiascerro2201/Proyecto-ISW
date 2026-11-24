@@ -43,7 +43,7 @@
             <td>
                 <div th:each="l : ${i.lineas()}">
                     <strong th:text="${l.etiquetaTipo()}">Línea</strong>:
-                    <span th:text="${l.colaborador()}">Colaborador</span> ·
+                    <span th:text="${l.colaborador() != null} ? ${l.colaborador()} : 'sin colaborador'">Colaborador</span> ·
                     <span th:text="${l.tutor() != null} ? ${l.tutor()} : 'sin tutor'">Tutor</span>
                 </div>
             </td>

@@ -66,15 +66,17 @@ public class InscripcionAdminRepository {
             jdbc.query("""
                     SELECT l.id_inscripcion, l.id_linea, l.tipo, l.id_colaborador, uc.nombre, l.id_tutor, ut.nombre
                       FROM linea_practica l
-                      JOIN usuario uc ON uc.id_usuario = l.id_colaborador
+                      LEFT JOIN usuario uc ON uc.id_usuario = l.id_colaborador
                       LEFT JOIN usuario ut ON ut.id_usuario = l.id_tutor
                      WHERE l.id_inscripcion IN (""" + marcas + ") ORDER BY l.tipo",
                     rs -> {
                         long idInscripcion = rs.getLong(1);
+                        long idColaborador = rs.getLong(4);
+                        Long colaborador = rs.wasNull() ? null : idColaborador;
                         long idTutor = rs.getLong(6);
                         Long tutor = rs.wasNull() ? null : idTutor;
                         lineasPorInscripcion.get(idInscripcion).add(new LineaFila(rs.getLong(2), rs.getString(3),
-                                rs.getLong(4), rs.getString(5), tutor, rs.getString(7)));
+                                colaborador, rs.getString(5), tutor, rs.getString(7)));
                     },
                     base.stream().map(f -> f[0]).toArray());
         }
@@ -143,8 +145,11 @@ public class InscripcionAdminRepository {
         jdbc.update("UPDATE inscripcion_asignatura SET id_centro = ? WHERE id_inscripcion = ?", idCentro, idInscripcion);
     }
 
-    /** Crea la línea o, si el estudiante ya tiene una de ese tipo, le cambia colaborador y tutor. */
-    public void guardarLinea(long idInscripcion, String tipo, long idColaborador, Long idTutor) {
+    /**
+     * Crea la línea o, si el estudiante ya tiene una de ese tipo, le cambia colaborador y tutor. Ambos son
+     * opcionales: hay asignaturas sin profesor colaborador y líneas sin tutor.
+     */
+    public void guardarLinea(long idInscripcion, String tipo, Long idColaborador, Long idTutor) {
         int actualizadas = jdbc.update("""
                 UPDATE linea_practica SET id_colaborador = ?, id_tutor = ?
                  WHERE id_inscripcion = ? AND tipo = ?

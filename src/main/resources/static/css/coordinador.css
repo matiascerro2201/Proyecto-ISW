@@ -55,3 +55,8 @@ a.coord-fila:hover, a.coord-fila:focus-visible, .coord-actividad__resumen:hover 
 .coord-dialogo__barra { display: flex; justify-content: space-between; align-items: center; padding: .75rem 1rem; border-bottom: 1px solid var(--borde, #e2e6ee); position: sticky; top: 0; background: inherit; }
 .coord-dialogo__barra h2 { margin: 0; font-size: 1.1rem; }
 .coord-dialogo__contenido { padding: 1rem; }
+
+/* Avisos junto a los campos de contraseña (Bloq Mayús activado, contraseñas distintas). */
+.coord-aviso { margin: 0; padding: .4rem .6rem; border-radius: .4rem; font-size: .85rem; background: #fff4d6; color: #5c4400; }
+.coord-aviso--error { background: #fde8e8; color: #7a1d1d; }
+.coord-aviso[hidden] { display: none; }

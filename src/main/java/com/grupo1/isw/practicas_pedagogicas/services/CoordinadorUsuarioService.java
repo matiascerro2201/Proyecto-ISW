@@ -30,7 +30,6 @@ public class CoordinadorUsuarioService {
     static final int CLAVE_MINIMA = 8;
     private static final int LARGO_NOMBRE = 150;
     private static final int LARGO_CORREO = 150;
-    private static final int LARGO_CARRERA = 150;
     private static final Pattern CORREO = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
     private final UsuarioRepository usuarioRepository;
@@ -69,9 +68,6 @@ public class CoordinadorUsuarioService {
         formulario.setNombre(usuario.getNombre());
         formulario.setEmail(usuario.getEmail());
         formulario.setRol(usuario.getRol());
-        if (usuario.getRol() == RolUsuario.ESTUDIANTE) {
-            formulario.setCarrera(adminRepository.carreraDe(idUsuario));
-        }
         if (usuario.getRol() == RolUsuario.COLABORADOR) {
             formulario.setIdCentro(adminRepository.centroDe(idUsuario));
         }
@@ -83,9 +79,8 @@ public class CoordinadorUsuarioService {
         String nombre = nombreValido(formulario.getNombre());
         String email = correoValido(formulario.getEmail());
         RolUsuario rol = rolValido(formulario.getRol());
-        String carrera = formulario.getCarrera() == null ? null : formulario.getCarrera().strip();
-        validarDatosDelRol(rol, carrera, formulario.getIdCentro());
-        String clave = claveValida(formulario.getPassword(), true);
+        validarDatosDelRol(rol, formulario.getIdCentro());
+        String clave = claveValida(formulario.getPassword(), formulario.getPasswordConfirmacion(), true);
         if (usuarioRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new IllegalArgumentException("Ya existe una cuenta con ese correo.");
         }
@@ -93,7 +88,7 @@ public class CoordinadorUsuarioService {
         Usuario usuario = new Usuario(nombre, email, passwordEncoder.encode(clave), rol);
         usuario.setActivo(true);
         usuarioRepository.saveAndFlush(usuario);
-        adminRepository.insertarSubtipo(usuario.getIdUsuario(), rol, carrera, formulario.getIdCentro());
+        adminRepository.insertarSubtipo(usuario.getIdUsuario(), rol, formulario.getIdCentro());
         return usuario.getIdUsuario();
     }
 
@@ -108,9 +103,8 @@ public class CoordinadorUsuarioService {
         String email = correoValido(formulario.getEmail());
         RolUsuario nuevo = rolValido(formulario.getRol());
         RolUsuario actual = usuario.getRol();
-        String carrera = formulario.getCarrera() == null ? null : formulario.getCarrera().strip();
-        validarDatosDelRol(nuevo, carrera, formulario.getIdCentro());
-        String clave = claveValida(formulario.getPassword(), false);
+        validarDatosDelRol(nuevo, formulario.getIdCentro());
+        String clave = claveValida(formulario.getPassword(), formulario.getPasswordConfirmacion(), false);
 
         if (usuarioRepository.findByEmailIgnoreCase(email)
                 .filter(otro -> !otro.getIdUsuario().equals(idUsuario)).isPresent()) {
@@ -128,9 +122,9 @@ public class CoordinadorUsuarioService {
         usuarioRepository.saveAndFlush(usuario);
 
         if (nuevo != actual) {
-            adminRepository.reemplazarSubtipo(idUsuario, actual, nuevo, carrera, formulario.getIdCentro());
+            adminRepository.reemplazarSubtipo(idUsuario, actual, nuevo, formulario.getIdCentro());
         } else {
-            adminRepository.actualizarSubtipo(idUsuario, actual, carrera, formulario.getIdCentro());
+            adminRepository.actualizarSubtipo(idUsuario, actual, formulario.getIdCentro());
         }
     }
 
@@ -213,29 +207,31 @@ public class CoordinadorUsuarioService {
         return rol;
     }
 
-    /** Devuelve la contraseña, o null si es opcional y no se escribió. */
-    private static String claveValida(String clave, boolean obligatoria) {
+    /**
+     * Devuelve la contraseña, o null si es opcional y no se escribió. Quien la escribe debe repetirla igual en
+     * {@code confirmacion}, para que un error de tipeo no deje la cuenta con una clave que nadie conoce.
+     */
+    private static String claveValida(String clave, String confirmacion, boolean obligatoria) {
         if (clave == null || clave.isEmpty()) {
             if (obligatoria) {
                 throw new IllegalArgumentException("Escribe una contraseña inicial para la cuenta.");
+            }
+            if (confirmacion != null && !confirmacion.isEmpty()) {
+                throw new IllegalArgumentException("Las contraseñas no coinciden.");
             }
             return null;
         }
         if (clave.length() < CLAVE_MINIMA) {
             throw new IllegalArgumentException("La contraseña debe tener al menos " + CLAVE_MINIMA + " caracteres.");
         }
+        if (!clave.equals(confirmacion)) {
+            throw new IllegalArgumentException("Las contraseñas no coinciden.");
+        }
         return clave;
     }
 
-    private void validarDatosDelRol(RolUsuario rol, String carrera, Long idCentro) {
-        if (rol == RolUsuario.ESTUDIANTE) {
-            if (carrera == null || carrera.isBlank()) {
-                throw new IllegalArgumentException("Escribe la carrera del estudiante.");
-            }
-            if (carrera.length() > LARGO_CARRERA) {
-                throw new IllegalArgumentException("La carrera no puede pasar de " + LARGO_CARRERA + " caracteres.");
-            }
-        }
+    /** La carrera no se pide: todo estudiante es de Pedagogía en Matemática. Solo el colaborador necesita un dato. */
+    private void validarDatosDelRol(RolUsuario rol, Long idCentro) {
         if (rol == RolUsuario.COLABORADOR) {
             if (idCentro == null) {
                 throw new IllegalArgumentException("Elige el centro de práctica del profesor colaborador.");

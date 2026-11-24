@@ -101,7 +101,8 @@ public class ActividadInscripcionService {
         List<LineaPractica> lineas = contexto.lineas().getOrDefault(idInscripcion, List.of());
 
         List<LineaActividad> lineasVista = lineas.stream()
-                .map(l -> new LineaActividad(Etiquetas.tipoLinea(l.getTipo()), l.getColaborador().getNombre(),
+                .map(l -> new LineaActividad(Etiquetas.tipoLinea(l.getTipo()),
+                        l.getColaborador() == null ? null : l.getColaborador().getNombre(),
                         l.getTutor() == null ? null : l.getTutor().getNombre()))
                 .toList();
 
@@ -139,8 +140,8 @@ public class ActividadInscripcionService {
     }
 
     /**
-     * Lo que se espera de la línea: cada pauta habilitada de su tipo, evaluada por el colaborador y, si la línea
-     * tiene tutor, también por él. Cada una aparece como realizada (con puntaje) o pendiente. Las evaluaciones ya
+     * Lo que se espera de la línea: cada pauta habilitada de su tipo, evaluada por el colaborador y por el tutor,
+     * si la línea los tiene (ambos son opcionales). Cada una aparece como realizada (con puntaje) o pendiente. Las evaluaciones ya
      * hechas que no calzan con lo esperado (por ejemplo, de una pauta deshabilitada después) se agregan igual:
      * el coordinador nunca deja de ver algo que existe.
      */
@@ -148,9 +149,14 @@ public class ActividadInscripcionService {
                                                                  List<EvaluacionAplicada> hechas) {
         List<EvaluacionActividad> filas = new ArrayList<>();
         Set<Long> usadas = new HashSet<>();
-        List<TipoEvaluador> evaluadores = linea.getTutor() == null
-                ? List.of(TipoEvaluador.COLABORADOR)
-                : List.of(TipoEvaluador.COLABORADOR, TipoEvaluador.TUTOR);
+        // Colaborador y tutor son opcionales: solo se espera la pauta de quien participa en la línea.
+        List<TipoEvaluador> evaluadores = new ArrayList<>();
+        if (linea.getColaborador() != null) {
+            evaluadores.add(TipoEvaluador.COLABORADOR);
+        }
+        if (linea.getTutor() != null) {
+            evaluadores.add(TipoEvaluador.TUTOR);
+        }
 
         for (PautaEvaluacion pauta : pautas) {
             if (pauta.getTipoLinea() != linea.getTipo() || !pauta.isHabilitada()) {
