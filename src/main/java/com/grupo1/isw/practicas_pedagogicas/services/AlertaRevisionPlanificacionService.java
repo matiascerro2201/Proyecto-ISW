@@ -3,6 +3,7 @@ package com.grupo1.isw.practicas_pedagogicas.services;
 import com.grupo1.isw.practicas_pedagogicas.models.EstadoPlanificacion;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.ProfesorAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.repositories.PlanificacionRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
- * Avisa al profesor colaborador cuando faltan 2 días para la fecha en que el estudiante pidió la revisión
+ * Avisa al profesor de la asignatura cuando faltan 2 días para la fecha en que el estudiante pidió la revisión
  * de su planificación. Solo cuenta mientras la planificación sigue ENVIADA (sin evaluar).
  * <p>
  * Corre todos los días a las 08:00. Revisa desde hoy hasta hoy + 2 días y marca cada planificación avisada,
@@ -51,10 +52,11 @@ public class AlertaRevisionPlanificacionService {
         int avisos = 0;
         for (Planificacion planificacion : proximas) {
             LineaPractica linea = planificacion.getLinea();
-            if (linea == null || linea.getColaborador() == null) {
+            ProfesorAsignatura profesor = profesorDe(linea);
+            if (profesor == null) {
                 continue;
             }
-            notificacionService.crear(linea.getColaborador().getIdUsuario(),
+            notificacionService.crear(profesor.getIdUsuario(),
                     NotificacionService.TIPO_REVISION_PROXIMA,
                     mensaje(planificacion, linea, hoy),
                     "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar");
@@ -63,6 +65,14 @@ public class AlertaRevisionPlanificacionService {
             avisos++;
         }
         return avisos;
+    }
+
+    /** Quien revisa: el profesor de la sección en que está inscrito el estudiante. */
+    private static ProfesorAsignatura profesorDe(LineaPractica linea) {
+        if (linea == null || linea.getInscripcion() == null || linea.getInscripcion().getSeccion() == null) {
+            return null;
+        }
+        return linea.getInscripcion().getSeccion().getProfesor();
     }
 
     private static String mensaje(Planificacion planificacion, LineaPractica linea, LocalDate hoy) {

@@ -11,9 +11,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
+/**
+ * Revisión de planificaciones de clase: la hace el profesor de la asignatura (el de la sección en que está
+ * inscrito el estudiante), no el colaborador. Las vistas conservan su carpeta "colaborador/" por historia.
+ */
 @Controller
 @RequestMapping("/planificaciones")
-@PreAuthorize("hasRole('COLABORADOR')")
+@PreAuthorize("hasRole('PROFESOR_ASIGNATURA')")
 public class PlanificacionController {
     private static final String VISTA_PENDIENTES = "colaborador/pendientes";
     private static final String VISTA_EVALUAR = "colaborador/evaluar_planificacion";

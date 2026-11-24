@@ -1,12 +1,10 @@
 package com.grupo1.isw.practicas_pedagogicas.services;
 
 import com.grupo1.isw.practicas_pedagogicas.models.EstadoInscripcion;
-import com.grupo1.isw.practicas_pedagogicas.models.EstadoPlanificacion;
 import com.grupo1.isw.practicas_pedagogicas.models.EvaluacionAplicada;
 import com.grupo1.isw.practicas_pedagogicas.models.InscripcionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.PautaEvaluacion;
-import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
 import com.grupo1.isw.practicas_pedagogicas.models.SeccionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.repositories.EvaluacionAplicadaRepository;
 import com.grupo1.isw.practicas_pedagogicas.repositories.LineaPracticaRepository;
@@ -44,7 +42,7 @@ public class MisEstudiantesService {
         }
     }
 
-    /** Una planificación enviada que el colaborador todavía no evalúa. */
+    /** Una planificación enviada pendiente de evaluar (hoy la evalúa el profesor de la asignatura, no se llena aquí). */
     public record PlanificacionPorEvaluar(Long idPlanificacion, LocalDateTime fechaEnvio) {
     }
 
@@ -109,16 +107,9 @@ public class MisEstudiantesService {
 
     @Transactional(readOnly = true)
     public List<EstudianteSupervisado> delColaborador(Long idColaborador) {
-        Map<Long, List<PlanificacionPorEvaluar>> porEvaluar = new HashMap<>();
-        for (Planificacion planificacion
-                : planificacionRepository.findByEstadoAndLinea_Colaborador_IdUsuarioOrderByFechaEnvioAsc(
-                        EstadoPlanificacion.ENVIADA, idColaborador)) {
-            porEvaluar.computeIfAbsent(planificacion.getLinea().getInscripcion().getIdInscripcion(),
-                    id -> new ArrayList<>())
-                    .add(new PlanificacionPorEvaluar(planificacion.getIdPlanificacion(), planificacion.getFechaEnvio()));
-        }
+        // Las planificaciones ya no las revisa el colaborador, así que no hay nada por evaluar aquí.
         return armar(lineaRepository.findByColaborador(idColaborador),
-                evaluacionRepository::findDelColaboradorByLinea, porEvaluar);
+                evaluacionRepository::findDelColaboradorByLinea, Map.of());
     }
 
     private List<EstudianteSupervisado> armar(List<LineaPractica> todas,

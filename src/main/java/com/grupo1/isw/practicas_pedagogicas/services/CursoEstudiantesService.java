@@ -86,33 +86,64 @@ public class CursoEstudiantesService {
         if (seccion.getProfesor() == null || !Objects.equals(seccion.getProfesor().getIdUsuario(), idProfesor)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No dictas este curso");
         }
+        // Las planificaciones enviadas las revisa el profesor de la asignatura: aparecen como acciones del estudiante.
+        Map<Long, List<Planificacion>> porEvaluar = new HashMap<>();
+        for (Planificacion planificacion
+                : planificacionRepository.findByEstadoAndLinea_Inscripcion_Seccion_Profesor_IdUsuarioOrderByFechaEnvioAsc(
+                        EstadoPlanificacion.ENVIADA, idProfesor)) {
+            if (Objects.equals(planificacion.getLinea().getInscripcion().getSeccion().getIdSeccion(),
+                    seccion.getIdSeccion())) {
+                porEvaluar.computeIfAbsent(planificacion.getLinea().getInscripcion().getIdInscripcion(),
+                        id -> new ArrayList<>()).add(planificacion);
+            }
+        }
+
         return profesorRepository.findInscripcionesDelProfesor(idProfesor).stream()
                 .filter(ins -> Objects.equals(ins.getSeccion().getIdSeccion(), seccion.getIdSeccion()))
                 .filter(ins -> ins.getEstado() != EstadoInscripcion.RETIRADO)
-                .map(this::conInforme)
+                .map(ins -> conInforme(ins, accionesDePlanificaciones(
+                        porEvaluar.getOrDefault(ins.getIdInscripcion(), List.of()))))
                 .toList();
     }
 
-    private EstudianteCurso conInforme(InscripcionAsignatura inscripcion) {
+    private static List<AccionEstudiante> accionesDePlanificaciones(List<Planificacion> pendientes) {
+        List<AccionEstudiante> acciones = new ArrayList<>();
+        for (Planificacion planificacion : pendientes) {
+            acciones.add(new AccionEstudiante(
+                    planificacion.getFechaEnvio() == null
+                            ? "Evaluar la planificación"
+                            : "Evaluar planificación enviada el " + planificacion.getFechaEnvio().format(FECHA),
+                    "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar"));
+        }
+        return acciones;
+    }
+
+    private static List<AccionEstudiante> juntar(List<AccionEstudiante> primeras, AccionEstudiante... resto) {
+        List<AccionEstudiante> todas = new ArrayList<>(primeras);
+        todas.addAll(List.of(resto));
+        return todas;
+    }
+
+    private EstudianteCurso conInforme(InscripcionAsignatura inscripcion, List<AccionEstudiante> planificaciones) {
         Long id = inscripcion.getIdInscripcion();
         String nombre = inscripcion.getEstudiante().getNombre();
         InformeFinal informe = inscripcion.getInformeFinal();
 
         if (informe == null) {
             return new EstudianteCurso(id, nombre, "Sin informe", "pendiente",
-                    List.of(new AccionEstudiante("Ir a generar el informe final",
+                    juntar(planificaciones, new AccionEstudiante("Ir a generar el informe final",
                             "/profesor/informes#curso-" + inscripcion.getSeccion().getIdSeccion())));
         }
 
         String base = "/profesor/informes/" + informe.getIdInforme();
         if (informe.getFechaPublicacion() != null) {
-            return new EstudianteCurso(id, nombre, "Publicado", "aprobada", List.of(
+            return new EstudianteCurso(id, nombre, "Publicado", "aprobada", juntar(planificaciones,
                     new AccionEstudiante("Ver el informe final", base),
                     new AccionEstudiante("Ver la revisión del informe", base + "#revisar")));
         }
         boolean validado = informe.getFechaValidacion() != null;
         return new EstudianteCurso(id, nombre, validado ? "Validado" : "Informe generado",
-                validado ? "aprobada" : "borrador", List.of(
+                validado ? "aprobada" : "borrador", juntar(planificaciones,
                         new AccionEstudiante("Ver el informe final", base),
                         new AccionEstudiante("Revisar y publicar", base + "#revisar")));
     }
@@ -136,30 +167,11 @@ public class CursoEstudiantesService {
                 .collect(Collectors.groupingBy(linea -> linea.getInscripcion().getIdInscripcion(),
                         LinkedHashMap::new, Collectors.toList()));
 
-        Map<Long, List<Planificacion>> porEvaluar = new HashMap<>();
-        if (esColaborador) {
-            for (Planificacion planificacion
-                    : planificacionRepository.findByEstadoAndLinea_Colaborador_IdUsuarioOrderByFechaEnvioAsc(
-                            EstadoPlanificacion.ENVIADA, idProfesor)) {
-                porEvaluar.computeIfAbsent(planificacion.getLinea().getInscripcion().getIdInscripcion(),
-                        id -> new ArrayList<>()).add(planificacion);
-            }
-        }
-
         String base = esColaborador ? "/colaborador/lineas/" : "/tutor/lineas/";
         List<EstudianteCurso> estudiantes = new ArrayList<>();
         for (List<LineaPractica> lineas : porInscripcion.values()) {
             InscripcionAsignatura inscripcion = lineas.get(0).getInscripcion();
-            List<Planificacion> pendientes = porEvaluar.getOrDefault(inscripcion.getIdInscripcion(), List.of());
-
             List<AccionEstudiante> acciones = new ArrayList<>();
-            for (Planificacion planificacion : pendientes) {
-                acciones.add(new AccionEstudiante(
-                        planificacion.getFechaEnvio() == null
-                                ? "Evaluar la planificación"
-                                : "Evaluar planificación enviada el " + planificacion.getFechaEnvio().format(FECHA),
-                        "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar"));
-            }
             for (LineaPractica linea : lineas) {
                 acciones.add(new AccionEstudiante("Pautas de evaluación (" + tipoDeLinea(linea) + ")",
                         base + linea.getIdLinea()));
@@ -167,8 +179,8 @@ public class CursoEstudiantesService {
 
             estudiantes.add(new EstudianteCurso(inscripcion.getIdInscripcion(),
                     inscripcion.getEstudiante().getNombre(),
-                    pendientes.isEmpty() ? null : pendientes.size() + " por evaluar",
-                    pendientes.isEmpty() ? null : "pendiente",
+                    null,
+                    null,
                     acciones));
         }
         return estudiantes;

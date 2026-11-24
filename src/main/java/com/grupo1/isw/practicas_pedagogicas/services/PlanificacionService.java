@@ -37,11 +37,11 @@ public class PlanificacionService {
     }
 
     @Transactional
-    public void evaluarPlanificacion(Long idPlanificacion, Long idColaborador, String retroalimentacion, EstadoPlanificacion nuevoEstado) {
+    public void evaluarPlanificacion(Long idPlanificacion, Long idProfesor, String retroalimentacion, EstadoPlanificacion nuevoEstado) {
         Planificacion planificacion = obtenerPlanificacion(idPlanificacion);
         ocultarSiEsBorrador(planificacion);
 
-        if (!planificacion.getLinea().getColaborador().getIdUsuario().equals(idColaborador)) {
+        if (!esProfesorDeLaSeccion(planificacion, idProfesor)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para evaluar esta planificación");
         }
 
@@ -76,15 +76,25 @@ public class PlanificacionService {
     }
 
     /**
-     * Planificación vista por el colaborador de la línea. Un BORRADOR es trabajo privado del estudiante:
-     * para el colaborador no existe (404, no 403, para no revelar que hay un borrador).
+     * Quien revisa las planificaciones es el profesor de la asignatura: el de la sección en que está
+     * inscrito el estudiante.
+     */
+    private static boolean esProfesorDeLaSeccion(Planificacion planificacion, Long idProfesor) {
+        var profesor = planificacion.getLinea().getInscripcion().getSeccion().getProfesor();
+        return profesor != null && profesor.getIdUsuario().equals(idProfesor);
+    }
+
+    /**
+     * Planificación vista por el profesor de la asignatura de la sección del estudiante (el nombre del método es
+     * histórico: antes la revisaba el colaborador). Un BORRADOR es trabajo privado del estudiante:
+     * para el profesor no existe (404, no 403, para no revelar que hay un borrador).
      */
     @Transactional(readOnly = true)
-    public Planificacion obtenerPlanificacionParaColaborador(Long idPlanificacion, Long idColaborador) {
+    public Planificacion obtenerPlanificacionParaColaborador(Long idPlanificacion, Long idProfesor) {
         Planificacion planificacion = obtenerPlanificacion(idPlanificacion);
         ocultarSiEsBorrador(planificacion);
 
-        if (!planificacion.getLinea().getColaborador().getIdUsuario().equals(idColaborador)) {
+        if (!esProfesorDeLaSeccion(planificacion, idProfesor)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permiso para ver esta planificación");
         }
         return planificacion;
@@ -102,19 +112,19 @@ public class PlanificacionService {
     }
 
     @Transactional(readOnly = true)
-    public List<Planificacion> obtenerPendientesDelColaborador(Long idColaborador) {
+    public List<Planificacion> obtenerPendientesDelColaborador(Long idProfesor) {
         return planificacionRepository
-                .findByEstadoAndLinea_Colaborador_IdUsuarioOrderByFechaEnvioAsc(
-                        EstadoPlanificacion.ENVIADA, idColaborador);
+                .findByEstadoAndLinea_Inscripcion_Seccion_Profesor_IdUsuarioOrderByFechaEnvioAsc(
+                        EstadoPlanificacion.ENVIADA, idProfesor);
     }
 
     /**
-     * Pendientes del colaborador para su lista: de la más antigua a la más reciente (por fecha de envío),
+     * Pendientes del profesor de la asignatura para su lista: de la más antigua a la más reciente (por fecha de envío),
      * cada una con su urgencia según la fecha de revisión que pidió el estudiante.
      */
     @Transactional(readOnly = true)
-    public List<PlanificacionPendienteResponse> listarPendientesDelColaborador(Long idColaborador, LocalDate hoy) {
-        return obtenerPendientesDelColaborador(idColaborador).stream()
+    public List<PlanificacionPendienteResponse> listarPendientesDelColaborador(Long idProfesor, LocalDate hoy) {
+        return obtenerPendientesDelColaborador(idProfesor).stream()
                 .sorted(Comparator.comparing(Planificacion::getFechaEnvio)
                         .thenComparing(Planificacion::getIdPlanificacion))
                 .map(p -> PlanificacionPendienteResponse.de(p, hoy))
@@ -217,7 +227,7 @@ public class PlanificacionService {
     }
 
     /**
-     * Envía un borrador al colaborador (BORRADOR -> ENVIADA). Exige que ya tenga su PDF subido
+     * Envía un borrador al profesor de la asignatura (BORRADOR -> ENVIADA). Exige que ya tenga su PDF subido
      * (la subida está en PlanificacionArchivoService) y la fecha para la que se pide la revisión.
      * No depende del asistente.
      */
@@ -238,7 +248,7 @@ public class PlanificacionService {
         planificacion.setFechaRevisionSolicitada(fechaRevision);
 
         planificacionRepository.save(planificacion);
-        notificarAlColaborador(planificacion, "envió");
+        notificarAlProfesor(planificacion, "envió");
     }
 
     /**
@@ -264,7 +274,7 @@ public class PlanificacionService {
         planificacion.setFechaRetro(null);
 
         planificacionRepository.save(planificacion);
-        notificarAlColaborador(planificacion, "reenvió");
+        notificarAlProfesor(planificacion, "reenvió");
     }
 
     private void exigirArchivo(Planificacion planificacion) {
@@ -277,22 +287,22 @@ public class PlanificacionService {
     private void notificarAlEstudiante(Planificacion planificacion, EstadoPlanificacion decision) {
         LineaPractica linea = planificacion.getLinea();
         String resultado = decision == EstadoPlanificacion.APROBADA
-                ? "fue aprobada por tu profesor colaborador."
-                : "fue rechazada por tu profesor colaborador; revisa la retroalimentación y reenvíala.";
+                ? "fue aprobada por tu profesor de asignatura."
+                : "fue rechazada por tu profesor de asignatura; revisa la retroalimentación y reenvíala.";
         notificacionService.crear(linea.getInscripcion().getEstudiante().getIdUsuario(),
                 NotificacionService.TIPO_PLANIFICACION,
                 "Tu planificación de clase (" + etiquetaDe(linea) + ") " + resultado,
                 "/estudiante/planificaciones");
     }
 
-    /** HU-22: avisa al colaborador de la línea; corre en la transacción del guardado. */
-    private void notificarAlColaborador(Planificacion planificacion, String accion) {
+    /** HU-22: avisa al profesor de la asignatura de la sección; corre en la transacción del guardado. */
+    private void notificarAlProfesor(Planificacion planificacion, String accion) {
         LineaPractica linea = planificacion.getLinea();
         String mensaje = linea.getInscripcion().getEstudiante().getNombre() + " " + accion
                 + " una planificación de clase (" + etiquetaDe(linea) + ") para tu revisión. Fecha solicitada: "
                 + planificacion.getFechaRevisionSolicitada().format(FORMATO_FECHA) + ".";
-        notificacionService.crear(linea.getColaborador().getIdUsuario(), NotificacionService.TIPO_PLANIFICACION,
-                mensaje, "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar");
+        notificacionService.crear(linea.getInscripcion().getSeccion().getProfesor().getIdUsuario(),
+                NotificacionService.TIPO_PLANIFICACION, mensaje, "/planificaciones/" + planificacion.getIdPlanificacion() + "/evaluar");
     }
 
     /** La planificación de un estudiante: 404 si no existe y 403 si es de otro. Lo usa también el chat. */

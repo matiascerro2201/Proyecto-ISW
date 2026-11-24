@@ -6,6 +6,7 @@ import com.grupo1.isw.practicas_pedagogicas.models.Estudiante;
 import com.grupo1.isw.practicas_pedagogicas.models.InscripcionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.ProfesorAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.ProfesorColaborador;
 import com.grupo1.isw.practicas_pedagogicas.models.SeccionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoLinea;
@@ -40,7 +41,7 @@ import static org.mockito.Mockito.when;
 class FechaRevisionPlanificacionTest {
     private static final Long ID_PLANIFICACION = 10L;
     private static final Long ID_ESTUDIANTE = 4L;
-    private static final Long ID_COLABORADOR = 1L;
+    private static final Long ID_PROFESOR = 1L;
 
     @Mock
     private PlanificacionRepository planificacionRepository;
@@ -58,10 +59,12 @@ class FechaRevisionPlanificacionTest {
         estudiante.setNombre("Camila Soto");
         Asignatura asignatura = new Asignatura();
         asignatura.setNombre("Práctica Pedagógica");
+        ProfesorAsignatura profesor = new ProfesorAsignatura();
+        profesor.setIdUsuario(ID_PROFESOR);
         InscripcionAsignatura inscripcion =
-                new InscripcionAsignatura(estudiante, new SeccionAsignatura(asignatura, null, 2026, 2), null);
+                new InscripcionAsignatura(estudiante, new SeccionAsignatura(asignatura, profesor, 2026, 2), null);
         ProfesorColaborador colaborador = new ProfesorColaborador();
-        colaborador.setIdUsuario(ID_COLABORADOR);
+        colaborador.setIdUsuario(99L); // el colaborador ya no revisa planificaciones
         LineaPractica linea = new LineaPractica(inscripcion, colaborador, null, TipoLinea.ESPECIALIDAD);
 
         Planificacion p = estado == EstadoPlanificacion.BORRADOR
@@ -91,7 +94,7 @@ class FechaRevisionPlanificacionTest {
         assertEquals(EstadoPlanificacion.ENVIADA, borrador.getEstado());
         assertEquals(fecha, borrador.getFechaRevisionSolicitada());
         ArgumentCaptor<String> mensaje = ArgumentCaptor.forClass(String.class);
-        verify(notificacionService).crear(eq(ID_COLABORADOR), eq(NotificacionService.TIPO_PLANIFICACION),
+        verify(notificacionService).crear(eq(ID_PROFESOR), eq(NotificacionService.TIPO_PLANIFICACION),
                 mensaje.capture(), any());
         assertTrue(mensaje.getValue().contains(fecha.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))),
                 mensaje.getValue());

@@ -8,6 +8,7 @@ import com.grupo1.isw.practicas_pedagogicas.models.Estudiante;
 import com.grupo1.isw.practicas_pedagogicas.models.InscripcionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.LineaPractica;
 import com.grupo1.isw.practicas_pedagogicas.models.Planificacion;
+import com.grupo1.isw.practicas_pedagogicas.models.ProfesorAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.ProfesorColaborador;
 import com.grupo1.isw.practicas_pedagogicas.models.SeccionAsignatura;
 import com.grupo1.isw.practicas_pedagogicas.models.TipoLinea;
@@ -29,10 +30,10 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-/** Lista de pendientes del colaborador: orden por antigüedad e indicador de urgencia. */
+/** Lista de pendientes del profesor de la asignatura: orden por antigüedad e indicador de urgencia. */
 @ExtendWith(MockitoExtension.class)
 class PlanificacionesPendientesColaboradorTest {
-    private static final Long ID_COLABORADOR = 1L;
+    private static final Long ID_PROFESOR = 1L;
     private static final LocalDate HOY = LocalDate.of(2026, 11, 23);
 
     @Mock
@@ -50,10 +51,12 @@ class PlanificacionesPendientesColaboradorTest {
         e.setNombre(estudiante);
         Asignatura asignatura = new Asignatura();
         asignatura.setNombre("Práctica Pedagógica");
+        ProfesorAsignatura profesor = new ProfesorAsignatura();
+        profesor.setIdUsuario(ID_PROFESOR);
         InscripcionAsignatura inscripcion =
-                new InscripcionAsignatura(e, new SeccionAsignatura(asignatura, null, 2026, 2), null);
+                new InscripcionAsignatura(e, new SeccionAsignatura(asignatura, profesor, 2026, 2), null);
         ProfesorColaborador colaborador = new ProfesorColaborador();
-        colaborador.setIdUsuario(ID_COLABORADOR);
+        colaborador.setIdUsuario(99L);
         Planificacion p = new Planificacion(new LineaPractica(inscripcion, colaborador, null, TipoLinea.ESPECIALIDAD),
                 null, envio);
         p.setIdPlanificacion(id);
@@ -73,10 +76,10 @@ class PlanificacionesPendientesColaboradorTest {
         Planificacion reciente = planificacion(1, "Reciente", LocalDateTime.of(2026, 11, 20, 9, 0), HOY.plusDays(10));
         Planificacion antigua = planificacion(2, "Antigua", LocalDateTime.of(2026, 11, 2, 9, 0), HOY.plusDays(20));
         Planificacion media = planificacion(3, "Media", LocalDateTime.of(2026, 11, 12, 9, 0), HOY.plusDays(1));
-        when(planificacionRepository.findByEstadoAndLinea_Colaborador_IdUsuarioOrderByFechaEnvioAsc(
-                EstadoPlanificacion.ENVIADA, ID_COLABORADOR)).thenReturn(List.of(reciente, antigua, media));
+        when(planificacionRepository.findByEstadoAndLinea_Inscripcion_Seccion_Profesor_IdUsuarioOrderByFechaEnvioAsc(
+                EstadoPlanificacion.ENVIADA, ID_PROFESOR)).thenReturn(List.of(reciente, antigua, media));
 
-        List<PlanificacionPendienteResponse> lista = service.listarPendientesDelColaborador(ID_COLABORADOR, HOY);
+        List<PlanificacionPendienteResponse> lista = service.listarPendientesDelColaborador(ID_PROFESOR, HOY);
 
         assertEquals(List.of("Antigua", "Media", "Reciente"),
                 lista.stream().map(PlanificacionPendienteResponse::nombreEstudiante).toList());
