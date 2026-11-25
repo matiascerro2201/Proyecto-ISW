@@ -11,92 +11,164 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/tema.css}">
     <link rel="stylesheet" th:href="@{/css/cursos.css}">
+    <link rel="stylesheet" th:href="@{/css/pauta-editor.css}">
+    <link rel="stylesheet" th:href="@{/css/navegador-dimensiones.css}">
+    <link rel="stylesheet" th:href="@{/css/evaluar-pauta.css}">
     <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
     <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/lista-asignaturas.js}" defer></script>
     <script th:src="@{/js/coordinador.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/coordinador/cursos')}"></th:block>
-<main>
+<main class="editor-pagina">
     <a class="back-link" th:href="@{${curso.enlaceSemestre()}}" th:text="|Volver al semestre ${curso.periodo()}|">Volver</a>
 
-    <h1 th:text="${curso.nombre()}">Práctica Pedagógica</h1>
+    <h1 class="ev-titulo" th:text="${curso.nombre()}">Práctica Pedagógica</h1>
 
-    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
-    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <p class="msg ok" role="status" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
+    <p class="msg error" role="alert" th:if="${error}" th:text="${error}">Mensaje de error</p>
 
-    <section class="coord-ficha" aria-label="Información del curso">
-        <dl>
-            <div><dt>Periodo</dt><dd th:text="${curso.periodo()}">Semestre 2 de 2026</dd></div>
-            <div><dt>Ciclo</dt><dd th:text="${curso.cicloEtiqueta()}">Final</dd></div>
-            <div><dt>Líneas de práctica</dt><dd th:text="${curso.numeroLineas()}">1</dd></div>
-            <div><dt>Profesor</dt><dd th:text="|${curso.profesor()} (${curso.profesorEmail()})|">Profesor</dd></div>
-            <div><dt>Límite de revisión</dt>
-                <dd th:text="${curso.fechaLimiteRevision() != null} ? ${#temporals.format(curso.fechaLimiteRevision(), 'dd/MM/yyyy')} : 'Sin definir'">—</dd></div>
-            <div><dt>Estudiantes</dt><dd th:text="${#lists.size(curso.estudiantes())}">12</dd></div>
-        </dl>
-    </section>
+    <div class="editor">
+        <!-- Bloque izquierdo fijo: datos del curso, pautas de evaluación y entregas -->
+        <aside class="editor__lateral ev-lateral" aria-label="Información del curso">
+            <div class="ev-datos">
+                <p class="editor__etiqueta">Curso</p>
+                <h2 class="ev-nombre" th:text="${curso.periodo()}">Semestre 2 de 2026</h2>
+                <p class="ev-asignatura" th:text="|Ciclo ${curso.cicloEtiqueta().toLowerCase()}|">Ciclo final</p>
 
-    <section id="pautas">
-        <h2>Pautas de evaluación</h2>
-        <p class="coord-sub">Las pautas deshabilitadas dejan de pedirse a los evaluadores. Se definen por asignatura, así que el cambio vale para todos sus semestres.</p>
-        <p class="vacio" th:if="${#lists.isEmpty(curso.pautasEvaluacion())}">Esta asignatura no tiene pautas de evaluación.</p>
-        <table class="coord-tabla" th:unless="${#lists.isEmpty(curso.pautasEvaluacion())}">
-            <thead><tr><th>Línea</th><th>Aplicación</th><th>Ponderación</th><th>Dimensiones</th><th>Criterios</th><th>Estado</th><th></th></tr></thead>
-            <tbody>
-            <tr th:each="p : ${curso.pautasEvaluacion()}">
-                <td th:text="${p.tipoLineaEtiqueta()}"></td>
-                <td th:text="${p.numeroAplicacion()}"></td>
-                <td th:text="${p.ponderacion()} + '%'"></td>
-                <td th:text="${p.dimensiones()}"></td>
-                <td th:text="${p.criterios()}"></td>
-                <td><span class="coord-estado" th:classappend="${p.habilitada()} ? 'coord-estado--ok' : 'coord-estado--pendiente'"
-                          th:text="${p.habilitada()} ? 'Habilitada' : 'Deshabilitada'"></span></td>
-                <td>
-                    <form method="post"
-                          th:action="@{/coordinador/cursos/seccion/{s}/pautas-evaluacion/{p}/habilitada(s=${curso.idSeccion()}, p=${p.id()})}">
-                        <input type="hidden" name="habilitada" th:value="${!p.habilitada()}">
-                        <button type="submit" class="btn btn-ghost" th:text="${p.habilitada()} ? 'Deshabilitar' : 'Habilitar'">Deshabilitar</button>
-                    </form>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </section>
+                <dl class="ev-meta">
+                    <dt>Líneas de práctica</dt>
+                    <dd th:text="${curso.numeroLineas()}">1</dd>
+                    <dt>Profesor</dt>
+                    <dd th:text="|${curso.profesor()} (${curso.profesorEmail()})|">Profesor</dd>
+                    <dt>Límite de revisión</dt>
+                    <dd th:text="${curso.fechaLimiteRevision() != null} ? ${#temporals.format(curso.fechaLimiteRevision(), 'dd/MM/yyyy')} : 'Sin definir'">—</dd>
+                    <dt>Estudiantes</dt>
+                    <dd th:text="${#lists.size(curso.estudiantes())}">12</dd>
+                </dl>
+            </div>
 
-    <section id="entregas">
-        <h2>Entregas</h2>
-        <p class="vacio" th:if="${#lists.isEmpty(curso.pautasDocumento())}">Esta asignatura no tiene entregas definidas.</p>
-        <table class="coord-tabla" th:unless="${#lists.isEmpty(curso.pautasDocumento())}">
-            <thead><tr><th>Documento</th><th>Número</th><th>Ponderación</th><th>Estado</th><th></th></tr></thead>
-            <tbody>
-            <tr th:each="p : ${curso.pautasDocumento()}">
-                <td th:text="${p.tipoEtiqueta()}"></td>
-                <td th:text="${p.numero()}"></td>
-                <td th:text="${p.ponderacion()} + '%'"></td>
-                <td><span class="coord-estado" th:classappend="${p.habilitada()} ? 'coord-estado--ok' : 'coord-estado--pendiente'"
-                          th:text="${p.habilitada()} ? 'Habilitada' : 'Deshabilitada'"></span></td>
-                <td>
-                    <form method="post"
-                          th:action="@{/coordinador/cursos/seccion/{s}/pautas-documento/{p}/habilitada(s=${curso.idSeccion()}, p=${p.id()})}">
-                        <input type="hidden" name="habilitada" th:value="${!p.habilitada()}">
-                        <button type="submit" class="btn btn-ghost" th:text="${p.habilitada()} ? 'Deshabilitar' : 'Habilitar'">Deshabilitar</button>
-                    </form>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-    </section>
+            <section class="coord-bloque" id="pautas" aria-labelledby="titulo-pautas">
+                <div class="coord-bloque__cab">
+                    <h3 id="titulo-pautas">Pautas de evaluación</h3>
+                    <span class="ayuda">
+                        <button type="button" class="ayuda__boton" data-ayuda aria-label="Qué significa deshabilitar una pauta"
+                                aria-expanded="false" aria-controls="ayuda-pautas">?</button>
+                        <span class="ayuda__texto" id="ayuda-pautas" role="note">
+                            Las pautas deshabilitadas dejan de pedirse a los evaluadores. Se definen por asignatura, así que el cambio vale para todos sus semestres.
+                        </span>
+                    </span>
+                </div>
+                <p class="vacio" th:if="${#lists.isEmpty(curso.pautasEvaluacion())}">Esta asignatura no tiene pautas de evaluación.</p>
+                <ul class="coord-items" th:unless="${#lists.isEmpty(curso.pautasEvaluacion())}">
+                    <li class="coord-item" th:each="p : ${curso.pautasEvaluacion()}">
+                        <div class="coord-item__cab">
+                            <span class="coord-item__titulo" th:text="|${p.tipoLineaEtiqueta()} · Aplicación ${p.numeroAplicacion()}|">Especialidad · Aplicación 1</span>
+                            <span class="coord-estado" th:classappend="${p.habilitada()} ? 'coord-estado--ok' : 'coord-estado--pendiente'"
+                                  th:text="${p.habilitada()} ? 'Habilitada' : 'Deshabilitada'">Habilitada</span>
+                        </div>
+                        <p class="coord-item__meta"
+                           th:text="|Ponderación ${p.ponderacion().stripTrailingZeros().toPlainString()} % · ${p.dimensiones()} ${p.dimensiones() == 1 ? 'dimensión' : 'dimensiones'} · ${p.criterios()} ${p.criterios() == 1 ? 'criterio' : 'criterios'}|">Ponderación 50 % · 3 dimensiones · 8 criterios</p>
+                        <form method="post"
+                              th:action="@{/coordinador/cursos/seccion/{s}/pautas-evaluacion/{p}/habilitada(s=${curso.idSeccion()}, p=${p.id()})}">
+                            <input type="hidden" name="habilitada" th:value="${!p.habilitada()}">
+                            <button type="submit" class="btn btn-secondary" th:text="${p.habilitada()} ? 'Deshabilitar' : 'Habilitar'">Deshabilitar</button>
+                        </form>
+                    </li>
+                </ul>
+            </section>
 
-    <section id="estudiantes">
-        <h2>Estudiantes</h2>
-        <p class="vacio" th:if="${#lists.isEmpty(curso.estudiantes())}">Este curso aún no tiene estudiantes inscritos.</p>
-        <div class="coord-acordeon" th:unless="${#lists.isEmpty(curso.estudiantes())}">
-            <th:block th:each="a : ${curso.estudiantes()}">
-                <th:block th:replace="~{fragments/coordinador-actividad :: inscripcion(${a}, false)}"></th:block>
+            <section class="coord-bloque" id="entregas" aria-labelledby="titulo-entregas">
+                <div class="coord-bloque__cab">
+                    <h3 id="titulo-entregas">Entregas</h3>
+                </div>
+                <p class="vacio" th:if="${#lists.isEmpty(curso.pautasDocumento())}">Esta asignatura no tiene entregas definidas.</p>
+                <ul class="coord-items" th:unless="${#lists.isEmpty(curso.pautasDocumento())}">
+                    <li class="coord-item" th:each="p : ${curso.pautasDocumento()}">
+                        <div class="coord-item__cab">
+                            <span class="coord-item__titulo" th:text="|${p.tipoEtiqueta()} · N.º ${p.numero()}|">Informe · N.º 1</span>
+                            <span class="coord-estado" th:classappend="${p.habilitada()} ? 'coord-estado--ok' : 'coord-estado--pendiente'"
+                                  th:text="${p.habilitada()} ? 'Habilitada' : 'Deshabilitada'">Habilitada</span>
+                        </div>
+                        <p class="coord-item__meta" th:text="|Ponderación ${p.ponderacion().stripTrailingZeros().toPlainString()} %|">Ponderación 20 %</p>
+                        <form method="post"
+                              th:action="@{/coordinador/cursos/seccion/{s}/pautas-documento/{p}/habilitada(s=${curso.idSeccion()}, p=${p.id()})}">
+                            <input type="hidden" name="habilitada" th:value="${!p.habilitada()}">
+                            <button type="submit" class="btn btn-secondary" th:text="${p.habilitada()} ? 'Deshabilitar' : 'Habilitar'">Deshabilitar</button>
+                        </form>
+                    </li>
+                </ul>
+            </section>
+        </aside>
+
+        <!-- Bloque derecho: estudiantes del curso; al elegir uno se abre su detalle en una ventana -->
+        <section class="asignaturas" id="estudiantes" aria-labelledby="titulo-estudiantes">
+            <div class="asignaturas__cab">
+                <h2 id="titulo-estudiantes">Estudiantes</h2>
+                <span class="asignaturas__contador" id="contador" aria-live="polite"
+                      th:text="|${#lists.size(curso.estudiantes())} ${#lists.size(curso.estudiantes()) == 1 ? 'estudiante' : 'estudiantes'}|">12 estudiantes</span>
+            </div>
+
+            <p class="vacio" th:if="${#lists.isEmpty(curso.estudiantes())}">Este curso aún no tiene estudiantes inscritos.</p>
+
+            <th:block th:unless="${#lists.isEmpty(curso.estudiantes())}">
+                <div class="filtros" style="--filtros: 1;" role="search">
+                    <div class="filtros__buscar">
+                        <label for="buscar">Buscar</label>
+                        <div class="sugerencias">
+                            <input type="search" id="buscar" placeholder="Nombre, correo o carrera" autocomplete="off"
+                                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                            <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias de estudiantes" hidden></ul>
+                        </div>
+                    </div>
+                    <label>
+                        Informe
+                        <select id="filtro-linea">
+                            <option value="">Todos</option>
+                        </select>
+                    </label>
+                    <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+                </div>
+
+                <ul class="asignaturas__lista" id="lista-asignaturas" style="--datos: 4;"
+                    data-singular="estudiante" data-plural="estudiantes" data-sugerencias-unicas>
+                    <li class="asignatura" th:each="a : ${curso.estudiantes()}"
+                        th:attr="data-linea=${a.informeEstado()}, data-busqueda=|${a.email()} ${a.carrera()}|">
+                        <button type="button" class="asignatura__fila" aria-haspopup="dialog"
+                                th:attr="data-id=${a.idInscripcion()}, data-titulo=${a.estudiante()}">
+                            <span class="asignatura__principal">
+                                <span class="asignatura__nombre" th:text="${a.estudiante()}">Camila Soto</span>
+                                <span class="asignatura__periodo" th:text="${a.email()}">camila@correo.cl</span>
+                            </span>
+                            <span class="asignatura__dato" th:text="|Evaluaciones ${a.evaluacionesRealizadas()}/${a.evaluacionesTotales()}|">Evaluaciones 1/3</span>
+                            <span class="asignatura__dato" th:text="|Planificaciones por revisar: ${a.planificacionesPorRevisar()}|">Planificaciones por revisar: 0</span>
+                            <span class="asignatura__dato" th:text="|Entregas ${a.entregasRealizadas()}/${a.entregasTotales()}|">Entregas 1/2</span>
+                            <span class="asignatura__dato" th:text="|Informe: ${a.informeEstado()}|">Informe: Publicado</span>
+                            <span class="asignatura__ver">Ver detalle</span>
+                        </button>
+                    </li>
+                </ul>
+                <p class="vacio" id="sin-resultados" hidden>Ningún estudiante coincide con los filtros.</p>
+
+                <template th:each="a : ${curso.estudiantes()}" th:id="|plantilla-${a.idInscripcion()}|">
+                    <p class="curso-periodo" th:text="|${a.email()} · ${a.carrera()}|">camila@correo.cl · Pedagogía en Matemática</p>
+                    <th:block th:replace="~{fragments/coordinador-actividad :: cuerpo(${a})}"></th:block>
+                </template>
             </th:block>
-        </div>
-    </section>
+        </section>
+    </div>
+    <noscript><p class="alerta">Esta página necesita JavaScript para mostrar el detalle de cada estudiante.</p></noscript>
 </main>
+
+<dialog class="dialogo dialogo--pautas" id="dialogo-lista" aria-labelledby="dialogo-lista-titulo">
+    <div class="dialogo__cab">
+        <h2 id="dialogo-lista-titulo">Estudiante</h2>
+        <button type="button" class="dialogo__cerrar" id="dialogo-lista-cerrar" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="dialogo__cuerpo" id="dialogo-lista-cuerpo"></div>
+</dialog>
 </body>
 </html>

@@ -26,6 +26,31 @@ public class InscripcionAdminRepository {
 
     public record InscripcionFila(Long id, Long idSeccion, Long idEstudiante, String estudiante, String email,
                                   Long idCentro, String centro, String estado, List<LineaFila> lineas) {
+
+        /** Todas sus líneas tienen colaborador y tutor asignados (y tiene al menos una línea). */
+        public boolean completa() {
+            return !lineas.isEmpty()
+                    && lineas.stream().allMatch(l -> l.colaborador() != null && l.tutor() != null);
+        }
+
+        /** Texto extra para el buscador de la lista: correo, centro y los profesores de sus líneas. */
+        public String textoBusqueda() {
+            StringBuilder texto = new StringBuilder();
+            for (String parte : new String[]{email, centro}) {
+                if (parte != null) {
+                    texto.append(parte).append(' ');
+                }
+            }
+            for (LineaFila linea : lineas) {
+                if (linea.colaborador() != null) {
+                    texto.append(linea.colaborador()).append(' ');
+                }
+                if (linea.tutor() != null) {
+                    texto.append(linea.tutor()).append(' ');
+                }
+            }
+            return texto.toString().trim();
+        }
     }
 
     /** Una persona o un centro para un menú desplegable. */

@@ -167,6 +167,11 @@ public class PautaSemestreRepository {
         jdbc.update("DELETE FROM dimension WHERE id_dimension = ?", idDimension);
     }
 
+    /** Quita todas las dimensiones de la pauta; sus criterios se borran en cascada. */
+    public void eliminarDimensiones(long idPauta) {
+        jdbc.update("DELETE FROM dimension WHERE id_pauta_evaluacion = ?", idPauta);
+    }
+
     public long insertarCriterio(long idDimension, String descripcion, BigDecimal puntajeMaximo) {
         Integer max = jdbc.queryForObject(
                 "SELECT COALESCE(MAX(orden), 0) FROM criterio WHERE id_dimension = ?", Integer.class, idDimension);

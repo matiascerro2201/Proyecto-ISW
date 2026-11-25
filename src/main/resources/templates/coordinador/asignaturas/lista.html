@@ -13,46 +13,112 @@
     <link rel="stylesheet" th:href="@{/css/cursos.css}">
     <link rel="stylesheet" th:href="@{/css/lista-asignaturas.css}">
     <link rel="stylesheet" th:href="@{/css/coordinador.css}">
+    <script th:src="@{/js/lista-asignaturas.js}" defer></script>
     <script th:src="@{/js/coordinador.js}" defer></script>
 </head>
 <body>
 <th:block th:replace="~{fragments/barra :: barra('/coordinador/asignaturas')}"></th:block>
 <main>
     <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
     <h1>Asignaturas</h1>
 
-    <p class="coord-mensaje" role="status" th:if="${mensaje}" th:text="${mensaje}"></p>
-    <p class="coord-error" role="alert" th:if="${error}" th:text="${error}"></p>
+    <p class="msg ok" role="status" th:if="${mensaje}" th:text="${mensaje}">Mensaje de confirmación</p>
+    <p class="msg error" role="alert" th:if="${error}" th:text="${error}">Mensaje de error</p>
 
-    <div class="coord-filtros">
-        <a class="btn btn-primary" th:href="@{/coordinador/asignaturas/nueva}">Nueva asignatura</a>
-        <a class="btn btn-ghost" th:href="@{/coordinador/secciones}">Ver secciones</a>
+    <div class="coord-barra">
+        <a class="btn btn-accent" th:href="@{/coordinador/asignaturas/nueva}">+ Nueva asignatura</a>
+        <a class="btn btn-secondary" th:href="@{/coordinador/secciones}">Ver secciones</a>
     </div>
 
-    <p class="coord-contador" aria-live="polite"
-       th:text="|${#lists.size(asignaturas)} ${#lists.size(asignaturas) == 1 ? 'asignatura' : 'asignaturas'}|">3 asignaturas</p>
-    <p class="vacio" th:if="${#lists.isEmpty(asignaturas)}">Todavía no hay asignaturas. Crea la primera.</p>
+    <section class="asignaturas" aria-labelledby="titulo-lista">
+        <div class="asignaturas__cab">
+            <h2 id="titulo-lista">Asignaturas</h2>
+            <span class="asignaturas__contador" id="contador" aria-live="polite"
+                  th:text="|${#lists.size(asignaturas)} ${#lists.size(asignaturas) == 1 ? 'asignatura' : 'asignaturas'}|">3 asignaturas</span>
+        </div>
 
-    <table class="coord-tabla" th:unless="${#lists.isEmpty(asignaturas)}">
-        <thead><tr><th>Nombre</th><th>Ciclo</th><th>Líneas</th><th>Secciones</th><th>Acciones</th></tr></thead>
-        <tbody>
-        <tr th:each="a : ${asignaturas}">
-            <td th:text="${a.nombre()}">Nombre</td>
-            <td th:text="${a.cicloEtiqueta()}">Ciclo</td>
-            <td th:text="${a.numeroLineas()}">1</td>
-            <td th:text="${a.secciones()}">0</td>
-            <td class="coord-acciones">
-                <a class="btn btn-ghost" th:href="@{/coordinador/asignaturas/{id}/editar(id=${a.id()})}">Editar</a>
-                <form method="post" th:if="${a.puedeEliminar()}"
-                      th:action="@{/coordinador/asignaturas/{id}/eliminar(id=${a.id()})}"
-                      data-confirmar="¿Eliminar esta asignatura? Se borrarán también sus pautas y no se puede deshacer.">
-                    <button type="submit" class="btn btn-ghost">Eliminar</button>
-                </form>
-                <span class="coord-sub" th:unless="${a.puedeEliminar()}">Tiene secciones</span>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+        <p class="vacio" th:if="${#lists.isEmpty(asignaturas)}">Todavía no hay asignaturas. Crea la primera.</p>
+
+        <th:block th:unless="${#lists.isEmpty(asignaturas)}">
+            <div class="filtros" style="--filtros: 2;" role="search">
+                <div class="filtros__buscar">
+                    <label for="buscar">Buscar</label>
+                    <div class="sugerencias">
+                        <input type="search" id="buscar" placeholder="Nombre de la asignatura" autocomplete="off"
+                               role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerencias">
+                        <ul class="sugerencias__lista" id="sugerencias" role="listbox" aria-label="Sugerencias" hidden></ul>
+                    </div>
+                </div>
+                <label>
+                    Ciclo
+                    <select id="filtro-linea">
+                        <option value="">Todos</option>
+                    </select>
+                </label>
+                <label>
+                    Secciones
+                    <select id="filtro-estado">
+                        <option value="">Todos</option>
+                        <option value="CON_SECCIONES">Con secciones</option>
+                        <option value="SIN_SECCIONES">Sin secciones</option>
+                    </select>
+                </label>
+                <button type="button" class="btn btn-ghost" id="limpiar-filtros">Limpiar</button>
+            </div>
+
+            <ul class="asignaturas__lista" id="lista-asignaturas" style="--datos: 3;" data-sugerencias-unicas
+                data-singular="asignatura" data-plural="asignaturas">
+                <li class="asignatura" th:each="a : ${asignaturas}"
+                    th:attr="data-estado=${a.secciones() > 0 ? 'CON_SECCIONES' : 'SIN_SECCIONES'}, data-linea=${a.cicloEtiqueta()}">
+                    <button type="button" class="asignatura__fila" aria-haspopup="dialog"
+                            th:attr="data-id=${a.id()}, data-titulo=${a.nombre()}">
+                        <span class="asignatura__principal">
+                            <span class="asignatura__nombre" th:text="${a.nombre()}">Práctica Pedagógica</span>
+                            <span class="asignatura__periodo"
+                                  th:text="|${a.numeroLineas()} ${a.numeroLineas() == 1 ? 'línea' : 'líneas'}|">2 líneas</span>
+                        </span>
+                        <span class="asignatura__dato" th:text="|Ciclo ${a.cicloEtiqueta().toLowerCase()}|">Ciclo final</span>
+                        <span class="asignatura__dato" th:text="|${a.secciones()} ${a.secciones() == 1 ? 'sección' : 'secciones'}|">0 secciones</span>
+                        <span class="asignatura__dato" th:text="|${a.inscripciones()} ${a.inscripciones() == 1 ? 'inscripción' : 'inscripciones'}|">0 inscripciones</span>
+                        <span class="asignatura__ver">Ver detalle</span>
+                    </button>
+                </li>
+            </ul>
+            <p class="vacio" id="sin-resultados" hidden>Ninguna asignatura coincide con los filtros.</p>
+
+            <template th:each="a : ${asignaturas}" th:id="|plantilla-${a.id()}|">
+                <div class="coord-ficha">
+                    <dl>
+                        <div><dt>Ciclo</dt><dd th:text="${a.cicloEtiqueta()}">Final</dd></div>
+                        <div><dt>Líneas</dt><dd th:text="${a.numeroLineas()}">2</dd></div>
+                        <div><dt>Secciones</dt><dd th:text="${a.secciones()}">0</dd></div>
+                        <div><dt>Inscripciones</dt><dd th:text="${a.inscripciones()}">0</dd></div>
+                    </dl>
+                </div>
+                <div class="card__footer coord-acciones-dialogo">
+                    <a class="btn btn-secondary" th:href="@{/coordinador/asignaturas/{id}/editar(id=${a.id()})}">Editar</a>
+                    <form method="post" th:if="${a.puedeEliminar()}"
+                          th:action="@{/coordinador/asignaturas/{id}/eliminar(id=${a.id()})}"
+                          data-confirmar="¿Eliminar esta asignatura? Se borrarán también sus pautas y no se puede deshacer.">
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </form>
+                    <span class="coord-sub" th:unless="${a.puedeEliminar()}">No se puede eliminar: tiene secciones.</span>
+                </div>
+            </template>
+        </th:block>
+    </section>
+    <noscript><p class="alerta">Esta página necesita JavaScript para mostrar el detalle y las acciones.</p></noscript>
 </main>
+
+<dialog class="dialogo dialogo--ancho" id="dialogo-lista" aria-labelledby="dialogo-lista-titulo">
+    <div class="dialogo__cab">
+        <h2 id="dialogo-lista-titulo">Asignatura</h2>
+        <button type="button" class="dialogo__cerrar" id="dialogo-lista-cerrar" aria-label="Cerrar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+    </div>
+    <div class="dialogo__cuerpo" id="dialogo-lista-cuerpo"></div>
+</dialog>
 </body>
 </html>

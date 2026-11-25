@@ -14,7 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/** N-04: pautas del semestre (colaborador y tutor) con sus dimensiones y criterios. */
+/**
+ * N-04: pautas del semestre (colaborador y tutor). Una sola pantalla crea y edita la pauta completa: sus datos, sus
+ * dimensiones y sus criterios se guardan juntos. Los endpoints para agregar o quitar una dimensión o un criterio
+ * suelto se mantienen para quien los use directamente (por ejemplo, desde Postman).
+ */
 @Controller
 @RequestMapping("/coordinador/semestre/{idSeccion}/pautas")
 @PreAuthorize("hasRole('COORDINADOR')")
@@ -29,7 +33,7 @@ public class CoordinadorPautaSemestreController {
 
     @GetMapping("/nueva")
     public String nueva(@PathVariable Long idSeccion, Model model) {
-        model.addAttribute("formulario", new PautaSemestreFormulario());
+        model.addAttribute("formulario", PautaSemestreFormulario.vacio());
         cargarBasicos(model, idSeccion);
         model.addAttribute("editando", false);
         return VISTA;
@@ -41,9 +45,9 @@ public class CoordinadorPautaSemestreController {
                         Model model,
                         RedirectAttributes redirect) {
         try {
-            long idPauta = servicio.crear(idSeccion, formulario);
-            redirect.addFlashAttribute("mensaje", "Pauta creada. Ahora agrega sus dimensiones y criterios.");
-            return irAPauta(idSeccion, idPauta);
+            servicio.crear(idSeccion, formulario);
+            redirect.addFlashAttribute("mensaje", "Pauta creada.");
+            return volver(idSeccion);
         } catch (EstructuraInvalidaException e) {
             model.addAttribute("errores", e.getErrores());
             cargarBasicos(model, idSeccion);
