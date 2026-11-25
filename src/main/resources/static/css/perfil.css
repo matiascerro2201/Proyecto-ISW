@@ -1,0 +1,30 @@
+/* Página "Mi perfil". Va después de base.css y tema.css. */
+.perfil__datos {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: var(--space-4) var(--space-5);
+    max-width: 48rem;
+}
+.perfil__datos h2 { margin: 0; }
+.perfil__avatar {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-full);
+    background: var(--brand-500);
+    color: var(--brand-ink);
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+}
+.perfil__rol { margin: var(--space-1) 0 0; }
+.perfil__lista { grid-column: 1 / -1; margin: 0; padding-top: var(--space-4); border-top: 1px solid var(--border); }
+.perfil__seccion { margin-top: var(--space-8); }
+.perfil__seccion h2 { margin-bottom: var(--space-2); }
+.perfil__vacio { color: var(--ink-500); }
+
+@media (max-width: 30rem) {
+    .perfil__datos { grid-template-columns: 1fr; }
+}

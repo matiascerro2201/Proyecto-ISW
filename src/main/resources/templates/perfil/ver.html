@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mi perfil</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" th:href="@{/images/logo-ubb.png}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/tema.css}">
+    <link rel="stylesheet" th:href="@{/css/perfil.css}">
+</head>
+<body>
+<th:block th:replace="~{fragments/barra :: barra('/perfil')}"></th:block>
+<main>
+    <a class="back-link" th:href="@{/}">Volver al inicio</a>
+
+    <h1>Mi perfil</h1>
+
+    <section class="card perfil__datos" aria-labelledby="perfil-nombre">
+        <div class="perfil__avatar" aria-hidden="true" th:text="${#strings.isEmpty(perfil.nombre()) ? '?' : #strings.toUpperCase(#strings.substring(perfil.nombre(), 0, 1))}">A</div>
+        <div>
+            <h2 id="perfil-nombre" th:text="${perfil.nombre()}">Nombre del usuario</h2>
+            <p class="perfil__rol"><span class="badge borrador" th:text="${perfil.rol()}">Rol</span></p>
+        </div>
+        <dl class="perfil__lista">
+            <dt>Correo</dt>
+            <dd th:text="${perfil.email()}">correo@ubiobio.cl</dd>
+            <th:block th:if="${perfil.carrera() != null}">
+                <dt>Carrera</dt>
+                <dd th:text="${perfil.carrera()}">Carrera</dd>
+            </th:block>
+            <th:block th:if="${perfil.centro() != null}">
+                <dt>Centro de práctica</dt>
+                <dd th:text="${perfil.centro()}">Centro</dd>
+            </th:block>
+            <th:block th:if="${perfil.creadoEn() != null}">
+                <dt>Cuenta creada</dt>
+                <dd th:text="${#temporals.format(perfil.creadoEn(), 'dd/MM/yyyy')}">01/01/2026</dd>
+            </th:block>
+            <dt>Estado de la cuenta</dt>
+            <dd th:text="${perfil.activo()} ? 'Activa' : 'Inactiva'">Activa</dd>
+        </dl>
+    </section>
+
+    <th:block th:if="${perfil.tieneCursos()}">
+        <section class="perfil__seccion" aria-labelledby="cursos-actuales">
+            <h2 id="cursos-actuales">Cursos actuales</h2>
+            <p class="perfil__vacio" th:if="${#lists.isEmpty(perfil.cursosActuales())}">No tienes cursos en curso.</p>
+            <div class="tabla-scroll" th:unless="${#lists.isEmpty(perfil.cursosActuales())}">
+                <table>
+                    <thead>
+                    <tr>
+                        <th scope="col">Asignatura</th>
+                        <th scope="col">Período</th>
+                        <th scope="col" th:text="${perfil.etiquetaDetalle()}">Detalle</th>
+                        <th scope="col">Estado</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="c : ${perfil.cursosActuales()}">
+                        <td th:text="${c.asignatura()}">Asignatura</td>
+                        <td th:text="${c.periodo()}">2026-2</td>
+                        <td th:text="${c.detalle()}">Detalle</td>
+                        <td><span class="badge enviada" th:text="${c.estado()}">En curso</span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="perfil__seccion" aria-labelledby="cursos-pasados">
+            <h2 id="cursos-pasados">Cursos pasados</h2>
+            <p class="perfil__vacio" th:if="${#lists.isEmpty(perfil.cursosPasados())}">Aún no tienes cursos finalizados.</p>
+            <div class="tabla-scroll" th:unless="${#lists.isEmpty(perfil.cursosPasados())}">
+                <table>
+                    <thead>
+                    <tr>
+                        <th scope="col">Asignatura</th>
+                        <th scope="col">Período</th>
+                        <th scope="col" th:text="${perfil.etiquetaDetalle()}">Detalle</th>
+                        <th scope="col">Estado</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="c : ${perfil.cursosPasados()}">
+                        <td th:text="${c.asignatura()}">Asignatura</td>
+                        <td th:text="${c.periodo()}">2025-2</td>
+                        <td th:text="${c.detalle()}">Detalle</td>
+                        <td><span class="badge" th:classappend="${c.estado() == 'Aprobado'} ? 'aprobado' : (${c.estado() == 'Reprobado'} ? 'rechazado' : 'borrador')"
+                                  th:text="${c.estado()}">Aprobado</span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </th:block>
+
+    <p class="perfil__vacio" th:unless="${perfil.tieneCursos()}">Tu rol no tiene cursos asociados.</p>
+</main>
+</body>
+</html>

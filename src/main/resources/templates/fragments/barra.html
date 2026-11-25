@@ -7,7 +7,7 @@
 <th:block th:fragment="barra(activo)">
 <header class="barra" sec:authorize="isAuthenticated()">
     <span class="barra__marca">
-        <img th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+        <img th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="382" height="248">
     </span>
 
     <nav class="barra__nav" aria-label="Funciones del sistema">
@@ -68,6 +68,13 @@
             </div>
         </details>
 
+        <a class="barra__boton barra__usuario" th:href="@{/perfil}" title="Ver mi perfil"
+           th:attr="aria-current=${activo == '/perfil'} ? 'page'">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="barra__usuario-nombre" sec:authentication="principal.nombre">Nombre</span>
+            <span class="sr-only">: ver mi perfil</span>
+        </a>
+
         <form th:action="@{/logout}" method="post">
             <button type="submit" class="barra__boton" aria-label="Cerrar sesión">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
@@ -78,7 +85,7 @@
 </header>
 <header class="barra" sec:authorize="!isAuthenticated()">
     <span class="barra__marca">
-        <img th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="498" height="304">
+        <img th:src="@{/images/logo-ubb.png}" alt="Universidad del Bío-Bío" width="382" height="248">
     </span>
     <div class="barra__acciones">
         <a class="barra__boton" th:href="@{/login}">Iniciar sesión</a>
